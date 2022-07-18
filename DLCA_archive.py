@@ -17,11 +17,11 @@ def create_dyn_inventory_bio(material, ECC_CO2_A, ECC_CH4_A, CO2_bio, rot_period
     #       assuming biomass will be long stored (end-of-life is outside the scope of the study)
 
     # Sample inputs to debug function as needed
-    # material = 'Timber'
-    # ECC_CO2_A = 0.16    # kg CO2 / kg material
-    # ECC_CH4_A = 0.01    # kg CH4 / kg material
-    # CO2_bio = 1.14      # kg CO2 / kg material
-    # rot_period = 40   # years
+    material = 'Timber'
+    ECC_CO2_A = 0.16    # kg CO2 / kg material
+    ECC_CH4_A = 0.01    # kg CH4 / kg material
+    CO2_bio = 1.14      # kg CO2 / kg material
+    rot_period = 40   # years
 
     # start and end years
     start_yr = 0
@@ -299,8 +299,8 @@ def DLCA_calc(input_flux, time_horizon=100):
     temp_change_df['temp_change'] = temp_change_df['CO2_temp'] + temp_change_df['CH4_temp'].fillna(0)
 
     # load in supporting data
-    AGWP_df_sup = pd.read_csv('./AGWP_supp_data.csv')
-    AGTP_df_sup = pd.read_csv('./AGTP_supp_data.csv')
+    AGWP_df_sup = pd.read_csv('DLCA/data/AGWP_supp_data.csv')
+    AGTP_df_sup = pd.read_csv('DLCA/data/AGTP_supp_data.csv')
     # AGWP_df_sup = pd.read_excel('./DLCA_supp_data.xlsx', sheet_name='AGWP', index_col='year')  # [W yr m^-2]
     # AGTP_df_sup = pd.read_excel('./DLCA_supp_data.xlsx', sheet_name='AGTP', index_col='year')  # [delta-K]
 
