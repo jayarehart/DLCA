@@ -1,5 +1,6 @@
 # import libraries
 from DLCA.models import *
+from DLCA.data.csv_loader import *
 import numpy as np
 
 class EmissionsFluxEngine():
@@ -26,17 +27,17 @@ class EmissionsFluxEngine():
 
         # Calculate the CO2 uptake due to biomass regrowth
         if emissions_inv.CO2bio.rot_period > 1:
-            emissions_inv.CO2bio.growth_biomass = 1 / (emissions_inv.CO2bio.sigma * np.sqrt(2 * np.pi)) * np.exp(-0.5 * ((time.year_vec - emissions_inv.CO2bio.mu) / emissions_inv.CO2bio.sigma) ** 2) * emissions_inv.CO2bio.CO2_bio
+            emissions_inv.CO2bio.growth_biomass = 1 / (emissions_inv.CO2bio.sigma * np.sqrt(2 * np.pi)) * np.exp(-0.5 * ((time.years_vec - emissions_inv.CO2bio.mu) / emissions_inv.CO2bio.sigma) ** 2) * emissions_inv.CO2bio.CO2_bio
         elif emissions_inv.CO2bio.rot_period == 1:
-            emissions_inv.CO2bio.growth_biomass = (time.year_vec * 0).astype(float)
+            emissions_inv.CO2bio.growth_biomass = (time.years_vec * 0).astype(float)
         elif emissions_inv.CO2bio.rot_period < 1:
-            emissions_inv.CO2bio.growth_biomass = (time.year_vec * 0).astype(float)
+            emissions_inv.CO2bio.growth_biomass = (time.years_vec * 0).astype(float)
 
         # Add in the carbon uptake
         CO2_flux = CO2_flux - emissions_inv.CO2bio.growth_biomass
 
         # Create and return the result
-        res = EmissionsFluxMat(time.year_vec, CO2_flux, CH4_flux, N2O_flux, material)
+        res = EmissionsFluxMat(time.years_vec, CO2_flux, CH4_flux, N2O_flux, material)
         return res
 
     @staticmethod
@@ -60,14 +61,14 @@ class DLCAEngine():
 
     def load_data(self):
         self._inputdata = DLCAInputData()
-        self._results = DLCAResults()
+        self.Results = DLCAResults()
 
     def calc_decay(self, input_flux:EmissionsFluxTotal) -> DLCAResults:
-
+        self.years_vec = input_flux.time
         # Initialize mass in atmosphere dataframe
-        mass_in_atm_df = pd.DataFrame(0, index=self.year_vec, columns=['CO2', 'CH4'])
+        mass_in_atm_df = pd.DataFrame(0, index=self.years_vec, columns=['CO2', 'CH4'])
         # Initialize CO2 atmospheric decay components dataframe
-        CO2_mass_df = pd.DataFrame(0, index=self.year_vec, columns=['mass0', 'mass1', 'mass2', 'mass3', 'CH4_to_CO2'])
+        CO2_mass_df = pd.DataFrame(0, index=self.years_vec, columns=['mass0', 'mass1', 'mass2', 'mass3', 'CH4_to_CO2'])
 
         CO2_flux = input_flux.flux_df['CO2_flux']
         CH4_flux = input_flux.flux_df['CH4_flux']
@@ -109,7 +110,7 @@ class DLCAEngine():
 
 
         # Cumulative net emissions [kg]
-        cum_net_emissions = pd.DataFrame(0, index=self.year_vec, columns=['CO2_net', 'CH4_net', 'gas1_net', 'gas2_net', 'gas3_net'])
+        cum_net_emissions = pd.DataFrame(0, index=self.years_vec, columns=['CO2_net', 'CH4_net', 'gas1_net', 'gas2_net', 'gas3_net'])
         for index, row in cum_net_emissions.iterrows():
             if index == 0:
                 cum_net_emissions.loc[index, 'CO2_net'] = CO2_flux[index]
@@ -120,11 +121,11 @@ class DLCAEngine():
                 cum_net_emissions.loc[index, 'CH4_net'] = cum_net_emissions.loc[index - 1, 'CH4_net'] + CH4_flux[index]
                 # Add in new gases too here
 
-        self._results.mass_in_atm_df = mass_in_atm_df
-        self._results.CO2_mass_df = CO2_mass_df
-        self._results.cum_net_emissions = cum_net_emissions
+        self.Results.mass_in_atm_df = mass_in_atm_df
+        self.Results.CO2_mass_df = CO2_mass_df
+        self.Results.cum_net_emissions = cum_net_emissions
 
-        return self._results
+        return self.Results
 
     def calc_AGWP(self, time_horizon=100) -> DLCAResults:
 
@@ -146,13 +147,13 @@ class DLCAEngine():
         self._inputdata.GWP_CH4 = self._inputdata.AGWP_CH4 / self._inputdata.AGWP_CO2
 
         # Initialize radiative forcing dataframe
-        irf_df = pd.DataFrame(0, index=self.year_vec, columns=['CO2_radfor', 'CH4_radfor', 'CO2_IRF', 'CH4_IRF', 'IRF_all'])
+        irf_df = pd.DataFrame(0, index=self.years_vec, columns=['CO2_radfor', 'CH4_radfor', 'CO2_IRF', 'CH4_IRF', 'IRF_all'])
 
 
 
         # Calculate the radiative forcing (instantaneous just after start of year), [W m^-2]
-        irf_df['CO2_radfor'] = self._inputdata.A_CO2 * self._results.mass_in_atm_df['CO2']
-        irf_df['CH4_radfor'] = self._inputdata.A_CH4 * self._results.mass_in_atm_df['CH4']
+        irf_df['CO2_radfor'] = self._inputdata.A_CO2 * self.Results.mass_in_atm_df['CO2']
+        irf_df['CH4_radfor'] = self._inputdata.A_CH4 * self.Results.mass_in_atm_df['CH4']
 
         # Calculate integrated radiative forcing [W-year m^-2]
         for index, row in irf_df.iterrows():
@@ -160,13 +161,13 @@ class DLCAEngine():
                 irf_df.loc[index, 'CO2_IRF'] = 0
                 irf_df.loc[index, 'CH4_IRF'] = 0
             else:
-                irf_df.loc[index, 'CO2_IRF'] = self._results.irf_df.loc[index - 1, 'CO2_IRF'] + self._inputdata.A_CO2 * (
-                        self._results.CO2_mass_df.loc[index - 1, 'mass0'] +
-                        self._results.CO2_mass_df.loc[index - 1, 'mass1'] * self._inputdata.life1_CO2 * (1 - np.exp(-1 / self._inputdata.life1_CO2)) +
-                        self._results.CO2_mass_df.loc[index - 1, 'mass2'] * self._inputdata.life2_CO2 * (1 - np.exp(-1 / self._inputdata.life2_CO2)) +
-                        self._results.CO2_mass_df.loc[index - 1, 'mass3'] * self._inputdata.life3_CO2 * (1 - np.exp(-1 / self._inputdata.life3_CO2))
+                irf_df.loc[index, 'CO2_IRF'] = irf_df.loc[index - 1, 'CO2_IRF'] + self._inputdata.A_CO2 * (
+                        self.Results.CO2_mass_df.loc[index - 1, 'mass0'] +
+                        self.Results.CO2_mass_df.loc[index - 1, 'mass1'] * self._inputdata.life1_CO2 * (1 - np.exp(-1 / self._inputdata.life1_CO2)) +
+                        self.Results.CO2_mass_df.loc[index - 1, 'mass2'] * self._inputdata.life2_CO2 * (1 - np.exp(-1 / self._inputdata.life2_CO2)) +
+                        self.Results.CO2_mass_df.loc[index - 1, 'mass3'] * self._inputdata.life3_CO2 * (1 - np.exp(-1 / self._inputdata.life3_CO2))
                 )
-                irf_df.loc[index, 'CH4_IRF'] = irf_df.loc[index - 1, 'CH4_IRF'] + self._results.mass_in_atm_df.loc[
+                irf_df.loc[index, 'CH4_IRF'] = irf_df.loc[index - 1, 'CH4_IRF'] + self.Results.mass_in_atm_df.loc[
                     index - 1, 'CH4'] * self._inputdata.A_CH4 * self._inputdata.life_CH4 * (1 - np.exp(-1 / self._inputdata.life_CH4))
 
         irf_df['IRF_all'] = irf_df['CO2_IRF'] + irf_df['CH4_IRF']
@@ -174,26 +175,27 @@ class DLCAEngine():
 
 
         # load in supporting data
-        AGWP_df_sup = pd.read_csv('DLCA/data/AGWP_supp_data.csv')
+
+        AGWP_df_sup = load_AGWP_supp_data()
 
 
         # AGWP and AGTP in reverse-order from year X (the time-horizon)
-        AGWP_rev = pd.DataFrame(0, index=self.year_vec, columns=['CO2_AGWP_rev', 'CH4_AGWP_rev'])
-        AGWP_rev['CO2_AGWP_rev'] = pd.concat((AGWP_df_sup.loc[0:time_horizon, 'CO2_AGWP'][::-1], pd.Series(self.year_vec[time_horizon + 1:] * 0))).reset_index(drop=True)
-        AGWP_rev['CH4_AGWP_rev'] = pd.concat((AGWP_df_sup.loc[0:time_horizon, 'CH4_AGWP'][::-1], pd.Series(self.year_vec[time_horizon + 1:] * 0))).reset_index(drop=True)
+        AGWP_rev = pd.DataFrame(0, index=self.years_vec, columns=['CO2_AGWP_rev', 'CH4_AGWP_rev'])
+        AGWP_rev['CO2_AGWP_rev'] = pd.concat((AGWP_df_sup.loc[0:time_horizon, 'CO2_AGWP'][::-1], pd.Series(self.years_vec[time_horizon + 1:] * 0))).reset_index(drop=True)
+        AGWP_rev['CH4_AGWP_rev'] = pd.concat((AGWP_df_sup.loc[0:time_horizon, 'CH4_AGWP'][::-1], pd.Series(self.years_vec[time_horizon + 1:] * 0))).reset_index(drop=True)
 
 
         # Equivalency summary dataframe
-        # equiv_df = pd.DataFrame(0, index=self.year_vec, columns=['irf_GWP_slidingTH', 'GTP_slidingTH', 'CO2_AGTP_rev', 'CH4_AGTP_rev'])
+        # equiv_df = pd.DataFrame(0, index=self.years_vec, columns=['irf_GWP_slidingTH', 'GTP_slidingTH', 'CO2_AGTP_rev', 'CH4_AGTP_rev'])
 
-        equiv_df = pd.DataFrame(0, index=self.year_vec, columns=['LCA_dyn', 'LCA_static'])
+        equiv_df = pd.DataFrame(0, index=self.years_vec, columns=['LCA_dyn', 'LCA_static'])
         equiv_df['LCA_dyn'] = irf_df['IRF_all'] / self._inputdata.AGWP_CO2
-        equiv_df['LCA_static'] = self._results.cum_net_emissions['CO2_net'] + self._results.cum_net_emissions['CH4_net'] * self._inputdata.GWP_CH4  # add in more gasses here if desired
+        equiv_df['LCA_static'] = self.Results.cum_net_emissions['CO2_net'] + self.Results.cum_net_emissions['CH4_net'] * self._inputdata.GWP_CH4  # add in more gasses here if desired
 
-        self._results.irf_df = irf_df
-        self._results.equiv_df = equiv_df
+        self.Results.irf_df = irf_df
+        self.Results.equiv_df = equiv_df
 
-        return self._results
+        return self.Results
 
     def calc_AGTP(self, time_horizon=100) -> DLCAResults:
 
@@ -211,7 +213,7 @@ class DLCAEngine():
 
         # Temperature change components (two-part climate response model)
         # Initialize the temperature change dataframe
-        temp_change_df = pd.DataFrame(0, index=self.year_vec,columns=['CO2_temp_s1', 'CO2_temp_s2', 'CH4_temp_s1', 'CH4_temp_s2', 'CO2_temp', 'CH4_temp', 'temp_change'])
+        temp_change_df = pd.DataFrame(0, index=self.years_vec,columns=['CO2_temp_s1', 'CO2_temp_s2', 'CH4_temp_s1', 'CH4_temp_s2', 'CO2_temp', 'CH4_temp', 'temp_change'])
         for index, row in temp_change_df.iterrows():
             if index == 0:
                 temp_change_df.loc[index, 'CO2_temp_s1'] = 0
@@ -221,31 +223,31 @@ class DLCAEngine():
                 temp_change_df.loc[index, 'CO2_temp'] = 0
                 temp_change_df.loc[index, 'CH4_temp'] = 0
             else:
-                temp_change_df.loc[index, 'CO2_temp_s1'] = self._inputdata.A_CO2 * (self._results.CO2_mass_df.loc[index - 1, 'mass0'] * self._inputdata.clim_sens1 * (1 - np.exp(-1 / self._inputdata.clim_time1))
-                                                                                    + self._results.CO2_mass_df.loc[index - 1, 'mass1'] * self._inputdata.clim_sens1 * self._inputdata.life1_CO2 / (self._inputdata.life1_CO2 - self._inputdata.clim_time1) * (np.exp(-1 / self._inputdata.life1_CO2) - np.exp(-1 / self._inputdata.clim_time1))
-                                                                                    + self._results.CO2_mass_df.loc[index - 1, 'mass2'] * self._inputdata.clim_sens1 * self._inputdata.life2_CO2 / (self._inputdata.life2_CO2 - self._inputdata.clim_time1) * (np.exp(-1 / self._inputdata.life2_CO2) - np.exp(-1 / self._inputdata.clim_time1))
-                                                                                    + self._results.CO2_mass_df.loc[index - 1, 'mass3'] * self._inputdata.clim_sens1 * self._inputdata.life3_CO2 / (self._inputdata.life3_CO2 - self._inputdata.clim_time1) * (np.exp(-1 / self._inputdata.life3_CO2) - np.exp(-1 / self._inputdata.clim_time1))) \
+                temp_change_df.loc[index, 'CO2_temp_s1'] = self._inputdata.A_CO2 * (self.Results.CO2_mass_df.loc[index - 1, 'mass0'] * self._inputdata.clim_sens1 * (1 - np.exp(-1 / self._inputdata.clim_time1))
+                                                                                    + self.Results.CO2_mass_df.loc[index - 1, 'mass1'] * self._inputdata.clim_sens1 * self._inputdata.life1_CO2 / (self._inputdata.life1_CO2 - self._inputdata.clim_time1) * (np.exp(-1 / self._inputdata.life1_CO2) - np.exp(-1 / self._inputdata.clim_time1))
+                                                                                    + self.Results.CO2_mass_df.loc[index - 1, 'mass2'] * self._inputdata.clim_sens1 * self._inputdata.life2_CO2 / (self._inputdata.life2_CO2 - self._inputdata.clim_time1) * (np.exp(-1 / self._inputdata.life2_CO2) - np.exp(-1 / self._inputdata.clim_time1))
+                                                                                    + self.Results.CO2_mass_df.loc[index - 1, 'mass3'] * self._inputdata.clim_sens1 * self._inputdata.life3_CO2 / (self._inputdata.life3_CO2 - self._inputdata.clim_time1) * (np.exp(-1 / self._inputdata.life3_CO2) - np.exp(-1 / self._inputdata.clim_time1))) \
                                                            + temp_change_df.loc[index - 1, 'CO2_temp_s1'] * np.exp(-1 / self._inputdata.clim_time1)
-                temp_change_df.loc[index, 'CO2_temp_s2'] = self._inputdata.A_CO2 * (self._results.CO2_mass_df.loc[index - 1, 'mass0'] * self._inputdata.clim_sens2 * (1 - np.exp(-1 / self._inputdata.clim_time2))
-                                                                                    + self._results.CO2_mass_df.loc[index - 1, 'mass1'] * self._inputdata.clim_sens2 * self._inputdata.life1_CO2 / (self._inputdata.life1_CO2 - self._inputdata.clim_time2) * (np.exp(-1 / self._inputdata.life1_CO2) - np.exp(-1 / self._inputdata.clim_time2))
-                                                                                    + self._results.CO2_mass_df.loc[index - 1, 'mass2'] * self._inputdata.clim_sens2 * self._inputdata.life2_CO2 / (self._inputdata.life2_CO2 - self._inputdata.clim_time2) * (np.exp(-1 / self._inputdata.life2_CO2) - np.exp(-1 / self._inputdata.clim_time2))
-                                                                                    + self._results.CO2_mass_df.loc[index - 1, 'mass3'] * self._inputdata.clim_sens2 * self._inputdata.life3_CO2 / (self._inputdata.life3_CO2 - self._inputdata.clim_time2) * (np.exp(-1 / self._inputdata.life3_CO2) - np.exp(-1 / self._inputdata.clim_time2))) \
+                temp_change_df.loc[index, 'CO2_temp_s2'] = self._inputdata.A_CO2 * (self.Results.CO2_mass_df.loc[index - 1, 'mass0'] * self._inputdata.clim_sens2 * (1 - np.exp(-1 / self._inputdata.clim_time2))
+                                                                                    + self.Results.CO2_mass_df.loc[index - 1, 'mass1'] * self._inputdata.clim_sens2 * self._inputdata.life1_CO2 / (self._inputdata.life1_CO2 - self._inputdata.clim_time2) * (np.exp(-1 / self._inputdata.life1_CO2) - np.exp(-1 / self._inputdata.clim_time2))
+                                                                                    + self.Results.CO2_mass_df.loc[index - 1, 'mass2'] * self._inputdata.clim_sens2 * self._inputdata.life2_CO2 / (self._inputdata.life2_CO2 - self._inputdata.clim_time2) * (np.exp(-1 / self._inputdata.life2_CO2) - np.exp(-1 / self._inputdata.clim_time2))
+                                                                                    + self.Results.CO2_mass_df.loc[index - 1, 'mass3'] * self._inputdata.clim_sens2 * self._inputdata.life3_CO2 / (self._inputdata.life3_CO2 - self._inputdata.clim_time2) * (np.exp(-1 / self._inputdata.life3_CO2) - np.exp(-1 / self._inputdata.clim_time2))) \
                                                            + temp_change_df.loc[index - 1, 'CO2_temp_s2'] * np.exp(-1 / self._inputdata.clim_time2)
-                temp_change_df.loc[index, 'CH4_temp_s1'] = self._inputdata.A_CH4 * self._results.mass_in_atm_df.loc[index - 1, 'CH4'] * self._inputdata.clim_sens1 * self._inputdata.life_CH4 / (self._inputdata.life_CH4 - self._inputdata.clim_time1) * (np.exp(-1 / self._inputdata.life_CH4) - np.exp(-1 / self._inputdata.clim_time1)) + temp_change_df.loc[index - 1, 'CH4_temp_s1'] * np.exp(-1 / self._inputdata.clim_time1)
-                temp_change_df.loc[index, 'CH4_temp_s2'] = self._inputdata.A_CH4 * self._results.mass_in_atm_df.loc[index - 1, 'CH4'] * self._inputdata.clim_sens2 * self._inputdata.life_CH4 / (self._inputdata.life_CH4 - self._inputdata.clim_time2) * (np.exp(-1 / self._inputdata.life_CH4) - np.exp(-1 / self._inputdata.clim_time2)) + temp_change_df.loc[index - 1, 'CH4_temp_s2'] * np.exp(-1 / self._inputdata.clim_time2)
+                temp_change_df.loc[index, 'CH4_temp_s1'] = self._inputdata.A_CH4 * self.Results.mass_in_atm_df.loc[index - 1, 'CH4'] * self._inputdata.clim_sens1 * self._inputdata.life_CH4 / (self._inputdata.life_CH4 - self._inputdata.clim_time1) * (np.exp(-1 / self._inputdata.life_CH4) - np.exp(-1 / self._inputdata.clim_time1)) + temp_change_df.loc[index - 1, 'CH4_temp_s1'] * np.exp(-1 / self._inputdata.clim_time1)
+                temp_change_df.loc[index, 'CH4_temp_s2'] = self._inputdata.A_CH4 * self.Results.mass_in_atm_df.loc[index - 1, 'CH4'] * self._inputdata.clim_sens2 * self._inputdata.life_CH4 / (self._inputdata.life_CH4 - self._inputdata.clim_time2) * (np.exp(-1 / self._inputdata.life_CH4) - np.exp(-1 / self._inputdata.clim_time2)) + temp_change_df.loc[index - 1, 'CH4_temp_s2'] * np.exp(-1 / self._inputdata.clim_time2)
                 temp_change_df.loc[index, 'CO2_temp'] = temp_change_df.loc[index, 'CO2_temp_s1'] + temp_change_df.loc[index, 'CO2_temp_s2']
                 temp_change_df.loc[index, 'CH4_temp'] = temp_change_df.loc[index, 'CH4_temp_s1'] + temp_change_df.loc[index, 'CH4_temp_s2']
 
         temp_change_df['temp_change'] = temp_change_df['CO2_temp'] + temp_change_df['CH4_temp'].fillna(0)
 
-        AGTP_df_sup = pd.read_csv('DLCA/data/AGTP_supp_data.csv')
-        AGTP_rev = pd.DataFrame(0, index=self.year_vec, columns=['CO2_AGTP_rev', 'CH4_AGTP_rev'])
-        AGTP_rev['CO2_AGTP_rev'] = pd.concat((AGTP_df_sup.loc[0:time_horizon, 'CO2_AGTP'][::-1], pd.Series(self.year_vec[time_horizon + 1:] * 0))).reset_index(drop=True)
-        AGTP_rev['CH4_AGTP_rev'] = pd.concat((AGTP_df_sup.loc[0:time_horizon, 'CH4_AGTP'][::-1], pd.Series(self.year_vec[time_horizon + 1:] * 0))).reset_index(drop=True)
+        AGTP_df_sup = load_AGTP_supp_data()
+        AGTP_rev = pd.DataFrame(0, index=self.years_vec, columns=['CO2_AGTP_rev', 'CH4_AGTP_rev'])
+        AGTP_rev['CO2_AGTP_rev'] = pd.concat((AGTP_df_sup.loc[0:time_horizon, 'CO2_AGTP'][::-1], pd.Series(self.years_vec[time_horizon + 1:] * 0))).reset_index(drop=True)
+        AGTP_rev['CH4_AGTP_rev'] = pd.concat((AGTP_df_sup.loc[0:time_horizon, 'CH4_AGTP'][::-1], pd.Series(self.years_vec[time_horizon + 1:] * 0))).reset_index(drop=True)
 
-        self._results.temp_change_df = temp_change_df
+        self.Results.temp_change_df = temp_change_df
 
-        return self._results
+        return self.Results
 
 
 

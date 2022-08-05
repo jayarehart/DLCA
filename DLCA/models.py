@@ -21,7 +21,7 @@ class GHGTypes(Enum):
 class AnalysisPeriod:
     start_year: int = 0
     end_year: int = 500
-    year_vec = np.linspace(start=start_year, stop=end_year, num=(end_year - start_year + 1)).astype(int)
+    years_vec = np.linspace(start=start_year, stop=end_year, num=(end_year - start_year + 1)).astype(int)
 
 @dataclass
 class EmissionsTiming:
