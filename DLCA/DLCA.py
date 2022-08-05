@@ -1,9 +1,11 @@
 # import libraries
 from DLCA.models import *
+import numpy as np
 
 class EmissionsFluxEngine():
     # Engine to create the emissions inventory for a given material over a given analysis period
-    def create_flux_mat(self, material:MaterialTypes, time:AnaysisPeriod, timing:EmissionsTiming, emissions_inv:EmissionsInventoryAllGHG, ) -> EmissionsFlux:
+    @staticmethod
+    def create_flux_mat(material:MaterialTypes, time:AnalysisPeriod, timing:EmissionsTiming, emissions_inv:EmissionsInventoryAllGHG, ) -> EmissionsFluxMat:
         # initialize flux vectors
         CO2_flux = np.linspace(start=0, stop=0, num=(time.end_year - time.start_year + 1))
         CH4_flux = np.linspace(start=0, stop=0, num=(time.end_year - time.start_year + 1))
@@ -34,11 +36,22 @@ class EmissionsFluxEngine():
         CO2_flux = CO2_flux - emissions_inv.CO2bio.growth_biomass
 
         # Create and return the result
-        res = EmissionsFlux(time.year_vec, CO2_flux, CH4_flux, N2O_flux, material)
-        return self
+        res = EmissionsFluxMat(time.year_vec, CO2_flux, CH4_flux, N2O_flux, material)
+        return res
 
-    def flux_total(self):
-        return
+    @staticmethod
+    def flux_total(flux_list:[EmissionsFluxMat]) -> EmissionsFluxTotal:
+        # Function to calculate the total flux of multiple materials.
+        # flux_total_res= EmissionsFluxTotal(time=[], CO2_flux=[], CH4_flux=[], N2O_flux=[])
+        # flux_total_res.time = flux_list[0].time
+        flux_total_res = EmissionsFluxTotal(time=[], CO2_flux=[], CH4_flux=[], N2O_flux=[])
+        flux_total_res.zeros(time=flux_list[0].time)
+        for mat_flux in flux_list:
+            flux_total_res.CO2_flux = flux_total_res.CO2_flux + mat_flux.CO2_flux
+            flux_total_res.CH4_flux = flux_total_res.CH4_flux + mat_flux.CH4_flux
+            flux_total_res.N2O_flux = flux_total_res.N2O_flux + mat_flux.N2O_flux
+        flux_total_res.create_flux_df()
+        return flux_total_res
 
 class DLCAEngine():
 
@@ -49,15 +62,16 @@ class DLCAEngine():
         self._inputdata = DLCAInputData()
         self._results = DLCAResults()
 
-    def calc_decay(self, input_flux) -> DLCAResults:
+    def calc_decay(self, input_flux:EmissionsFluxTotal) -> DLCAResults:
 
         # Initialize mass in atmosphere dataframe
         mass_in_atm_df = pd.DataFrame(0, index=self.year_vec, columns=['CO2', 'CH4'])
         # Initialize CO2 atmospheric decay components dataframe
         CO2_mass_df = pd.DataFrame(0, index=self.year_vec, columns=['mass0', 'mass1', 'mass2', 'mass3', 'CH4_to_CO2'])
 
-        CO2_flux = input_flux['CO2_flux']
-        CH4_flux = input_flux['CH4_flux']
+        CO2_flux = input_flux.flux_df['CO2_flux']
+        CH4_flux = input_flux.flux_df['CH4_flux']
+        N20_flux = input_flux.flux_df['N20_flux']
 
         # Calculate the Mass Decay
         for index, row in mass_in_atm_df.iterrows():

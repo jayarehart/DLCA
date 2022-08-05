@@ -18,7 +18,7 @@ class GHGTypes(Enum):
     N2O = "N2O"
 
 @dataclass
-class AnaysisPeriod:
+class AnalysisPeriod:
     start_year: int = 0
     end_year: int = 500
     year_vec = np.linspace(start=start_year, stop=end_year, num=(end_year - start_year + 1)).astype(int)
@@ -77,7 +77,7 @@ class EmissionsInventoryAllGHG:
             raise ValueError("GHG inventory is created with mismatched materials. Check the emissions inventory")
 
 @dataclass
-class EmissionsFlux:
+class EmissionsFluxMat:
     time: []
     CO2_flux: []
     CH4_flux: []
@@ -85,8 +85,29 @@ class EmissionsFlux:
     material: MaterialTypes
 
     def __post_init__(self):
-        self.flux_df = pd.DataFrame({'time': self.time, 'CO2_flux':self.CO2_flux, 'CH4_flux':self.CH4_flux})
+        self.flux_df = pd.DataFrame({'time': self.time, 'CO2_flux':self.CO2_flux, 'CH4_flux':self.CH4_flux, 'N20_flux':self.N2O_flux})
+@dataclass
+class EmissionsFluxTotal:
+    time: []
+    CO2_flux: []
+    CH4_flux: []
+    N2O_flux: []
 
+    def __post_init__(self):
+        # self.flux_df = pd.DataFrame({'time': self.time, 'CO2_flux':self.CO2_flux, 'CH4_flux':self.CH4_flux, 'N20_flux':self.N2O_flux})
+        self.create_flux_df()
+
+    def create_flux_df(self):
+        self.flux_df = pd.DataFrame({'time': self.time, 'CO2_flux': self.CO2_flux, 'CH4_flux': self.CH4_flux, 'N20_flux': self.N2O_flux})
+        return self
+
+    def zeros(self, time:[]):
+        self.time = time
+        self.CO2_flux = len(time) * [0]
+        self.CH4_flux = len(time) * [0]
+        self.N2O_flux = len(time) * [0]
+        self.flux_df = None
+        return self
 
 @dataclass
 class DLCAInputData:
