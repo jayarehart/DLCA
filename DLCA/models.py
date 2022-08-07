@@ -111,6 +111,7 @@ class Unit(Enum):
     GJ = "Gigajoule"
     KG_KWH = "kg of GHG per kwh"
     KG_MMBTU = "kg of GHG per mmBtu"
+    KG_GJ = "kg of GGH per GJ"
 
 class FuelType(Enum):
     ELECTRICITY_SITE = "Electricity - Site"
@@ -252,6 +253,17 @@ class EmissionsFluxMat:
         self.flux_df = pd.DataFrame({'time': self.time, 'CO2_flux':self.CO2_flux, 'CH4_flux':self.CH4_flux, 'N20_flux':self.N2O_flux})
 
 @dataclass
+class EmissionsFluxOperational:
+    time: []
+    CO2_flux: []
+    CH4_flux: []
+    N2O_flux: []
+
+    def __post_init__(self):
+        self.flux_df = pd.DataFrame({'time': self.time, 'CO2_flux':self.CO2_flux, 'CH4_flux':self.CH4_flux, 'N20_flux':self.N2O_flux})
+
+
+@dataclass
 class EmissionsFluxTotal:
     time: []
     CO2_flux: []
@@ -307,6 +319,7 @@ class BldgDetails:
     climate_zone: ClimateZone
     eGrid: USSubgrid
     area_m2: float
+    lifespan: float
     scenario: Scenario
 
     # Emissions factors
@@ -352,8 +365,6 @@ class BldgDetails:
         self.ref_bldg.fueloilno2_UI_kBtum2 = self.ref_bldg.fueloilno2_kBtu / self.ref_bldg.ref_bldg_area_m2
 
         return self
-
-
 
     def load_EF(self):
         if self.EF_electricity != None:

@@ -54,8 +54,45 @@ class EmissionsFluxEngine():
         flux_total_res.create_flux_df()
         return flux_total_res
 
-    # @staticmethod
-    # def create_flux_operational(bldg:BldgDetails,time:AnalysisPeriod,Scenario:) -> EmissionsFluxMat:):
+    @staticmethod
+    def create_flux_operational(bldg:BldgDetails,time:AnalysisPeriod) -> EmissionsFluxOperational:
+        # initialize flux vectors
+        CO2_flux = np.linspace(start=0, stop=0, num=(time.end_year - time.start_year + 1))
+        CH4_flux = np.linspace(start=0, stop=0, num=(time.end_year - time.start_year + 1))
+        N2O_flux = np.linspace(start=0, stop=0, num=(time.end_year - time.start_year + 1))
+
+        electricty_GJ_annual = bldg.ref_bldg.electricity_UI_GJm2 * bldg.area_m2
+        naturalgas_GJ_annual = bldg.ref_bldg.naturalgas_UI_GJm2 * bldg.area_m2
+        fueloilno2_kBtu_annual = bldg.ref_bldg.fueloilno2_UI_kBtum2 * bldg.area_m2
+
+        # Electricity Emissions (kg)
+        CO2_annual_electricity = electricty_GJ_annual * bldg.EF_electricity.CO2 * 277.778 # converting from GJ to kWh
+        CH4_annual_electricity = electricty_GJ_annual * bldg.EF_electricity.CH4 * 277.778
+        N2O_annual_electricity = electricty_GJ_annual * bldg.EF_electricity.N2O * 277.778
+
+        # Natural Gas Emissions (kg)
+        if bldg.EF_naturalgas.unit != Unit.KG_GJ:
+            raise Exception("Unit conversion is required. Current calculation of emissions factors is incorrect")
+        CO2_annual_naturalgas = naturalgas_GJ_annual * bldg.EF_naturalgas.CO2
+        CH4_annual_naturalgas = naturalgas_GJ_annual * bldg.EF_naturalgas.CH4
+        N2O_annual_naturalgas = naturalgas_GJ_annual * bldg.EF_naturalgas.N2O
+
+        # Fuel Oil Emissions (kg)
+        CO2_annual_fueloilno2 = fueloilno2_kBtu_annual / 1000 * bldg.EF_naturalgas.CO2 # converting from kBtu to MMBtu
+        CH4_annual_fueloilno2 = fueloilno2_kBtu_annual / 1000  *bldg.EF_naturalgas.CH4
+        N2O_annual_fueloilno2 = fueloilno2_kBtu_annual / 1000 * bldg.EF_naturalgas.N2O
+
+        # CO2_flux[0:bldg.lifespan] = CO2_annual_electricity + CO2_annual_naturalgas + CO2_annual_fueloilno2
+        # CH4_flux[0:bldg.lifespan] = CH4_annual_electricity + CH4_annual_naturalgas + CH4_annual_fueloilno2
+        # N2O_flux[0:bldg.lifespan] = N2O_annual_electricity + N2O_annual_naturalgas + N2O_annual_fueloilno2
+
+        # Where to start:
+            # Need to fix the unit check on emissions factors.
+            # Confirm all unit conversions from emissions factors that are used.
+            # Create the flux vector from the initialization (currently it is wrong).
+
+
+        pass
 
 class DLCAEngine():
 

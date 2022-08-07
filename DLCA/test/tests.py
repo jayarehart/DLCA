@@ -102,6 +102,7 @@ class MyTestCase(unittest.TestCase):
                               climate_zone=ClimateZone._2B,
                               eGrid=USSubgrid.RMPA,
                               area_m2=15000,
+                              lifespan=60,
                               scenario=Scenario.S1)
 
         # my_bldg.load_EUI()
