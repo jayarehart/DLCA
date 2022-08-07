@@ -1,6 +1,5 @@
 import unittest
 from DLCA import DLCA
-from DLCA.data.csv_loader import *
 from DLCA.models import *
 
 
@@ -101,14 +100,15 @@ class MyTestCase(unittest.TestCase):
         my_bldg = BldgDetails(use_type=BldgUseType.SMALLOFFICE,
                               heating_system=ResHeatSystem.NONE,
                               climate_zone=ClimateZone._2B,
-                              eGrid=USSubgrid.RMPA)
-        my_bldg.load_EUI()
+                              eGrid=USSubgrid.RMPA,
+                              area_m2=15000)
 
-        self.assertNotEqual(my_bldg.naturalgas_site_GJ,None,msg='No EUI looked up')
-        self.assertNotEqual(my_bldg.electricity_site_GJ, None, msg='No EUI looked up')
-        self.assertNotEqual(my_bldg.fueloilno2_kBtu, None, msg='No EUI looked up')
+        # my_bldg.load_EUI()
+        self.assertNotEqual(my_bldg.ref_bldg.naturalgas_site_GJ,None,msg='No EUI looked up')
+        self.assertNotEqual(my_bldg.ref_bldg.electricity_site_GJ, None, msg='No EUI looked up')
+        self.assertNotEqual(my_bldg.ref_bldg.fueloilno2_kBtu, None, msg='No EUI looked up')
 
-        my_bldg.load_EF()
+        # my_bldg.load_EF()
         self.assertNotEqual(my_bldg.EF_electricity, None, msg='No EF looked up')
         self.assertNotEqual(my_bldg.EF_naturalgas, None, msg='No EF looked up')
         self.assertNotEqual(my_bldg.EF_fueloilno2, None, msg='No EF looked up')

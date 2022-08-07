@@ -54,6 +54,9 @@ class EmissionsFluxEngine():
         flux_total_res.create_flux_df()
         return flux_total_res
 
+    # @staticmethod
+    # def create_flux_operational(bldg:BldgDetails,time:AnalysisPeriod,Scenario:) -> EmissionsFluxMat:):
+
 class DLCAEngine():
 
     def __init__(self) -> None:

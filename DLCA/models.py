@@ -108,6 +108,7 @@ class Unit(Enum):
     kBtu = "1 Thousand British Thermal Units"
     # 1 Million BTU [MMBtu] = 1055.05585262 # Megajoule [MJ]
     MJ = "Megajoule"
+    GJ = "Gigajoule"
     KG_KWH = "kg of GHG per kwh"
     KG_MMBTU = "kg of GHG per mmBtu"
 
@@ -116,6 +117,9 @@ class FuelType(Enum):
     NATURALGAS_SITE = "Natural Gas - Site"
     FUELOILNO2_SITE = "Fuel Oil No2 - Site"
 
+class ComOrRes(Enum):
+    COM = "Commercial"
+    RES = "Residential"
 
 class BldgUseType(Enum):
     # ASHRAE 90.1-2019
@@ -276,25 +280,49 @@ class EF:
     unit: Unit
 
 @dataclass
+class RefBldgDetails:
+    ref_bldg_area_m2 : int = None
+    electricity_site_GJ: float = None
+    naturalgas_site_GJ: float = None
+    fueloilno2_kBtu: float = None
+
+    electricity_UI_GJm2: float = None
+    naturalgas_UI_GJm2: float = None
+    fueloilno2_UI_GJm2: float = None
+
+@dataclass
 class BldgDetails:
     use_type: BldgUseType
     heating_system: ResHeatSystem
     climate_zone: ClimateZone
     eGrid: USSubgrid
+    area_m2: float
 
-    # building properties
-    area_m2 : int = None
-    electricity_site_GJ: float = None
-    naturalgas_site_GJ: float = None
-    fueloilno2_kBtu: float = None
+    # other properties
+    Com_Res: ComOrRes = None
 
     # Emissions factors
     EF_naturalgas: EF = None
     EF_fueloilno2: EF = None
     EF_electricity: EF = None
 
+    def __post_init__(self):
+        # create empty reference building properties
+        self.ref_bldg = RefBldgDetails()
+        self.load_EUI()
+
+        # add property for res or com
+        res_list = ['SF_CRAWLSPACE','SF_HTDBASEMENT','SF_SLAB','SF_UNHTDBASEMENT', 'MF_CRAWLSPACE','MF_HTDBASEMENT', 'MF_SLAB', 'MF_UNHTDBASEMENT']
+        if self.use_type.name in res_list:
+            self.Com_Res = ComOrRes.RES
+        else:
+            self.Com_Res = ComOrRes.COM
+
+        # load emissions factors
+        self.load_EF()
+
     def load_EUI(self):
-        if self.area_m2 != None:
+        if self.ref_bldg.ref_bldg_area_m2 != None:
             raise Warning("EUI data already loaded.. Overwritting..")
         df_EUI = load_EUI_data()
         # Filter EUI datafram based upon BldgDetails
@@ -305,10 +333,10 @@ class BldgDetails:
             raise Exception("Multiple types of buildings were returend from the queried")
 
         # Write new attributes to the bldg input and return
-        self.area_m2 = df_EUI_filtered["Area_m2"].iloc[0]
-        self.electricity_site_GJ = df_EUI_filtered["ElectricitySite_GJ"].iloc[0]
-        self.naturalgas_site_GJ = df_EUI_filtered["NaturalGasSite_GJ"].iloc[0]
-        self.fueloilno2_kBtu = df_EUI_filtered["FuelOilNo2_kBtu"].iloc[0]
+        self.ref_bldg.ref_bldg_area_m2 = df_EUI_filtered["Area_m2"].iloc[0]
+        self.ref_bldg.electricity_site_GJ = df_EUI_filtered["ElectricitySite_GJ"].iloc[0]
+        self.ref_bldg.naturalgas_site_GJ = df_EUI_filtered["NaturalGasSite_GJ"].iloc[0]
+        self.ref_bldg.fueloilno2_kBtu = df_EUI_filtered["FuelOilNo2_kBtu"].iloc[0]
 
         return self
 
