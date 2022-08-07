@@ -101,7 +101,8 @@ class MyTestCase(unittest.TestCase):
                               heating_system=ResHeatSystem.NONE,
                               climate_zone=ClimateZone._2B,
                               eGrid=USSubgrid.RMPA,
-                              area_m2=15000)
+                              area_m2=15000,
+                              scenario=Scenario.S1)
 
         # my_bldg.load_EUI()
         self.assertNotEqual(my_bldg.ref_bldg.naturalgas_site_GJ,None,msg='No EUI looked up')

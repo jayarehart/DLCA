@@ -121,6 +121,10 @@ class ComOrRes(Enum):
     COM = "Commercial"
     RES = "Residential"
 
+class Scenario(Enum):
+    S1 = "Scenario 1"
+    S2 = "Secneario 2"
+
 class BldgUseType(Enum):
     # ASHRAE 90.1-2019
     # https://www.energycodes.gov/prototype-building-models
@@ -288,7 +292,13 @@ class RefBldgDetails:
 
     electricity_UI_GJm2: float = None
     naturalgas_UI_GJm2: float = None
-    fueloilno2_UI_GJm2: float = None
+    fueloilno2_UI_kBtum2: float = None
+
+# @dataclass
+# class BldgEF:
+#     EF_naturalgas: EF = None
+#     EF_fueloilno2: EF = None
+#     EF_electricity: EF = None
 
 @dataclass
 class BldgDetails:
@@ -297,9 +307,7 @@ class BldgDetails:
     climate_zone: ClimateZone
     eGrid: USSubgrid
     area_m2: float
-
-    # other properties
-    Com_Res: ComOrRes = None
+    scenario: Scenario
 
     # Emissions factors
     EF_naturalgas: EF = None
@@ -309,9 +317,11 @@ class BldgDetails:
     def __post_init__(self):
         # create empty reference building properties
         self.ref_bldg = RefBldgDetails()
+        # load EUI data
         self.load_EUI()
 
         # add property for res or com
+        Com_Res: ComOrRes = None
         res_list = ['SF_CRAWLSPACE','SF_HTDBASEMENT','SF_SLAB','SF_UNHTDBASEMENT', 'MF_CRAWLSPACE','MF_HTDBASEMENT', 'MF_SLAB', 'MF_UNHTDBASEMENT']
         if self.use_type.name in res_list:
             self.Com_Res = ComOrRes.RES
@@ -337,8 +347,13 @@ class BldgDetails:
         self.ref_bldg.electricity_site_GJ = df_EUI_filtered["ElectricitySite_GJ"].iloc[0]
         self.ref_bldg.naturalgas_site_GJ = df_EUI_filtered["NaturalGasSite_GJ"].iloc[0]
         self.ref_bldg.fueloilno2_kBtu = df_EUI_filtered["FuelOilNo2_kBtu"].iloc[0]
+        self.ref_bldg.electricity_UI_GJm2 = self.ref_bldg.electricity_site_GJ / self.ref_bldg.ref_bldg_area_m2
+        self.ref_bldg.naturalgas_UI_GJm2 = self.ref_bldg.naturalgas_site_GJ / self.ref_bldg.ref_bldg_area_m2
+        self.ref_bldg.fueloilno2_UI_kBtum2 = self.ref_bldg.fueloilno2_kBtu / self.ref_bldg.ref_bldg_area_m2
 
         return self
+
+
 
     def load_EF(self):
         if self.EF_electricity != None:
