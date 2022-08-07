@@ -1,6 +1,8 @@
 import unittest
 from DLCA import DLCA
 from DLCA.data.csv_loader import *
+from DLCA.models import *
+
 
 class MyTestCase(unittest.TestCase):
 
@@ -34,15 +36,15 @@ class MyTestCase(unittest.TestCase):
         my_emissions_all = DLCA.EmissionsInventoryAllGHG(CO2=my_mat_emissions_CO2, CH4=my_mat_emissions_CH4, N2O=my_mat_emissions_NO2)
 
         flux_mat_1 = DLCA.EmissionsFluxEngine.create_flux_mat(material=DLCA.MaterialTypes.TEST,
-                                                                        time=DLCA.AnalysisPeriod(0, 500),
-                                                                        timing=DLCA.EmissionsTiming(bldg_lifespan=60),
-                                                                        emissions_inv=my_emissions_all)
+                                                              time=DLCA.AnalysisPeriod(0, 500),
+                                                              timing=DLCA.MatEmissionsTiming(bldg_lifespan=60),
+                                                              emissions_inv=my_emissions_all)
         self.assertEqual(flux_mat_1.flux_df['CO2_flux'][0], 1, msg='.. Creation of single material ghg flux incorrect')
 
         flux_mat_2 = DLCA.EmissionsFluxEngine.create_flux_mat(material=DLCA.MaterialTypes.TEST,
-                                                                        time=DLCA.AnalysisPeriod(0, 500),
-                                                                        timing=DLCA.EmissionsTiming(bldg_lifespan=60),
-                                                                        emissions_inv=my_emissions_all)
+                                                              time=DLCA.AnalysisPeriod(0, 500),
+                                                              timing=DLCA.MatEmissionsTiming(bldg_lifespan=60),
+                                                              emissions_inv=my_emissions_all)
         flux_total = DLCA.EmissionsFluxEngine.flux_total([flux_mat_1, flux_mat_2])
 
         self.assertEqual(2, flux_total.flux_df["CO2_flux"][0], msg='.. Creation of total flux object incorrect')
@@ -56,9 +58,9 @@ class MyTestCase(unittest.TestCase):
         my_emissions_all = DLCA.EmissionsInventoryAllGHG(CO2=my_mat_emissions_CO2, CH4=my_mat_emissions_CH4, N2O=my_mat_emissions_NO2)
 
         flux_mat_test = DLCA.EmissionsFluxEngine.create_flux_mat(material=DLCA.MaterialTypes.TEST,
-                                                              time=DLCA.AnalysisPeriod(0, 500),
-                                                              timing=DLCA.EmissionsTiming(bldg_lifespan=60),
-                                                              emissions_inv=my_emissions_all)
+                                                                 time=DLCA.AnalysisPeriod(0, 500),
+                                                                 timing=DLCA.MatEmissionsTiming(bldg_lifespan=60),
+                                                                 emissions_inv=my_emissions_all)
 
         my_DLCAEngine = DLCA.DLCAEngine()
         my_DLCAEngine.calc_decay(input_flux=flux_mat_test)
@@ -80,7 +82,7 @@ class MyTestCase(unittest.TestCase):
 
         flux_mat_test = DLCA.EmissionsFluxEngine.create_flux_mat(material=DLCA.MaterialTypes.TEST,
                                                                  time=DLCA.AnalysisPeriod(0, 500),
-                                                                 timing=DLCA.EmissionsTiming(bldg_lifespan=60),
+                                                                 timing=DLCA.MatEmissionsTiming(bldg_lifespan=60),
                                                                  emissions_inv=my_emissions_all)
 
         my_DLCAEngine = DLCA.DLCAEngine()
@@ -92,6 +94,24 @@ class MyTestCase(unittest.TestCase):
 
         self.assertEqual(my_DLCAEngine.Results.temp_change_df['temp_change'][100], 6.396651080284881e-16, msg='.. AGTP is calculated incorrectly')
         self.assertEqual(my_DLCAEngine.Results.equiv_df['LCA_dyn'][100],2.13823154075316, msg='.. AGWP is calculated incorrectly')
+
+
+    def test_loadEUI_loadEF(self):
+        print('Testing the cvs lookup for getting the EUI and EFs')
+        my_bldg = BldgDetails(use_type=BldgUseType.SMALLOFFICE,
+                              heating_system=ResHeatSystem.NONE,
+                              climate_zone=ClimateZone._2B,
+                              eGrid=USSubgrid.RMPA)
+        my_bldg.load_EUI()
+
+        self.assertNotEqual(my_bldg.naturalgas_site_GJ,None,msg='No EUI looked up')
+        self.assertNotEqual(my_bldg.electricity_site_GJ, None, msg='No EUI looked up')
+        self.assertNotEqual(my_bldg.fueloilno2_kBtu, None, msg='No EUI looked up')
+
+        my_bldg.load_EF()
+        self.assertNotEqual(my_bldg.EF_electricity, None, msg='No EF looked up')
+        self.assertNotEqual(my_bldg.EF_naturalgas, None, msg='No EF looked up')
+        self.assertNotEqual(my_bldg.EF_fueloilno2, None, msg='No EF looked up')
 
 
 if __name__ == '__main__':

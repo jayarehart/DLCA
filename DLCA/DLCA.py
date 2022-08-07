@@ -6,7 +6,7 @@ import numpy as np
 class EmissionsFluxEngine():
     # Engine to create the emissions inventory for a given material over a given analysis period
     @staticmethod
-    def create_flux_mat(material:MaterialTypes, time:AnalysisPeriod, timing:EmissionsTiming, emissions_inv:EmissionsInventoryAllGHG, ) -> EmissionsFluxMat:
+    def create_flux_mat(material:MaterialTypes, time:AnalysisPeriod, timing:MatEmissionsTiming, emissions_inv:EmissionsInventoryAllGHG, ) -> EmissionsFluxMat:
         # initialize flux vectors
         CO2_flux = np.linspace(start=0, stop=0, num=(time.end_year - time.start_year + 1))
         CH4_flux = np.linspace(start=0, stop=0, num=(time.end_year - time.start_year + 1))
