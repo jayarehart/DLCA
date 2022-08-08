@@ -21,9 +21,6 @@ class DOEResBldgData:
     # bldg_area_units: str
 
 
-# path = "/Users/josepharehart/Desktop/DOE_PrototypeBldgs/resstd_CZ4A_IECC_2021/US+MF+CZ4A+elecres+crawlspace+IECC_2021.table.htm"
-# html_files = glob.glob(os.path.join(path + '/'))
-
 # Funciton to get the list of files in a director
 def getListOfFiles(dirName):
     # create a list of file and sub directories
@@ -102,10 +99,4 @@ for index, file in enumerate(list_of_names[0:5]):
     result_list.append(result_scrape)
 result_df = pd.DataFrame([i.__dict__ for i in result_list])
 result_df.to_csv("/Users/josepharehart/Desktop/html_res/_summary.csv")
-
-
-
-
-
-
 
