@@ -250,7 +250,7 @@ class EmissionsFluxMat:
     material: MaterialTypes
 
     def __post_init__(self):
-        self.flux_df = pd.DataFrame({'time': self.time, 'CO2_flux':self.CO2_flux, 'CH4_flux':self.CH4_flux, 'N20_flux':self.N2O_flux})
+        self.flux_df = pd.DataFrame({'time': self.time, 'CO2_flux':self.CO2_flux, 'CH4_flux':self.CH4_flux, 'N2O_flux':self.N2O_flux})
 
 @dataclass
 class EmissionsFluxOperational:
@@ -260,7 +260,7 @@ class EmissionsFluxOperational:
     N2O_flux: []
 
     def __post_init__(self):
-        self.flux_df = pd.DataFrame({'time': self.time, 'CO2_flux':self.CO2_flux, 'CH4_flux':self.CH4_flux, 'N20_flux':self.N2O_flux})
+        self.flux_df = pd.DataFrame({'time': self.time, 'CO2_flux':self.CO2_flux, 'CH4_flux':self.CH4_flux, 'N2O_flux':self.N2O_flux})
 
 
 @dataclass
@@ -275,7 +275,7 @@ class EmissionsFluxTotal:
         self.create_flux_df()
 
     def create_flux_df(self):
-        self.flux_df = pd.DataFrame({'time': self.time, 'CO2_flux': self.CO2_flux, 'CH4_flux': self.CH4_flux, 'N20_flux': self.N2O_flux})
+        self.flux_df = pd.DataFrame({'time': self.time, 'CO2_flux': self.CO2_flux, 'CH4_flux': self.CH4_flux, 'N2O_flux': self.N2O_flux})
         return self
 
     def zeros(self, time:[]):
@@ -410,6 +410,8 @@ class DLCAInputData:
     life2_CO2 = 36.54
     life3_CO2 = 4.304
     life_CH4 = 12.4
+    life_N2O = 121
+
     # Proportion lifetime applies to
     p_0 = 0.2173
     p_1 = 0.224
@@ -419,21 +421,28 @@ class DLCAInputData:
     # Radiative efficiency [W m-2 ppb-1]
     CO2_RE = 1.37E-05
     CH4_RE = 0.000363
+    N2O_RE = 3.000E-03
+
     # molar mass of CO2
     mol_mass_CO2 = 44.01
     mol_mass_CH4 = 16.05
+    mol_mass_N2O = 44.02
 
     # adjustment factor
     adj_factor_CO2 = 0.99746898064295
     adj_factor_CH4 = 1 + 0.15 + 0.5
+    adj_factor_N2O = 1 - 0.36 * CH4_RE * adj_factor_CH4 / N2O_RE
 
     # Inputs based upon time horizon
     time_horizon: float = None
     A_CO2: float = None
     A_CH4: float = None
+    A_N2O: float = None
     AGWP_CO2: float = None
     AGWP_CH4: float = None
+    AGWP_N2O: float = None
     GWP_CH4: float = None
+    GWP_N2O: float = None
 
 
 

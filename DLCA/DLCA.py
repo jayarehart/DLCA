@@ -131,7 +131,7 @@ class DLCAEngine():
             else:
                 mass_in_atm_df.loc[index, 'CH4'] = CH4_flux[index] + mass_in_atm_df.loc[index - 1, 'CH4'] * np.exp(
                     -1 / self._inputdata.life_CH4)
-                mass_in_atm_df.loc[index, 'N2O'] = CH4_flux[index] + mass_in_atm_df.loc[index - 1, 'N2O'] * np.exp(
+                mass_in_atm_df.loc[index, 'N2O'] = N2O_flux[index] + mass_in_atm_df.loc[index - 1, 'N2O'] * np.exp(
                     -1 / self._inputdata.life_N2O)
                 CO2_mass_df.loc[index, 'mass0'] = self._inputdata.p_0 * (
                             CO2_flux[index] + CO2_mass_df.loc[index, 'CH4_to_CO2']) + CO2_mass_df.loc[
