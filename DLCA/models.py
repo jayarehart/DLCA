@@ -403,7 +403,7 @@ class DLCAInputData:
 
     mol_mass_air = 28.97  # g/mol
     earth_area = 5.10E+14  # m2
-    mass_atm = 5.14E+18  # kg
+    mass_atm = 5135200000000000000  # kg
 
     # Lifetime Parameters
     life1_CO2 = 394.4
