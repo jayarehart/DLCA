@@ -27,12 +27,12 @@ class MyTestCase(unittest.TestCase):
                                                        emissions_A=1/25,
                                                        emissions_B=0,
                                                        emissions_C=1/25)
-        my_mat_emissions_NO2 = DLCA.EmissionsInventoryGHGi(material=DLCA.MaterialTypes.TEST,
+        my_mat_emissions_N2O = DLCA.EmissionsInventoryGHGi(material=DLCA.MaterialTypes.TEST,
                                                        ghg=DLCA.GHGTypes.N2O,
                                                        emissions_A=1/298,
                                                        emissions_B=0,
                                                        emissions_C=1/298)
-        my_emissions_all = DLCA.EmissionsInventoryAllGHG(CO2=my_mat_emissions_CO2, CH4=my_mat_emissions_CH4, N2O=my_mat_emissions_NO2)
+        my_emissions_all = DLCA.EmissionsInventoryAllGHG(CO2=my_mat_emissions_CO2, CH4=my_mat_emissions_CH4, N2O=my_mat_emissions_N2O)
 
         flux_mat_1 = DLCA.EmissionsFluxEngine.create_flux_mat(material=DLCA.MaterialTypes.TEST,
                                                               time=DLCA.AnalysisPeriod(0, 500),
@@ -66,6 +66,7 @@ class MyTestCase(unittest.TestCase):
 
         self.assertEqual(sum(my_DLCAEngine.Results.mass_in_atm_df['CO2']), 184.2837146985627, msg='.. Decay of CO2 is calculated incorrectly')
         self.assertEqual(sum(my_DLCAEngine.Results.mass_in_atm_df['CH4']), 0.5162687880706308, msg='.. Decay of CH4 is calculated incorrectly')
+        self.assertEqual(sum(my_DLCAEngine.Results.mass_in_atm_df['N2O']), 0.40123157841290424, msg='.. Decay of N2O is calculated incorrectly')
 
 
     def test_DLCAEngine_calc_warming(self):
@@ -74,10 +75,10 @@ class MyTestCase(unittest.TestCase):
                                                            emissions_A=1, emissions_B=0, emissions_C=0)
         my_mat_emissions_CH4 = DLCA.EmissionsInventoryGHGi(material=DLCA.MaterialTypes.TEST, ghg=DLCA.GHGTypes.CH4,
                                                            emissions_A=1 / 25, emissions_B=0, emissions_C=0)
-        my_mat_emissions_NO2 = DLCA.EmissionsInventoryGHGi(material=DLCA.MaterialTypes.TEST, ghg=DLCA.GHGTypes.N2O,
-                                                           emissions_A=0, emissions_B=0, emissions_C=0)
+        my_mat_emissions_N2O = DLCA.EmissionsInventoryGHGi(material=DLCA.MaterialTypes.TEST, ghg=DLCA.GHGTypes.N2O,
+                                                           emissions_A=1 / 298, emissions_B=0, emissions_C=0)
         my_emissions_all = DLCA.EmissionsInventoryAllGHG(CO2=my_mat_emissions_CO2, CH4=my_mat_emissions_CH4,
-                                                         N2O=my_mat_emissions_NO2)
+                                                         N2O=my_mat_emissions_N2O)
 
         flux_mat_test = DLCA.EmissionsFluxEngine.create_flux_mat(material=DLCA.MaterialTypes.TEST,
                                                                  time=DLCA.AnalysisPeriod(0, 500),
@@ -91,8 +92,8 @@ class MyTestCase(unittest.TestCase):
 
         # N2O has not been added to the AGTP or the AGWP calculations
 
-        self.assertEqual(my_DLCAEngine.Results.temp_change_df['temp_change'][100], 6.396651080284881e-16, msg='.. AGTP is calculated incorrectly')
-        self.assertEqual(my_DLCAEngine.Results.equiv_df['LCA_dyn'][100],2.13823154075316, msg='.. AGWP is calculated incorrectly')
+        self.assertEqual(my_DLCAEngine.Results.temp_change_df['temp_change'][100], 1.0700561631626676E-15, msg='.. AGTP is calculated incorrectly')
+        self.assertEqual(my_DLCAEngine.Results.equiv_df['LCA_dyn'][100],3.0267395007015145, msg='.. AGWP is calculated incorrectly')
 
 
     def test_loadEUI_loadEF(self):
