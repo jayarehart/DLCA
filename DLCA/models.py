@@ -194,9 +194,9 @@ class MatEmissionsTiming:
     def __post_init__(self):
         # For now, assume emissions from B come from
         self.A_time = 0
-        self.B_time = int(self.bldg_lifespan/2)
-        self.C_time = int(self.bldg_lifespan)
-
+        self.B_time = np.arange(1, self.bldg_lifespan + 1)
+        self.C_time = np.arange(self.bldg_lifespan, self.bldg_lifespan + 15)  # int(self.bldg_lifespan)#
+###NEED TO FIX ABOVE TO WORK FOR A SINGLE INPUT AT [0] OF C, AND A LIST INPUT THROUGH X YEARS
 
 @dataclass
 class EmissionsInventoryGHGi:
