@@ -29,11 +29,14 @@ class EmissionsFluxEngine():
 
         # Calculate the CO2 uptake due to biomass regrowth
         if emissions_inv.CO2bio.rot_period > 1:
-            emissions_inv.CO2bio.growth_biomass = 1 / (emissions_inv.CO2bio.sigma * np.sqrt(2 * np.pi)) * np.exp(-0.5 * ((time.years_vec - emissions_inv.CO2bio.mu) / emissions_inv.CO2bio.sigma) ** 2) * emissions_inv.CO2bio.CO2_bio
+            emissions_inv.CO2bio.growth_biomass = 1 / (emissions_inv.CO2bio.sigma * np.sqrt(2 * np.pi)) * np.exp(
+                -0.5 * ((time.years_vec - emissions_inv.CO2bio.mu) / emissions_inv.CO2bio.sigma) ** 2) * emissions_inv.CO2bio.CO2_bio
         elif emissions_inv.CO2bio.rot_period == 1:
             emissions_inv.CO2bio.growth_biomass = (time.years_vec * 0).astype(float)
+            emissions_inv.CO2bio.growth_biomass[1] = emissions_inv.CO2bio.CO2_bio
         elif emissions_inv.CO2bio.rot_period < 1:
             emissions_inv.CO2bio.growth_biomass = (time.years_vec * 0).astype(float)
+            emissions_inv.CO2bio.growth_biomass[1] = emissions_inv.CO2bio.CO2_bio
 
         # Add in the carbon uptake
         CO2_flux = CO2_flux - emissions_inv.CO2bio.growth_biomass
