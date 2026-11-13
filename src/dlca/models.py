@@ -1,9 +1,12 @@
 # import libraries
 from dataclasses import dataclass, field
+from enum import Enum
+
 import numpy as np
 import pandas as pd
-from enum import Enum
+
 from dlca.data.csv_loader import *
+
 
 class MaterialTypes(Enum):
     STEEL = "Steel"
@@ -13,10 +16,12 @@ class MaterialTypes(Enum):
     NA = "NA"
     TEST = "Test"
 
+
 class GHGTypes(Enum):
     CO2 = "CO2"
     CH4 = "CH4"
     N2O = "N2O"
+
 
 class USState(Enum):
     AK = "Alaska"
@@ -73,6 +78,7 @@ class USState(Enum):
     WY = "Wyoming"
     USA = "United States of America"
 
+
 class USSubgrid(Enum):
     AKGD = "ASCC Alaska Grid"
     AKMS = "ASCC Miscellaneous"
@@ -103,6 +109,7 @@ class USSubgrid(Enum):
     SRVC = "SERC Virginia / Carolina"
     USA = "United States of America"
 
+
 class Unit(Enum):
     MMBtu = "1 Million British Thermal Units"
     kBtu = "1 Thousand British Thermal Units"
@@ -113,18 +120,22 @@ class Unit(Enum):
     KG_MMBTU = "kg of GHG per mmBtu"
     KG_GJ = "kg of GGH per GJ"
 
+
 class FuelType(Enum):
     ELECTRICITY_SITE = "Electricity - Site"
     NATURALGAS_SITE = "Natural Gas - Site"
     FUELOILNO2_SITE = "Fuel Oil No2 - Site"
 
+
 class ComOrRes(Enum):
     COM = "Commercial"
     RES = "Residential"
 
+
 class Scenario(Enum):
     S1 = "Scenario 1"
     S2 = "Secneario 2"
+
 
 class BldgUseType(Enum):
     # ASHRAE 90.1-2019
@@ -157,12 +168,14 @@ class BldgUseType(Enum):
     MF_SLAB = "Multi-Family & Slab"
     MF_UNHTDBASEMENT = "Multi-Family & Unheated Basement"
 
+
 class ResHeatSystem(Enum):
     ELECRES = "Electric Resistant"
     GASFURNACE = "Gas Furnace"
     OILFURNACE = "Oil Furnace"
     HP = "Heat Pump"
     NONE = "NONE"
+
 
 class ClimateZone(Enum):
     _1A = "1A - Miami"
@@ -182,21 +195,31 @@ class ClimateZone(Enum):
     _7 = "7 - International Falls"
     _8 = "8 - Fairbanks"
 
+
 @dataclass
 class AnalysisPeriod:
     start_year: int = 0
     end_year: int = 500
-    years_vec = np.linspace(start=start_year, stop=end_year, num=(end_year - start_year + 1)).astype(int)
+    years_vec = np.linspace(
+        start=start_year, stop=end_year, num=(end_year - start_year + 1)
+    ).astype(int)
+
 
 @dataclass
 class MatEmissionsTiming:
     bldg_lifespan: int = 60
+
     def __post_init__(self):
         # For now, assume emissions from B come from
         self.A_time = 0
         self.B_time = np.arange(1, self.bldg_lifespan + 1)
-        self.C_time = np.arange(self.bldg_lifespan, self.bldg_lifespan + 15)  # int(self.bldg_lifespan)#
+        self.C_time = np.arange(
+            self.bldg_lifespan, self.bldg_lifespan + 15
+        )  # int(self.bldg_lifespan)#
+
+
 ###NEED TO FIX ABOVE TO WORK FOR A SINGLE INPUT AT [0] OF C, AND A LIST INPUT THROUGH X YEARS
+
 
 @dataclass
 class EmissionsInventoryGHGi:
@@ -221,25 +244,44 @@ class EmissionInventoryBio:
     CO2_bio: float
     rot_period: float
     growth_biomass: float = None
+
     def __post_init__(self):
         # mu and sigma are used for the generic method for biomass regrowth
         # (Cherubini et al. 2011, https://doi.org/10.1111/j.1757-1707.2011.01102.x)
-        self.mu = self.rot_period / 2   # mean
-        self.sigma = self.mu / 2        # variance
+        self.mu = self.rot_period / 2  # mean
+        self.sigma = self.mu / 2  # variance
 
 
 @dataclass
 class EmissionsInventoryAllGHG:
     # All GHGs for a material
-    CO2: EmissionsInventoryGHGi = field(default_factory=lambda: EmissionsInventoryGHGi(MaterialTypes.NA,GHGTypes.CO2,0,0,0))
-    CH4: EmissionsInventoryGHGi = field(default_factory=lambda: EmissionsInventoryGHGi(MaterialTypes.NA,GHGTypes.CH4,0,0,0))
-    N2O: EmissionsInventoryGHGi = field(default_factory=lambda: EmissionsInventoryGHGi(MaterialTypes.NA,GHGTypes.N2O,0,0,0))
-    CO2bio: EmissionInventoryBio = field(default_factory=lambda: EmissionInventoryBio(MaterialTypes.NA, 0,0))
+    CO2: EmissionsInventoryGHGi = field(
+        default_factory=lambda: EmissionsInventoryGHGi(MaterialTypes.NA, GHGTypes.CO2, 0, 0, 0)
+    )
+    CH4: EmissionsInventoryGHGi = field(
+        default_factory=lambda: EmissionsInventoryGHGi(MaterialTypes.NA, GHGTypes.CH4, 0, 0, 0)
+    )
+    N2O: EmissionsInventoryGHGi = field(
+        default_factory=lambda: EmissionsInventoryGHGi(MaterialTypes.NA, GHGTypes.N2O, 0, 0, 0)
+    )
+    CO2bio: EmissionInventoryBio = field(
+        default_factory=lambda: EmissionInventoryBio(MaterialTypes.NA, 0, 0)
+    )
+
     def __post_init__(self):
         self.material = self.CO2.material
         # Check to see if materials match in each GHG inventory
-        if self.material == self.CO2.material == self.CH4.material == self.N2O.material == self.CO2bio.material:
-            raise ValueError("GHG inventory is created with mismatched materials. Check the emissions inventory")
+        if (
+            self.material
+            == self.CO2.material
+            == self.CH4.material
+            == self.N2O.material
+            == self.CO2bio.material
+        ):
+            raise ValueError(
+                "GHG inventory is created with mismatched materials. Check the emissions inventory"
+            )
+
 
 @dataclass
 class EmissionsFluxMat:
@@ -250,7 +292,15 @@ class EmissionsFluxMat:
     material: MaterialTypes
 
     def __post_init__(self):
-        self.flux_df = pd.DataFrame({'time': self.time, 'CO2_flux':self.CO2_flux, 'CH4_flux':self.CH4_flux, 'N2O_flux':self.N2O_flux})
+        self.flux_df = pd.DataFrame(
+            {
+                "time": self.time,
+                "CO2_flux": self.CO2_flux,
+                "CH4_flux": self.CH4_flux,
+                "N2O_flux": self.N2O_flux,
+            }
+        )
+
 
 @dataclass
 class EmissionsFluxOperational:
@@ -260,7 +310,14 @@ class EmissionsFluxOperational:
     N2O_flux: []
 
     def __post_init__(self):
-        self.flux_df = pd.DataFrame({'time': self.time, 'CO2_flux':self.CO2_flux, 'CH4_flux':self.CH4_flux, 'N2O_flux':self.N2O_flux})
+        self.flux_df = pd.DataFrame(
+            {
+                "time": self.time,
+                "CO2_flux": self.CO2_flux,
+                "CH4_flux": self.CH4_flux,
+                "N2O_flux": self.N2O_flux,
+            }
+        )
 
 
 @dataclass
@@ -275,10 +332,17 @@ class EmissionsFluxTotal:
         self.create_flux_df()
 
     def create_flux_df(self):
-        self.flux_df = pd.DataFrame({'time': self.time, 'CO2_flux': self.CO2_flux, 'CH4_flux': self.CH4_flux, 'N2O_flux': self.N2O_flux})
+        self.flux_df = pd.DataFrame(
+            {
+                "time": self.time,
+                "CO2_flux": self.CO2_flux,
+                "CH4_flux": self.CH4_flux,
+                "N2O_flux": self.N2O_flux,
+            }
+        )
         return self
 
-    def zeros(self, time:[]):
+    def zeros(self, time: []):
         self.time = time
         self.CO2_flux = len(time) * [0]
         self.CH4_flux = len(time) * [0]
@@ -286,18 +350,20 @@ class EmissionsFluxTotal:
         self.flux_df = None
         return self
 
+
 @dataclass
 class EF:
-    #Emissons factor for a given fuel source
+    # Emissons factor for a given fuel source
     fuel: FuelType
     CO2: int
     CH4: int
     N2O: int
     unit: Unit
 
+
 @dataclass
 class RefBldgDetails:
-    ref_bldg_area_m2 : int = None
+    ref_bldg_area_m2: int = None
     electricity_site_GJ: float = None
     naturalgas_site_GJ: float = None
     fueloilno2_kBtu: float = None
@@ -306,11 +372,13 @@ class RefBldgDetails:
     naturalgas_UI_GJm2: float = None
     fueloilno2_UI_kBtum2: float = None
 
+
 # @dataclass
 # class BldgEF:
 #     EF_naturalgas: EF = None
 #     EF_fueloilno2: EF = None
 #     EF_electricity: EF = None
+
 
 @dataclass
 class BldgDetails:
@@ -335,7 +403,16 @@ class BldgDetails:
 
         # add property for res or com
         Com_Res: ComOrRes = None
-        res_list = ['SF_CRAWLSPACE','SF_HTDBASEMENT','SF_SLAB','SF_UNHTDBASEMENT', 'MF_CRAWLSPACE','MF_HTDBASEMENT', 'MF_SLAB', 'MF_UNHTDBASEMENT']
+        res_list = [
+            "SF_CRAWLSPACE",
+            "SF_HTDBASEMENT",
+            "SF_SLAB",
+            "SF_UNHTDBASEMENT",
+            "MF_CRAWLSPACE",
+            "MF_HTDBASEMENT",
+            "MF_SLAB",
+            "MF_UNHTDBASEMENT",
+        ]
         if self.use_type.name in res_list:
             self.Com_Res = ComOrRes.RES
         else:
@@ -350,7 +427,8 @@ class BldgDetails:
         df_EUI = load_EUI_data()
         # Filter EUI datafram based upon BldgDetails
         df_EUI_filtered = df_EUI.query(
-            'BldgUseType == @self.use_type.name and ResHeatSystem == @self.heating_system.value and ClimateZone == @self.climate_zone.name')
+            "BldgUseType == @self.use_type.name and ResHeatSystem == @self.heating_system.value and ClimateZone == @self.climate_zone.name"
+        )
         # Throw error if more than one building is returned
         if len(df_EUI_filtered.index) != 1:
             raise Exception("Multiple types of buildings were returend from the queried")
@@ -360,9 +438,15 @@ class BldgDetails:
         self.ref_bldg.electricity_site_GJ = df_EUI_filtered["ElectricitySite_GJ"].iloc[0]
         self.ref_bldg.naturalgas_site_GJ = df_EUI_filtered["NaturalGasSite_GJ"].iloc[0]
         self.ref_bldg.fueloilno2_kBtu = df_EUI_filtered["FuelOilNo2_kBtu"].iloc[0]
-        self.ref_bldg.electricity_UI_GJm2 = self.ref_bldg.electricity_site_GJ / self.ref_bldg.ref_bldg_area_m2
-        self.ref_bldg.naturalgas_UI_GJm2 = self.ref_bldg.naturalgas_site_GJ / self.ref_bldg.ref_bldg_area_m2
-        self.ref_bldg.fueloilno2_UI_kBtum2 = self.ref_bldg.fueloilno2_kBtu / self.ref_bldg.ref_bldg_area_m2
+        self.ref_bldg.electricity_UI_GJm2 = (
+            self.ref_bldg.electricity_site_GJ / self.ref_bldg.ref_bldg_area_m2
+        )
+        self.ref_bldg.naturalgas_UI_GJm2 = (
+            self.ref_bldg.naturalgas_site_GJ / self.ref_bldg.ref_bldg_area_m2
+        )
+        self.ref_bldg.fueloilno2_UI_kBtum2 = (
+            self.ref_bldg.fueloilno2_kBtu / self.ref_bldg.ref_bldg_area_m2
+        )
 
         return self
 
@@ -370,20 +454,26 @@ class BldgDetails:
         if self.EF_electricity != None:
             raise Warning("EUI data already loaded.. Overwritting..")
         df_subregion = load_EF_subregion_data()
-        df_subregion_filtered = df_subregion.query('eGRID_subregion_acronym == @self.eGrid.name')
+        df_subregion_filtered = df_subregion.query("eGRID_subregion_acronym == @self.eGrid.name")
         # Throw error if more than one building is returned
         if len(df_subregion_filtered.index) != 1:
             raise Exception("Multiple types of buildings were returend from the queried")
 
         # Emissions factors from eGrid: https://www.epa.gov/egrid
-        self.EF_electricity = EF(FuelType.ELECTRICITY_SITE,
-                                 CO2 = df_subregion_filtered["CO2_kgperkwh"].iloc[0],
-                                 CH4 = df_subregion_filtered["CH4_kgperkwh"].iloc[0],
-                                 N2O= df_subregion_filtered["N2O_kgperkwh"].iloc[0],
-                                 unit = Unit.KG_KWH)
+        self.EF_electricity = EF(
+            FuelType.ELECTRICITY_SITE,
+            CO2=df_subregion_filtered["CO2_kgperkwh"].iloc[0],
+            CH4=df_subregion_filtered["CH4_kgperkwh"].iloc[0],
+            N2O=df_subregion_filtered["N2O_kgperkwh"].iloc[0],
+            unit=Unit.KG_KWH,
+        )
         # Emissions factors from: https://www.epa.gov/sites/default/files/2015-07/documents/emission-factors_2014.pdf
-        self.EF_naturalgas = EF(fuel=FuelType.NATURALGAS_SITE, CO2=54.06, CH4=0.001, N2O=0.0001, unit=Unit.KG_MMBTU)
-        self.EF_fueloilno2 = EF(fuel=FuelType.FUELOILNO2_SITE, CO2=73.96, CH4=0.003, N2O=0.0006, unit=Unit.KG_MMBTU)
+        self.EF_naturalgas = EF(
+            fuel=FuelType.NATURALGAS_SITE, CO2=54.06, CH4=0.001, N2O=0.0001, unit=Unit.KG_MMBTU
+        )
+        self.EF_fueloilno2 = EF(
+            fuel=FuelType.FUELOILNO2_SITE, CO2=73.96, CH4=0.003, N2O=0.0006, unit=Unit.KG_MMBTU
+        )
 
         return self
 
@@ -402,7 +492,7 @@ class DLCAInputData:
     clim_time2 = 409.5
 
     mol_mass_air = 28.97  # g/mol
-    earth_area = 5.10E+14  # m2
+    earth_area = 5.10e14  # m2
     mass_atm = 5135200000000000000  # kg
 
     # Lifetime Parameters
@@ -419,9 +509,9 @@ class DLCAInputData:
     p_3 = 0.2763
 
     # Radiative efficiency [W m-2 ppb-1]
-    CO2_RE = 1.37E-05
+    CO2_RE = 1.37e-05
     CH4_RE = 0.000363
-    N2O_RE = 3.000E-03
+    N2O_RE = 3.000e-03
 
     # molar mass of CO2
     mol_mass_CO2 = 44.01
@@ -443,7 +533,6 @@ class DLCAInputData:
     AGWP_N2O: float = None
     GWP_CH4: float = None
     GWP_N2O: float = None
-
 
 
 @dataclass
