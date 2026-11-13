@@ -1,0 +1,47 @@
+# Decision records
+
+A decision record keeps the reason for a science or architecture choice beside
+the code, so it does not live only in chat history. The records also feed the
+methods paper and the JOSS review. The approach is adapted from
+[MSUHydrogeology/cairn](https://github.com/MSUHydrogeology/cairn), in a lighter
+form: records cover science and architecture decisions only, not every change.
+
+## When to write one
+
+Write a record for any decision that is:
+
+- labelled `science` (equations, parameters, timing, reference data), or
+- about the public API (function names, inputs, outputs, units), or
+- an architecture choice that would be costly to reverse (licence, layout,
+  tooling that shapes how people contribute).
+
+Do not write one for typos, renames with no behaviour change, or routine
+features that follow an agreed issue spec.
+
+## How
+
+1. Copy [`0000-template.md`](0000-template.md) to `NNNN-short-title.md`, using
+   the next free four-digit number and a short lowercase hyphenated title.
+2. Fill in every heading. Keep it to about one page. Link to longer material
+   instead of pasting it.
+3. Set Status to `Proposed`. Agents only ever propose. Jay Arehart sets
+   `Accepted` and fills in "Decided by" and the date.
+4. Link the record from the issue or PR it belongs to.
+
+## Records are append-only
+
+Once a record is `Accepted`, do not rewrite its Decision. If the decision
+changes, write a new record that says which one it supersedes, and change only
+the old record's Status line to `Superseded by NNNN`. Fixing a typo or a broken
+link is fine.
+
+## Index
+
+| No. | Title | Status |
+|-----|-------|--------|
+| [0001](0001-rebuild-from-main-validate-against-cooper.md) | Rebuild from `main`; validate against the Cooper et al. spreadsheet | Accepted |
+| [0002](0002-ar5-and-ar6-parameter-sets.md) | Ship AR5 and AR6 parameter sets; AR6 is the default | Accepted |
+| [0003](0003-en-15978-inventory-modules.md) | Inventory input uses EN 15978 modules | Accepted |
+| [0004](0004-mit-license.md) | MIT license | Accepted |
+| [0005](0005-backend-agnostic-api.md) | Backend-agnostic API | Accepted |
+| [0006](0006-adopt-cairn-practices-subset.md) | Adopt a subset of cairn practices | Accepted |
