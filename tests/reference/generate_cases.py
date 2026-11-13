@@ -106,6 +106,17 @@ OUTPUT_COLS = [
     ("GTP_sliding_CO2e", EQ_SHEET, "L", None),
 ]
 
+# Start of the row-8 formula for each equivalency_metrics column read.
+_ROW = "inventory[[#This Row],"
+EQ_FORMULAS = {
+    "E": f"={_ROW}[CO2_net]]+{_ROW}[CH4_net]]*GWP_CH4+{_ROW}[gas1_net]]*GWP_gas1",
+    "F": f"={_ROW}[CO2_net]]+{_ROW}[CH4_net]]*GTP_CH4+{_ROW}[gas1_net]]*GTP_gas1",
+    "I": "=B8/AGWP_CO2",
+    "J": "=C8/AGTP_CO2",
+    "K": f"=K7+({_ROW}[CO2_flux]]*Z8+{_ROW}[CH4_flux]]*AA8+{_ROW}[Gas1_flux]]*AB8",
+    "L": f"=L7+({_ROW}[CO2_flux]]*AE8+{_ROW}[CH4_flux]]*AF8+{_ROW}[Gas1_flux]]*AG8",
+}
+
 AGWP100_CO2 = 9.171093415657962e-14  # intro!D50 as shipped (W yr m-2 kg-1)
 
 
@@ -175,6 +186,12 @@ def check_workbook(path: Path) -> None:
     for _, sheet, col, hdr in OUTPUT_COLS:
         if hdr is not None and wb[sheet][f"{col}6"].value != hdr:
             sys.exit(f"{path}: {sheet}!{col}6 is {wb[sheet][f'{col}6'].value!r}, expected {hdr!r}")
+    # equivalency_metrics headers are formulas, so check each column's row-8 formula.
+    wf = openpyxl.load_workbook(path)[EQ_SHEET]
+    for col, prefix in EQ_FORMULAS.items():
+        f = str(wf[f"{col}8"].value)
+        if not f.startswith(prefix):
+            sys.exit(f"{path}: {EQ_SHEET}!{col}8 is {f[:60]!r}, expected it to start {prefix!r}")
     if wb["intro"]["H26"].value != 100:
         sys.exit(f"{path}: time horizon intro!H26 is not 100")
 

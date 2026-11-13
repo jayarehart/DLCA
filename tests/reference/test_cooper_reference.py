@@ -180,7 +180,8 @@ def test_metric_missing_from_engine(column):
         "the A, B and C fluxes, and MatEmissionsTiming puts C in years 60-74, so year 60 "
         "gets C instead of B + C and years 61-74 get C again. Measured at year 60: CO2 200 "
         "instead of 210 kg, CH4 1 instead of 1.05 kg, N2O 0.02 instead of 0.022 kg; years "
-        "61-74 repeat the C value instead of 0."
+        "61-74 repeat the C value instead of 0. Both causes (assign-not-add and the "
+        "15-year C_time) must be fixed for this to pass."
     ),
 )
 @pytest.mark.parametrize("gas", ["CO2", "CH4", "N2O"])

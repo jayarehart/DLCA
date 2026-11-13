@@ -108,8 +108,8 @@ year's pulse.
 | `N2O_temp` | `inventory_and_effects` | AC (`gas1_temp`) | K | |
 | `temp_change` | `inventory_and_effects` | I (`Temp_change`) | K | total ΔT |
 | `CO2_net`, `CH4_net`, `N2O_net` | `inventory_and_effects` | AG, AH, AI (`CO2_net`, `CH4_net`, `gas1_net`) | kg | cumulative net emissions |
-| `GWP_static_CO2e` | `equivalency_metrics` | E ("GWP with sliding 100 year time-horizon") | kg CO₂e | cumulative net emissions × GWP₁₀₀ |
-| `GTP_static_CO2e` | `equivalency_metrics` | F ("GTP with sliding 100 year time-horizon") | kg CO₂e | cumulative net emissions × GTP₁₀₀ |
+| `GWP_static_CO2e` | `equivalency_metrics` | E (spreadsheet label: "GWP with sliding 100 year time-horizon") | kg CO₂e | cumulative net emissions × GWP₁₀₀ (formula checked by the generator) |
+| `GTP_static_CO2e` | `equivalency_metrics` | F (spreadsheet label: "GTP with sliding 100 year time-horizon") | kg CO₂e | cumulative net emissions × GTP₁₀₀ (formula checked by the generator) |
 | `IRF_over_AGWP_CO2` | `equivalency_metrics` | I (IRF by that year ÷ AGWP₁₀₀(CO₂)) | kg CO₂e | |
 | `temp_over_AGTP_CO2` | `equivalency_metrics` | J (ΔT by that year ÷ AGTP₁₀₀(CO₂)) | kg CO₂e | |
 | `GWP_sliding_CO2e` | `equivalency_metrics` | K (IRF at year 100 from emissions up to that year ÷ AGWP₁₀₀(CO₂)) | kg CO₂e | |
@@ -149,7 +149,8 @@ uv run --no-project --with openpyxl python -I \
 - **Checks it makes:**
   - the workbook is the expected one (it has the `intro` sheet, says
     version 5, has AGWP₁₀₀(CO₂) = 9.171093e-14, and every column header is
-    as expected);
+    as expected; for `equivalency_metrics`, whose headers are formulas, it
+    checks the start of each column's row-8 formula instead);
   - the recalculation ran: cumulative net emissions match each case's inputs,
     and the CO₂-only positive control gives year-100 IRF = 9.17109e-14 W yr m⁻²
     = AGWP₁₀₀(CO₂), with zero CH₄ and N₂O mass.
