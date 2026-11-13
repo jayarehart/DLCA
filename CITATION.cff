@@ -5,7 +5,6 @@ type: software
 authors:
   - family-names: Arehart
     given-names: Jay
-    # TODO: replace with Jay's ORCID, e.g. https://orcid.org/0000-0000-0000-0000
-    orcid: "https://orcid.org/0000-0000-0000-0000"
+    orcid: "https://orcid.org/0000-0002-9434-1783"
 license: MIT
 repository-code: "https://github.com/jayarehart/DLCA"
