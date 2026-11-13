@@ -1,5 +1,7 @@
 # DLCA
 
+[![CI](https://github.com/jayarehart/DLCA/actions/workflows/ci.yml/badge.svg)](https://github.com/jayarehart/DLCA/actions/workflows/ci.yml)
+
 Dynamic life cycle assessment (DLCA) for buildings.
 
 DLCA models the greenhouse-gas emissions of buildings, assemblies and
