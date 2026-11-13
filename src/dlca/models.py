@@ -1,9 +1,9 @@
 # import libraries
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import numpy as np
 import pandas as pd
 from enum import Enum
-from DLCA.data.csv_loader import *
+from dlca.data.csv_loader import *
 
 class MaterialTypes(Enum):
     STEEL = "Steel"
@@ -231,10 +231,10 @@ class EmissionInventoryBio:
 @dataclass
 class EmissionsInventoryAllGHG:
     # All GHGs for a material
-    CO2: EmissionsInventoryGHGi = EmissionsInventoryGHGi(MaterialTypes.NA,GHGTypes.CO2,0,0,0)
-    CH4: EmissionsInventoryGHGi = EmissionsInventoryGHGi(MaterialTypes.NA,GHGTypes.CH4,0,0,0)
-    N2O: EmissionsInventoryGHGi = EmissionsInventoryGHGi(MaterialTypes.NA,GHGTypes.N2O,0,0,0)
-    CO2bio: EmissionInventoryBio = EmissionInventoryBio(MaterialTypes.NA, 0,0)
+    CO2: EmissionsInventoryGHGi = field(default_factory=lambda: EmissionsInventoryGHGi(MaterialTypes.NA,GHGTypes.CO2,0,0,0))
+    CH4: EmissionsInventoryGHGi = field(default_factory=lambda: EmissionsInventoryGHGi(MaterialTypes.NA,GHGTypes.CH4,0,0,0))
+    N2O: EmissionsInventoryGHGi = field(default_factory=lambda: EmissionsInventoryGHGi(MaterialTypes.NA,GHGTypes.N2O,0,0,0))
+    CO2bio: EmissionInventoryBio = field(default_factory=lambda: EmissionInventoryBio(MaterialTypes.NA, 0,0))
     def __post_init__(self):
         self.material = self.CO2.material
         # Check to see if materials match in each GHG inventory

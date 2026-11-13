@@ -1,6 +1,6 @@
 # import libraries
-from DLCA.models import *
-from DLCA.data.csv_loader import *
+from dlca.models import *
+from dlca.data.csv_loader import *
 import numpy as np
 
 class EmissionsFluxEngine():

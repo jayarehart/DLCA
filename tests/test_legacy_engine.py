@@ -1,6 +1,6 @@
 import unittest
-from DLCA import DLCA
-from DLCA.models import *
+from dlca import engine as DLCA
+from dlca.models import *
 
 
 class MyTestCase(unittest.TestCase):

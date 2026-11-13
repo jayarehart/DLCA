@@ -14,15 +14,15 @@ be relied on for decisions.
 
 ## Installation
 
-There is no packaged release yet. Install from source:
+There is no release on PyPI yet. Install from source:
 
 ```bash
 git clone https://github.com/jayarehart/DLCA.git
 cd DLCA
-pip install -r requirements.txt
+uv sync          # or: pip install .
 ```
 
-Packaging (so that `pip install` works directly) is planned for a later release.
+Python 3.10 or newer is required.
 
 ## License
 
