@@ -1,3 +1,5 @@
+# legacy/ is archived as-is; the packaged data files must stay byte-for-byte unchanged.
+exclude: ^(legacy/|src/dlca/data/.*\.csv$)
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0

@@ -24,7 +24,8 @@ packages = ["src/dlca"]
 
 [dependency-groups]
 dev = [
-    "pytest",
+    # pytest 9.2.0 crashes on Python 3.10 (INTERNALERROR in _pytest/nodeid.py); 9.1.x works.
+    "pytest>=8,<9.2",
     "pytest-cov",
     "ruff",
     "pre-commit",
