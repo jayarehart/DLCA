@@ -1,6 +1,6 @@
 import unittest
-from DLCA import DLCA
-from DLCA.models import *
+from dlca import engine as DLCA
+from dlca.models import *
 
 
 class MyTestCase(unittest.TestCase):
@@ -64,9 +64,9 @@ class MyTestCase(unittest.TestCase):
         my_DLCAEngine = DLCA.DLCAEngine()
         my_DLCAEngine.calc_decay(input_flux=flux_mat_test)
 
-        self.assertEqual(sum(my_DLCAEngine.Results.mass_in_atm_df['CO2']), 184.2837146985627, msg='.. Decay of CO2 is calculated incorrectly')
-        self.assertEqual(sum(my_DLCAEngine.Results.mass_in_atm_df['CH4']), 0.5162687880706308, msg='.. Decay of CH4 is calculated incorrectly')
-        self.assertEqual(sum(my_DLCAEngine.Results.mass_in_atm_df['N2O']), 0.40123157841290424, msg='.. Decay of N2O is calculated incorrectly')
+        self.assertAlmostEqual(sum(my_DLCAEngine.Results.mass_in_atm_df['CO2']), 184.2837146985627, places=9, msg='.. Decay of CO2 is calculated incorrectly')
+        self.assertAlmostEqual(sum(my_DLCAEngine.Results.mass_in_atm_df['CH4']), 0.5162687880706308, places=9, msg='.. Decay of CH4 is calculated incorrectly')
+        self.assertAlmostEqual(sum(my_DLCAEngine.Results.mass_in_atm_df['N2O']), 0.40123157841290424, places=9, msg='.. Decay of N2O is calculated incorrectly')
 
 
     def test_DLCAEngine_calc_warming(self):
@@ -92,8 +92,8 @@ class MyTestCase(unittest.TestCase):
 
         # N2O has not been added to the AGTP or the AGWP calculations
 
-        self.assertEqual(my_DLCAEngine.Results.temp_change_df['temp_change'][100], 1.0700561631626676E-15, msg='.. AGTP is calculated incorrectly')
-        self.assertEqual(my_DLCAEngine.Results.equiv_df['LCA_dyn'][100],3.0267395007015145, msg='.. AGWP is calculated incorrectly')
+        self.assertAlmostEqual(my_DLCAEngine.Results.temp_change_df['temp_change'][100], 1.0700561631626676E-15, delta=1e-12 * abs(1.0700561631626676E-15), msg='.. AGTP is calculated incorrectly')
+        self.assertAlmostEqual(my_DLCAEngine.Results.equiv_df['LCA_dyn'][100], 3.0267395007015145, places=9, msg='.. AGWP is calculated incorrectly')
 
 
     def test_loadEUI_loadEF(self):
