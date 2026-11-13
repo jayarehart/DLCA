@@ -111,9 +111,9 @@ class DLCAEngine():
     def calc_decay(self, input_flux:EmissionsFluxTotal) -> DLCAResults:
         self.years_vec = input_flux.time
         # Initialize mass in atmosphere dataframe
-        mass_in_atm_df = pd.DataFrame(0, index=self.years_vec, columns=['CO2', 'CH4','N2O'])
+        mass_in_atm_df = pd.DataFrame(0, index=self.years_vec, columns=['CO2', 'CH4','N2O'], dtype=float)
         # Initialize CO2 atmospheric decay components dataframe
-        CO2_mass_df = pd.DataFrame(0, index=self.years_vec, columns=['mass0', 'mass1', 'mass2', 'mass3', 'CH4_to_CO2'])
+        CO2_mass_df = pd.DataFrame(0, index=self.years_vec, columns=['mass0', 'mass1', 'mass2', 'mass3', 'CH4_to_CO2'], dtype=float)
 
         CO2_flux = input_flux.flux_df['CO2_flux']
         CH4_flux = input_flux.flux_df['CH4_flux']
@@ -158,7 +158,7 @@ class DLCAEngine():
 
 
         # Cumulative net emissions [kg]
-        cum_net_emissions = pd.DataFrame(0, index=self.years_vec, columns=['CO2_net', 'CH4_net', 'N2O_net', 'gas2_net', 'gas3_net'])
+        cum_net_emissions = pd.DataFrame(0, index=self.years_vec, columns=['CO2_net', 'CH4_net', 'N2O_net', 'gas2_net', 'gas3_net'], dtype=float)
         for index, row in cum_net_emissions.iterrows():
             if index == 0:
                 cum_net_emissions.loc[index, 'CO2_net'] = CO2_flux[index]
@@ -200,7 +200,7 @@ class DLCAEngine():
         self._inputdata.GWP_N2O = self._inputdata.AGWP_N2O / self._inputdata.AGWP_CO2
 
         # Initialize radiative forcing dataframe
-        irf_df = pd.DataFrame(0, index=self.years_vec, columns=['CO2_radfor', 'CH4_radfor', 'N2O_radfor', 'CO2_IRF', 'CH4_IRF', 'N2O_IRF', 'IRF_all'])
+        irf_df = pd.DataFrame(0, index=self.years_vec, columns=['CO2_radfor', 'CH4_radfor', 'N2O_radfor', 'CO2_IRF', 'CH4_IRF', 'N2O_IRF', 'IRF_all'], dtype=float)
 
 
 
@@ -237,7 +237,7 @@ class DLCAEngine():
 
 
         # AGWP and AGTP in reverse-order from year X (the time-horizon)
-        AGWP_rev = pd.DataFrame(0, index=self.years_vec, columns=['CO2_AGWP_rev', 'CH4_AGWP_rev','N2O_AGWP_rev'])
+        AGWP_rev = pd.DataFrame(0, index=self.years_vec, columns=['CO2_AGWP_rev', 'CH4_AGWP_rev','N2O_AGWP_rev'], dtype=float)
         AGWP_rev['CO2_AGWP_rev'] = pd.concat((AGWP_df_sup.loc[0:time_horizon, 'CO2_AGWP'][::-1], pd.Series(self.years_vec[time_horizon + 1:] * 0))).reset_index(drop=True)
         AGWP_rev['CH4_AGWP_rev'] = pd.concat((AGWP_df_sup.loc[0:time_horizon, 'CH4_AGWP'][::-1], pd.Series(self.years_vec[time_horizon + 1:] * 0))).reset_index(drop=True)
         AGWP_rev['N2O_AGWP_rev'] = pd.concat((AGWP_df_sup.loc[0:time_horizon, 'N2O_AGWP'][::-1], pd.Series(self.years_vec[time_horizon + 1:] * 0))).reset_index(drop=True)
@@ -246,7 +246,7 @@ class DLCAEngine():
         # Equivalency summary dataframe
         # equiv_df = pd.DataFrame(0, index=self.years_vec, columns=['irf_GWP_slidingTH', 'GTP_slidingTH', 'CO2_AGTP_rev', 'CH4_AGTP_rev'])
 
-        equiv_df = pd.DataFrame(0, index=self.years_vec, columns=['LCA_dyn', 'LCA_static'])
+        equiv_df = pd.DataFrame(0, index=self.years_vec, columns=['LCA_dyn', 'LCA_static'], dtype=float)
         equiv_df['LCA_dyn'] = irf_df['IRF_all'] / self._inputdata.AGWP_CO2
         equiv_df['LCA_static'] = self.Results.cum_net_emissions['CO2_net'] + self.Results.cum_net_emissions['CH4_net'] * self._inputdata.GWP_CH4 + self.Results.cum_net_emissions['N2O_net'] * self._inputdata.GWP_N2O # add in more gasses here if desired
 
@@ -276,7 +276,7 @@ class DLCAEngine():
 
         # Temperature change components (two-part climate response model)
         # Initialize the temperature change dataframe
-        temp_change_df = pd.DataFrame(0, index=self.years_vec,columns=['CO2_temp_s1', 'CO2_temp_s2', 'CH4_temp_s1', 'CH4_temp_s2','N2O_temp_s1', 'N2O_temp_s2', 'CO2_temp', 'CH4_temp', 'N2O_temp', 'temp_change'])
+        temp_change_df = pd.DataFrame(0, index=self.years_vec,columns=['CO2_temp_s1', 'CO2_temp_s2', 'CH4_temp_s1', 'CH4_temp_s2','N2O_temp_s1', 'N2O_temp_s2', 'CO2_temp', 'CH4_temp', 'N2O_temp', 'temp_change'], dtype=float)
         for index, row in temp_change_df.iterrows():
             if index == 0:
                 temp_change_df.loc[index, 'CO2_temp_s1'] = 0
@@ -310,7 +310,7 @@ class DLCAEngine():
         temp_change_df['temp_change'] = temp_change_df['CO2_temp'] + temp_change_df['CH4_temp'].fillna(0) + temp_change_df['N2O_temp'].fillna(0)
 
         AGTP_df_sup = load_AGTP_supp_data()
-        AGTP_rev = pd.DataFrame(0, index=self.years_vec, columns=['CO2_AGTP_rev', 'CH4_AGTP_rev','N2O_AGTP_rev'])
+        AGTP_rev = pd.DataFrame(0, index=self.years_vec, columns=['CO2_AGTP_rev', 'CH4_AGTP_rev','N2O_AGTP_rev'], dtype=float)
         AGTP_rev['CO2_AGTP_rev'] = pd.concat((AGTP_df_sup.loc[0:time_horizon, 'CO2_AGTP'][::-1], pd.Series(self.years_vec[time_horizon + 1:] * 0))).reset_index(drop=True)
         AGTP_rev['CH4_AGTP_rev'] = pd.concat((AGTP_df_sup.loc[0:time_horizon, 'CH4_AGTP'][::-1], pd.Series(self.years_vec[time_horizon + 1:] * 0))).reset_index(drop=True)
         AGTP_rev['N2O_AGTP_rev'] = pd.concat((AGTP_df_sup.loc[0:time_horizon, 'N2O_AGTP'][::-1], pd.Series(self.years_vec[time_horizon + 1:] * 0))).reset_index(drop=True)
