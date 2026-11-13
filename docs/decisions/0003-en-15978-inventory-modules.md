@@ -34,7 +34,7 @@ interval, so that emissions can be placed on the time axis.
 - Timing rules for each module (for example when A1–A3 occur, and how
   replacements repeat) are `science` decisions and need their own records.
 - The input models in `src/dlca/models.py` will change to carry module labels,
-  service life and replacement interval (milestone M4, not this record).
+  service life and replacement interval (a later change, not this record).
 
 ## References
 
