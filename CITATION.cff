@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata in this file."
+title: "DLCA: Dynamic life cycle assessment for buildings"
+type: software
+authors:
+  - family-names: Arehart
+    given-names: Jay
+    orcid: "https://orcid.org/0000-0002-9434-1783"
+license: MIT
+repository-code: "https://github.com/jayarehart/DLCA"
