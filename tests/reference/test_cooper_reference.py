@@ -178,11 +178,13 @@ def test_metric_missing_from_engine(column):
     reason=(
         "Audit bug: module fluxes overwrite each other. create_flux_mat assigns (not adds) "
         "the A, B and C fluxes, and MatEmissionsTiming puts C in years 60-74, so year 60 "
-        "gets C instead of B + C and years 61-74 get C again. Measured for CO2: year 60 is "
-        "200 kg instead of 210 kg, and years 61-74 are 200 kg instead of 0."
+        "gets C instead of B + C and years 61-74 get C again. Measured at year 60: CO2 200 "
+        "instead of 210 kg, CH4 1 instead of 1.05 kg, N2O 0.02 instead of 0.022 kg; years "
+        "61-74 repeat the C value instead of 0."
     ),
 )
-def test_building_lifecycle_flux_builder():
+@pytest.mark.parametrize("gas", ["CO2", "CH4", "N2O"])
+def test_building_lifecycle_flux_builder(gas):
     """The engine's own A/B/C flux builder should reproduce the case's inflows."""
     inputs, _, _ = load_case("building_lifecycle")
     kwargs = {"material": DLCA.MaterialTypes.TEST}
@@ -206,11 +208,10 @@ def test_building_lifecycle_flux_builder():
         timing=DLCA.MatEmissionsTiming(bldg_lifespan=60),
         emissions_inv=inv,
     )
-    for gas in ("CO2", "CH4", "N2O"):
-        np.testing.assert_allclose(
-            flux.flux_df[f"{gas}_flux"].to_numpy(dtype=float),
-            inputs[f"{gas}_flux"].to_numpy(dtype=float),
-            rtol=RTOL,
-            atol=0,
-            err_msg=gas,
-        )
+    np.testing.assert_allclose(
+        flux.flux_df[f"{gas}_flux"].to_numpy(dtype=float),
+        inputs[f"{gas}_flux"].to_numpy(dtype=float),
+        rtol=RTOL,
+        atol=0,
+        err_msg=gas,
+    )
