@@ -21,3 +21,49 @@ Repository = "https://github.com/jayarehart/DLCA"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/dlca"]
+
+[dependency-groups]
+dev = [
+    # pytest 9.2.0 crashes on Python 3.10 (INTERNALERROR in _pytest/nodeid.py); 9.1.x works.
+    "pytest>=8,<9.2",
+    "pytest-cov",
+    "ruff",
+    "pre-commit",
+]
+
+[tool.ruff]
+line-length = 100
+extend-exclude = ["legacy", "analysis"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "NPY"]
+
+[tool.ruff.lint.per-file-ignores]
+# Engine code is carried over unchanged from the original research code. These findings
+# would need logic or API edits to fix, so they are ignored here rather than changed.
+# Remove entries as each file is cleaned up.
+"src/dlca/engine.py" = [
+    "E501",  # long lines, mostly comments and strings the formatter does not wrap
+    "F403",  # `from dlca.models import *`
+    "F405",  # names that come in through that star import
+    "F841",  # unused local variables
+    "B007",  # unused loop variables
+    "E711",  # `== None` comparisons: pandas/numpy semantics may differ from `is None`
+    "E712",  # `== True` / `== False` comparisons: same reason
+]
+"src/dlca/models.py" = ["E501", "F403", "F405", "F841", "B007", "E711", "E712"]
+"src/dlca/data/csv_loader.py" = ["E501", "F403", "F405", "F841", "B007", "E711", "E712"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov --cov-report=term-missing --durations=10"
+
+[tool.coverage.run]
+source = ["dlca"]
+
+[tool.coverage.report]
+# Reporting only; no fail_under threshold yet.
+show_missing = true

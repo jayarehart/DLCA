@@ -11,16 +11,20 @@ def _read(name):
 
 
 def load_AGTP_supp_data():
-    return _read('AGTP_supp_data.csv')
+    return _read("AGTP_supp_data.csv")
+
 
 def load_AGWP_supp_data():
-    return _read('AGWP_supp_data.csv')
+    return _read("AGWP_supp_data.csv")
+
 
 def load_EUI_data():
-    return _read('DOE_energyuse_fake.csv')
+    return _read("DOE_energyuse_fake.csv")
+
 
 def load_EF_state_data():
-    return _read('egrid2020_ef_state.csv')
+    return _read("egrid2020_ef_state.csv")
+
 
 def load_EF_subregion_data():
-    return _read('egrid2020_ef_subregion.csv')
+    return _read("egrid2020_ef_subregion.csv")
