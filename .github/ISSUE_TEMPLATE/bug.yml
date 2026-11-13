@@ -1,0 +1,52 @@
+name: Bug
+description: Something gives a wrong result, crashes, or doesn't behave as documented.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please don't paste unpublished results, embargoed data or secrets. A small made-up input that shows the problem is best.
+        Security problems go through private reporting (see SECURITY.md), not here.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you saw, including any error message or traceback.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+      description: The result you expected, and where that expectation comes from (a hand calculation, a published value, the docs).
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce
+      description: The smallest code and input that show the problem.
+      render: python
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: DLCA version or commit
+      placeholder: "0.1.0.dev0, or a commit hash"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Python version and OS
+      placeholder: "Python 3.12, macOS 15"
+    validations:
+      required: false
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+    validations:
+      required: false
