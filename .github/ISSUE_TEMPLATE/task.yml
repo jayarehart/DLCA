@@ -1,0 +1,73 @@
+name: Task
+description: A unit of work small enough for one PR. See AGENTS.md for the lanes.
+title: "[Task]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        One issue, one PR. Write it so an agent that has never seen the project can do the work from this issue alone.
+        **Science** work (equations, parameters, timing, reference data, public API) is the **deliberate** lane: post a short proposal first and wait for Jay's decision before any code.
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Why this work is needed, and any background a newcomer would need.
+    validations:
+      required: true
+  - type: dropdown
+    id: lane
+    attributes:
+      label: Lane
+      description: trivial = change + test; standard = issue spec, then PR; deliberate = `science`, proposal first and Jay decides before code.
+      options:
+        - trivial
+        - standard
+        - deliberate (science)
+    validations:
+      required: true
+  - type: textarea
+    id: task
+    attributes:
+      label: Task
+      description: What to do, concretely. Bullet points are fine.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Checkable conditions for "done".
+      value: |
+        - [ ]
+    validations:
+      required: true
+  - type: textarea
+    id: independent-check
+    attributes:
+      label: Independent check (science only)
+      description: |
+        What is compared, and where the expected value comes from outside the code (closed form, IPCC table, reference spreadsheet, or Jay's expectation written down first).
+        Also name the deliberate mistake to make on purpose, and, for any "no difference" result, the positive control.
+    validations:
+      required: false
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out of scope
+      description: Related work that should not be done in this PR.
+    validations:
+      required: false
+  - type: textarea
+    id: files
+    attributes:
+      label: Files
+      description: Files or globs the PR is expected to touch.
+    validations:
+      required: false
+  - type: input
+    id: blocked-by
+    attributes:
+      label: Blocked by
+      description: Issues that must merge first, e.g. "#10". Leave blank if none.
+    validations:
+      required: false

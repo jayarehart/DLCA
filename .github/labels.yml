@@ -1,0 +1,57 @@
+# Labels used in this repository. This file documents them; it is not
+# applied automatically. Keep it in sync with `gh label list`.
+# See AGENTS.md for how the workflow labels are used.
+
+# Workflow
+- name: agent-ready
+  color: "0E8A16"
+  description: "Spec complete; can be handed to an agent"
+- name: needs-jay
+  color: "D93F0B"
+  description: "Waiting on a decision or data from the maintainer"
+- name: science
+  color: "5319E7"
+  description: "Touches equations, parameters, timing, or reference data; deliberate lane"
+
+# Areas
+- name: "area:climate"
+  color: "C5DEF5"
+  description: "Area: climate"
+- name: "area:inventory"
+  color: "C5DEF5"
+  description: "Area: inventory"
+- name: "area:docs"
+  color: "C5DEF5"
+  description: "Area: docs"
+- name: "area:infra"
+  color: "C5DEF5"
+  description: "Area: infra"
+
+# GitHub defaults
+- name: bug
+  color: "d73a4a"
+  description: "Something isn't working"
+- name: documentation
+  color: "0075ca"
+  description: "Improvements or additions to documentation"
+- name: duplicate
+  color: "cfd3d7"
+  description: "This issue or pull request already exists"
+- name: enhancement
+  color: "a2eeef"
+  description: "New feature or request"
+- name: good first issue
+  color: "7057ff"
+  description: "Good for newcomers"
+- name: help wanted
+  color: "008672"
+  description: "Extra attention is needed"
+- name: invalid
+  color: "e4e669"
+  description: "This doesn't seem right"
+- name: question
+  color: "d876e3"
+  description: "Further information is requested"
+- name: wontfix
+  color: "ffffff"
+  description: "This will not be worked on"
