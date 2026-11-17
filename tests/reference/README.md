@@ -2,6 +2,8 @@
 
 These tests run `dlca.engine` on seven emission cases and compare the results,
 year by year, with the *temporal climate impacts* spreadsheet by Sam Cooper.
+The reference is **Cooper et al. (2020) v5 with one correction by DLCA (AGTP
+p_1→p_3, cell `intro!E50`)**; see "Modification" below.
 `dlca.engine` is a Python port of that spreadsheet (the column names match),
 so the spreadsheet is an independent check **of the port**, not of the
 physics. Checks against published IPCC values come in M1.
@@ -21,14 +23,42 @@ material `mmc2.xlsx` to:
   Hawkins and Marcelle McManus. Supported by the Supergen Bioenergy Hub (UKRI
   grant EP/S000771/1).
 - **Licence:** CC-BY (stated in the spreadsheet, `intro!A8`: provided "as-is").
-  The CSV files in `cases/` are derived from it: the spreadsheet's own formulas
-  were run on the inputs below and the results exported. Nothing in the
-  spreadsheet's method was changed.
+  The CSV files in `cases/` are derived from it: the spreadsheet's formulas,
+  with the one correction below, were run on the inputs below and the results
+  exported. **Changes were made** (see "Modification"); the original authors
+  have not reviewed or endorsed them.
 - **The xlsx itself is not in this repository.** `generate_cases.py` takes its
   local path as an argument. The copy used here was 1,170,760 bytes, SHA-256
   `eb8e41611d313e99066cbf93e8b2e192462e49ea4bff09850380f7679d90ac75`.
 
-Please cite the paper above wherever these reference cases are used.
+Please cite the paper above wherever these reference cases are used, and say
+that the spreadsheet was modified as described below.
+
+### Modification
+
+One formula was changed, by DLCA, on Jay Arehart's decision (2026-11-17,
+recorded on issue #15 and PR #24):
+
+- **Cell:** `intro!E50`, AGTP₁₀₀ of CO₂ (named range `AGTP_CO2`).
+- **Change:** the third CO₂ pool term `p_1*life3_CO2*(…)` becomes
+  `p_3*life3_CO2*(…)`. The other pools already used `p_0`, `p_1`, `p_2`; the
+  matching AGWP formula (`intro!D50`) already used `p_3`.
+- **Effect:** AGTP₁₀₀(CO₂) changes from 5.46535e-16 to 5.46862e-16 K kg⁻¹
+  (+0.0599%). That now equals, to 1.8e-14, the spreadsheet's own year-100
+  temperature change for a 1 kg CO₂ pulse (5.46862e-16 K), which is what AGTP
+  means. Everything that divides by `AGTP_CO2` moves by the same factor, for
+  example GTP₁₀₀(CH₄) 4.2724 → 4.2699 and GTP₁₀₀(N₂O) 234.346 → 234.206.
+- **Search:** every formula on every sheet was searched for `p_1*life3_CO2`
+  and for any `p_i*lifej_CO2` with i ≠ j. `intro!E50` is the only match. The
+  generator repeats the search on every run and stops if it finds a different
+  set of cells.
+- **Pasted tables:** `equivalency_metrics` column S (per-year CO₂ AGTP) is
+  pasted values. It matches the *corrected* formula to 2.9e-14 and differs
+  from the uncorrected one by 2.2%, so it does not carry the slip and is left
+  as shipped. Columns N, O and T have no `p_3` term.
+- **How:** `generate_cases.py` applies the change itself with openpyxl, before
+  setting any case inputs, so every regeneration from the original v5 file is
+  reproducible. `--no-agtp-fix` skips it (used only for checks).
 
 ## Parameter set
 
@@ -115,19 +145,25 @@ year's pulse.
 | `GWP_sliding_CO2e` | `equivalency_metrics` | K (IRF at year 100 from emissions up to that year ÷ AGWP₁₀₀(CO₂)) | kg CO₂e | |
 | `GTP_sliding_CO2e` | `equivalency_metrics` | L (ΔT at year 100 from emissions up to that year ÷ AGTP₁₀₀(CO₂)) | kg CO₂e | |
 
+`GTP_static_CO2e`, `temp_over_AGTP_CO2` and `GTP_sliding_CO2e` divide by the
+corrected AGTP₁₀₀(CO₂). Compared with the uncorrected spreadsheet they are
+lower by up to 5.99e-4 relative (2.6e-5 for `GTP_static_CO2e` in
+`building_lifecycle`, which is mostly CO₂). No other column changed.
+
 Notes on the spreadsheet itself (reported, not changed):
 
-- `intro!E50` (AGTP₁₀₀ of CO₂) multiplies the third CO₂ pool by `p_1` instead
-  of `p_3`, the same slip as in the engine's `calc_AGTP`. It gives
-  5.46535e-16 K kg⁻¹ where the spreadsheet's own year-100 temperature for a
-  1 kg CO₂ pulse is 5.46862e-16 K (0.06% apart). `GTP_static_CO2e`,
-  `temp_over_AGTP_CO2` and `GTP_sliding_CO2e` all divide by it.
 - `GWP_sliding_CO2e` and `GTP_sliding_CO2e` use the per-year CO₂ and CH₄
   AGWP/AGTP tables in `equivalency_metrics` columns N, O, S and T. These are
   pasted values, not formulas, so they do not respond to the case inputs or to
-  `fossil_CH4`. The CH₄ ones include the oxidised-CH₄ CO₂ (for example,
-  AGWP₁₀₀(CH₄) = 2.6179e-12 there, against 2.6097e-12 from the formula in
-  `intro!D51`).
+  `fossil_CH4`.
+- **The pasted CH₄ tables (O and T) do not match the spreadsheet's own
+  formulas.** At every year they are exactly 1.003125 × the spreadsheet's
+  biogenic CH₄ result (the `ch4_pulse_biogenic` IRF and ΔT), and
+  1.003125 = 16.05 / 16.00. So they look like they were made with a CH₄ molar
+  mass of 16.00 g/mol instead of the 16.05 the spreadsheet now uses. They do
+  not include the oxidised-CH₄ CO₂. This affects the CH₄ part of
+  `GWP_sliding_CO2e` and `GTP_sliding_CO2e` (+0.3125%). It is left as shipped
+  and is open for Jay to decide (PR #24).
 - The `gas3` AGWP/AGTP columns R and W in `equivalency_metrics` use `gas2` or
   `gas1` parameters. They do not affect these cases, since `gas3` is 0.
 
@@ -142,7 +178,7 @@ uv run --no-project --with openpyxl python -I \
   (`bce0998afefdbc355585ca324285661a2170ba77`) on macOS. The generator needs
   LibreOffice 7 or later.
 - **Steps:** the generator copies the workbook into a temporary directory,
-  writes each case's inputs into the green input cells with openpyxl (keeping
+  applies the AGTP correction, writes each case's inputs into the green input cells with openpyxl (keeping
   the formulas), recalculates with
   `soffice --headless --calc --convert-to xlsx`, and reads the results back
   with `data_only=True`.
@@ -153,7 +189,13 @@ uv run --no-project --with openpyxl python -I \
     checks the start of each column's row-8 formula instead);
   - the recalculation ran: cumulative net emissions match each case's inputs,
     and the CO₂-only positive control gives year-100 IRF = 9.17109e-14 W yr m⁻²
-    = AGWP₁₀₀(CO₂), with zero CH₄ and N₂O mass.
+    = AGWP₁₀₀(CO₂), with zero CH₄ and N₂O mass;
+  - the correction worked: the recalculated AGTP₁₀₀(CO₂) equals the
+    `co2_pulse` ΔT at year 100 (to 1e-9).
+- **Corrected workbook:** `--save-corrected PATH` writes the corrected,
+  recalculated workbook with its original shipped inputs. It is not committed.
+  openpyxl drops the charts on the `graphs` sheet and the drop-down lists from
+  that copy.
 - **Deterministic:** two runs give byte-identical CSVs.
 - **Not run in CI.** Only the CSVs are committed.
 
@@ -161,10 +203,19 @@ uv run --no-project --with openpyxl python -I \
 
 `test_cooper_reference.py` runs the engine (`calc_decay`, `calc_AGWP`,
 `calc_AGTP` with a time horizon of 100) on each case's `inputs.csv` and
-compares 24 result columns with `numpy.testing.assert_allclose`:
+compares 24 result columns with `numpy.testing.assert_allclose`, twice:
 
-- `rtol = 1e-9`;
-- `atol = 1e-9 × max |expected|` for that column.
+1. `test_engine_matches_spreadsheet`: every year, `rtol = 1e-9` and
+   `atol = 1e-9 × max |expected|` for that column.
+2. `test_engine_matches_spreadsheet_where_large`: `rtol = 1e-9` and `atol = 0`,
+   on every year where `|expected| ≥ 1e-15 × max |expected|`. The first check
+   lets any error pass once a value is below 1e-9 of its peak (for example
+   the CH₄ mass after about year 260); this one does not. Below 1e-15 of the
+   peak, a value is smaller than the rounding error on the peak itself (15
+   significant digits), so it may be rounding noise.
+
+`test_reference_uses_corrected_agtp` checks that the committed reference has
+the AGTP correction: for `co2_pulse`, ΔT₁₀₀ ÷ AGTP₁₀₀ must be exactly 1.
 
 Where the engine disagrees, the test is marked `xfail(strict=True)` with the
 suspected cause and the measured size. Those are fixed in M1. **Never edit the

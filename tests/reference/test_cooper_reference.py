@@ -29,6 +29,14 @@ RTOL = 1e-9
 # so values far below the column's magnitude (for example near-zero tails) do
 # not demand more relative precision than the spreadsheet carries.
 
+# The second check (test_engine_matches_spreadsheet_where_large) uses rtol only,
+# on years where |expected| >= WINDOW x column peak. Below 1e-15 of the peak a
+# value is smaller than the rounding error on the peak itself (the spreadsheet
+# stores 15 significant digits), so in columns that add or subtract peak-sized
+# terms it may be rounding noise. Above it, every passing comparison agreed to
+# 5.4e-15 relative when this was written (2026-11-17).
+WINDOW = 1e-15
+
 # expected.csv column -> (DLCAResults attribute, column in that DataFrame).
 ENGINE_COLUMNS = {
     "CO2_mass": ("mass_in_atm_df", "CO2"),
@@ -66,10 +74,11 @@ MISSING_FROM_ENGINE = [
 ]
 
 FOSSIL_CH4_REASON = (
-    "Suspected bug (not on the audit list; closest is the fossil_CH4 item): with "
-    "fossil_CH4=True, calc_decay adds CO2_mass_df['CH4_to_CO2'] to the CO2 pools "
-    "before it assigns that row's CH4_to_CO2, so the oxidised-CH4 CO2 is never "
-    "added. CH4_to_CO2 itself matches; CO2 mass, forcing and temperature miss it."
+    "Known bug, fixed in M1 (Jay's decision on PR #24, 2026-11-17): CH4_to_CO2 is "
+    "used before it is assigned in calc_decay. With fossil_CH4=True, calc_decay adds "
+    "CO2_mass_df['CH4_to_CO2'] to the CO2 pools before it assigns that row's value, "
+    "so the oxidised-CH4 CO2 is never added. CH4_to_CO2 itself matches; CO2 mass, "
+    "forcing and temperature miss it."
 )
 # Columns that fail for ch4_pulse_fossil, with the measured disagreement
 # (max |engine - spreadsheet| / max |spreadsheet| over years 0-500).
@@ -143,6 +152,19 @@ def test_cases_present():
     )
 
 
+def test_reference_uses_corrected_agtp():
+    """The reference must be generated with the AGTP p_1->p_3 correction.
+
+    By definition, AGTP_100(CO2) is the temperature change 100 years after a
+    1 kg CO2 pulse, so for co2_pulse both ratios below are exactly 1. With the
+    uncorrected spreadsheet (intro!E50 using p_1 for the third pool) they are
+    1.000599 instead.
+    """
+    _, expected, _ = load_case("co2_pulse")
+    np.testing.assert_allclose(expected["temp_over_AGTP_CO2"][100], 1.0, rtol=RTOL)
+    np.testing.assert_allclose(expected["GTP_sliding_CO2e"][0], 1.0, rtol=RTOL)
+
+
 @pytest.mark.parametrize(("case", "column"), list(_params()))
 def test_engine_matches_spreadsheet(case, column):
     _, expected, _ = load_case(case)
@@ -151,6 +173,29 @@ def test_engine_matches_spreadsheet(case, column):
     want = expected[column].to_numpy(dtype=float)
     atol = RTOL * np.max(np.abs(want))
     np.testing.assert_allclose(got, want, rtol=RTOL, atol=atol, err_msg=f"{case}: {column}")
+
+
+@pytest.mark.parametrize(("case", "column"), list(_params()))
+def test_engine_matches_spreadsheet_where_large(case, column):
+    """Second check: relative error only, on every year the value is resolvable.
+
+    The first check's atol (RTOL x column peak) lets any error pass once a value
+    falls below 1e-9 of the peak, for example the CH4 mass after about year 260.
+    This one drops atol and compares only years where |expected| >= WINDOW x peak
+    (an all-zero column keeps every year, so it must match exactly).
+    """
+    _, expected, _ = load_case(case)
+    frame, engine_col = ENGINE_COLUMNS[column]
+    got = getattr(run_engine(case), frame)[engine_col].to_numpy(dtype=float)
+    want = expected[column].to_numpy(dtype=float)
+    keep = np.abs(want) >= WINDOW * np.max(np.abs(want))
+    np.testing.assert_allclose(
+        got[keep],
+        want[keep],
+        rtol=RTOL,
+        atol=0,
+        err_msg=f"{case}: {column} (years {np.flatnonzero(keep)[[0, -1]]})",
+    )
 
 
 @pytest.mark.xfail(

@@ -6,9 +6,17 @@ The spreadsheet is the *temporal climate impacts* workbook (version 5,
 https://doi.org/10.1016/j.biombioe.2020.105778. See ``README.md`` in this
 folder for the full citation, attribution and column provenance.
 
+**One correction is applied by default (DLCA, not the original authors).**
+In version 5, the AGTP of CO2 (``intro!E50``) multiplies the third CO2 pool
+(``life3_CO2``) by ``p_1`` instead of ``p_3``. The script finds every formula
+with that slip (only ``intro!E50`` in version 5; it stops if it finds any other
+cell or none) and changes ``p_1*life3_CO2`` to ``p_3*life3_CO2``. Pass
+``--no-agtp-fix`` to generate from the uncorrected workbook.
+
 For each case this script:
 
-1. copies the workbook into a fresh temporary directory;
+1. copies the workbook into a fresh temporary directory and applies the
+   correction;
 2. writes the case's inflows into the green input cells of the
    ``inventory_and_effects`` sheet (columns B-G, years 0-500) and the
    ``fossil_CH4`` flag (``intro!C31``) with openpyxl, keeping every formula;
@@ -20,7 +28,13 @@ For each case this script:
 It checks that the workbook is the expected one before using it, and that the
 recalculation really ran (a CO2-only pulse must give year-100 integrated
 radiative forcing equal to AGWP_100(CO2) = 9.17109e-14 W yr m-2, and every
-case's cumulative net emissions must match its inputs).
+case's cumulative net emissions must match its inputs). With the correction,
+it also checks that the recalculated AGTP_100(CO2) equals the spreadsheet's
+own year-100 temperature change for a 1 kg CO2 pulse.
+
+``--save-corrected PATH`` also writes the corrected workbook, recalculated with
+its original shipped inputs, to PATH. openpyxl drops the charts on the
+``graphs`` sheet and the data-validation drop-downs from that copy.
 
 Dependencies (none are runtime dependencies of ``dlca``):
 
@@ -41,6 +55,7 @@ from __future__ import annotations
 import argparse
 import csv
 import math
+import re
 import shutil
 import subprocess
 import sys
@@ -119,6 +134,10 @@ EQ_FORMULAS = {
 
 AGWP100_CO2 = 9.171093415657962e-14  # intro!D50 as shipped (W yr m-2 kg-1)
 
+# The AGTP correction: the cells version 5 has the slip in, and the pattern.
+AGTP_SLIP = re.compile(r"p_1(\s*\*\s*life3_CO2)")
+AGTP_SLIP_CELLS = ["intro!E50"]
+
 
 def _pulse(year, kg):
     return {year: kg}
@@ -196,6 +215,35 @@ def check_workbook(path: Path) -> None:
         sys.exit(f"{path}: time horizon intro!H26 is not 100")
 
 
+def apply_agtp_fix(src: Path, dst: Path) -> list[str]:
+    """Change p_1*life3_CO2 to p_3*life3_CO2 in every formula; return the cells."""
+    from openpyxl.worksheet.formula import ArrayFormula
+
+    wb = openpyxl.load_workbook(src)
+    patched = []
+    for ws in wb.worksheets:
+        for row in ws.iter_rows():
+            for cell in row:
+                v = cell.value
+                text = v.text if isinstance(v, ArrayFormula) else v
+                if isinstance(text, str) and text.startswith("=") and AGTP_SLIP.search(text):
+                    new = AGTP_SLIP.sub(r"p_3\1", text)
+                    if isinstance(v, ArrayFormula):
+                        v.text = new
+                    else:
+                        cell.value = new
+                    patched.append(f"{ws.title}!{cell.coordinate}")
+    if patched != AGTP_SLIP_CELLS:
+        sys.exit(f"AGTP slip found in {patched}, expected exactly {AGTP_SLIP_CELLS}; stopping")
+    wb.save(dst)
+    return patched
+
+
+def read_summary(path: Path) -> dict[str, float]:
+    ws = openpyxl.load_workbook(path, data_only=True)["intro"]
+    return {"AGWP100_CO2": ws["D50"].value, "AGTP100_CO2": ws["E50"].value}
+
+
 def case_inputs(spec: dict) -> dict[str, list[float]]:
     cols = {}
     for name in INPUT_COLS:
@@ -249,7 +297,7 @@ def read_results(path: Path) -> dict[str, list[float]]:
     return out
 
 
-def check_results(case: str, inputs: dict, results: dict) -> None:
+def check_results(case: str, inputs: dict, results: dict, summary: dict, fixed: bool) -> None:
     # Recalculation really ran: cumulative net emissions match the inputs.
     for gas in ("CO2", "CH4", "N2O"):
         total = math.fsum(inputs[f"{gas}_flux"])
@@ -263,6 +311,12 @@ def check_results(case: str, inputs: dict, results: dict) -> None:
         if any(results["CH4_mass"]) or any(results["N2O_mass"]):
             sys.exit("co2_pulse: CH4 or N2O mass is non-zero; inputs were not applied")
         print(f"positive control: co2_pulse IRF[100] = {irf100:.6g} W yr m-2", file=sys.stderr)
+        # Independent check of the AGTP correction: AGTP_100(CO2) is, by definition,
+        # the temperature change 100 years after a 1 kg CO2 pulse.
+        agtp, dt100 = summary["AGTP100_CO2"], results["CO2_temp"][100]
+        print(f"AGTP_100(CO2) = {agtp!r} K/kg; co2_pulse dT[100] = {dt100!r} K", file=sys.stderr)
+        if fixed and abs(agtp / dt100 - 1) > 1e-9:
+            sys.exit("co2_pulse: corrected AGTP_100(CO2) does not match dT[100]")
 
 
 def write_csv(path: Path, header: list[str], rows: list[list]) -> None:
@@ -284,6 +338,16 @@ def main(argv=None) -> int:
     )
     ap.add_argument("--soffice", default=shutil.which("soffice") or "soffice")
     ap.add_argument("--keep", action="store_true", help="keep the temporary directory")
+    ap.add_argument(
+        "--no-agtp-fix",
+        action="store_true",
+        help="do not apply the AGTP p_1->p_3 correction (for checks only)",
+    )
+    ap.add_argument(
+        "--save-corrected",
+        type=Path,
+        help="also save the corrected workbook, recalculated with its shipped inputs",
+    )
     args = ap.parse_args(argv)
 
     tmp = Path(tempfile.mkdtemp(prefix="dlca-cooper-"))
@@ -296,16 +360,28 @@ def main(argv=None) -> int:
         indir.mkdir()
         outdir.mkdir()
         files = []
+        fixed = not args.no_agtp_fix
+        if fixed:
+            base = indir / "corrected.xlsx"
+            cells = apply_agtp_fix(src, base)
+            print(f"applied AGTP p_1->p_3 correction to {', '.join(cells)}", file=sys.stderr)
+            files.append(base)
+        else:
+            if args.save_corrected:
+                sys.exit("--save-corrected needs the correction; drop --no-agtp-fix")
+            base = src
+            print("WARNING: AGTP correction NOT applied (--no-agtp-fix)", file=sys.stderr)
         for case, spec in CASES.items():
             f = indir / f"{case}.xlsx"
-            write_case_workbook(src, f, spec)
+            write_case_workbook(base, f, spec)
             files.append(f)
         recalc(args.soffice, files, outdir, tmp / "lo-profile")
 
         for case, spec in CASES.items():
             inputs = case_inputs(spec)
             results = read_results(outdir / f"{case}.xlsx")
-            check_results(case, inputs, results)
+            summary = read_summary(outdir / f"{case}.xlsx")
+            check_results(case, inputs, results, summary, fixed)
 
             d = args.out / case
             d.mkdir(parents=True, exist_ok=True)
@@ -327,6 +403,9 @@ def main(argv=None) -> int:
                 [[y, *(results[n][i] for n in names)] for i, y in enumerate(YEARS)],
             )
             print(f"wrote {d}", file=sys.stderr)
+        if args.save_corrected:
+            shutil.copyfile(outdir / "corrected.xlsx", args.save_corrected)
+            print(f"saved corrected workbook to {args.save_corrected}", file=sys.stderr)
     finally:
         if args.keep:
             print(f"kept {tmp}", file=sys.stderr)
