@@ -23,7 +23,7 @@ tests/analytic/         results checked against closed-form solutions
 tests/reference/        results checked against the reference spreadsheet cases
 tests/property/         property-based tests (invariants, signs, conservation)
 legacy/                 retired research code kept for porting; not packaged or tested
-docs/decisions/         decision records (added by issue #14)
+docs/decisions/         decision records (science and architecture choices)
 ```
 
 ## Commands
@@ -121,8 +121,20 @@ only in an agent's memory or a chat transcript.
 
 ## Decision records
 
-Science and architecture decisions will be recorded in `docs/decisions/`
-(issue #14 adds the folder and says when to write one).
+Science and architecture decisions are recorded in
+[`docs/decisions/`](docs/decisions/README.md). Records are append-only: a
+later record supersedes an earlier one.
+
+Draft a decision record when your work involves any of these, and link it
+from the issue or PR:
+
+- a `science` choice (equations, parameters, timing, reference data);
+- a public-API choice (names, inputs, outputs, units);
+- an architecture choice that would be costly to reverse.
+
+Copy `docs/decisions/0000-template.md`, use the next free number, and set
+Status to `Proposed`. Only Jay sets `Accepted`. Never edit an accepted record's
+Decision; write a new one that supersedes it.
 
 ## Issues, branches and PRs
 
