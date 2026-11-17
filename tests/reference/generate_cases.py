@@ -6,18 +6,30 @@ The spreadsheet is the *temporal climate impacts* workbook (version 5,
 https://doi.org/10.1016/j.biombioe.2020.105778. See ``README.md`` in this
 folder for the full citation, attribution and column provenance.
 
-**One correction is applied by default (DLCA, not the original authors).**
-In version 5, the AGTP of CO2 (``intro!E50``) multiplies the third CO2 pool
+**Two corrections are applied by default (DLCA, not the original authors).**
+
+*AGTP of CO2.* In version 5, the AGTP of CO2 (``intro!E50``) multiplies the third CO2 pool
 (``life3_CO2``) by ``p_1`` instead of ``p_3``. The script finds every formula
 with that slip (only ``intro!E50`` in version 5; it stops if it finds any other
 cell or none, or if any other ``p_i``/``life<j>_CO2`` pair with i != j is left
 in any formula, in either order) and changes ``p_1*life3_CO2`` to ``p_3*life3_CO2``. Pass
-``--no-agtp-fix`` to generate from the uncorrected workbook.
+``--no-agtp-fix`` to skip it (for checks only).
+
+*Pasted CH4 tables.* ``equivalency_metrics`` columns O (CH4 AGWP) and T (CH4
+AGTP), years 0-500, are pasted numbers, not formulas. In version 5 they are
+exactly 16.05/16.00 times the spreadsheet's own CH4 results, so they were made
+with a CH4 molar mass of 16.00 g/mol, not the workbook's 16.05
+(``ghg_parameters``, "Methane - biogenic", ``mol_mass``). The script multiplies
+every value in O7:O507 and T7:T507 by 16.00/16.05, reading 16.05 from the
+workbook and stopping if it is not 16.05 or if any of those cells is a formula.
+After recalculation it checks that both columns equal the ``ch4_pulse_biogenic``
+case's CH4 IRF and CH4 temperature change (ratio 1 within 1e-12). Pass
+``--no-ch4-table-fix`` to skip it (for checks only).
 
 For each case this script:
 
 1. copies the workbook into a fresh temporary directory and applies the
-   correction;
+   corrections;
 2. writes the case's inflows into the green input cells of the
    ``inventory_and_effects`` sheet (columns B-G, years 0-500) and the
    ``fossil_CH4`` flag (``intro!C31``) with openpyxl, keeping every formula;
@@ -29,12 +41,13 @@ For each case this script:
 It checks that the workbook is the expected one before using it, and that the
 recalculation really ran (a CO2-only pulse must give year-100 integrated
 radiative forcing equal to AGWP_100(CO2) = 9.17109e-14 W yr m-2, and every
-case's cumulative net emissions must match its inputs). With the correction,
+case's cumulative net emissions must match its inputs). With the corrections,
 it also checks that the recalculated AGTP_100(CO2) equals the spreadsheet's
-own year-100 temperature change for a 1 kg CO2 pulse.
+own year-100 temperature change for a 1 kg CO2 pulse, and that the CH4 tables
+match the spreadsheet's own CH4 results (see above).
 
-``--save-corrected PATH`` also writes the corrected workbook, recalculated with
-its original shipped inputs, to PATH. openpyxl drops the charts on the
+``--save-corrected PATH`` also writes the corrected workbook (both corrections),
+recalculated with its original shipped inputs, to PATH. openpyxl drops the charts on the
 ``graphs`` sheet and the data-validation drop-downs from that copy.
 
 Dependencies (none are runtime dependencies of ``dlca``):
@@ -143,6 +156,13 @@ AGTP_SLIP_CELLS = ["intro!E50"]
 POOL_PAIR = re.compile(r"p_(\d)\s*\*\s*life(\d)_CO2|life(\d)_CO2\s*\*\s*p_(\d)")
 
 
+# The CH4 table correction: the pasted columns, their rows, and the molar masses.
+CH4_TABLE_COLS = ["O", "T"]  # CH4 AGWP, CH4 AGTP (equivalency_metrics)
+CH4_TABLE_HEADERS = {"O": "CH4 AGWP [W yr m-2]", "T": "CH4 AGTP [delta-K]"}
+CH4_MOL_MASS = 16.05  # ghg_parameters, "Methane - biogenic", mol_mass
+CH4_MOL_MASS_USED = 16.00  # molar mass the pasted tables were made with
+
+
 def _pool_mismatches(text: str) -> list[str]:
     out = []
     for m in POOL_PAIR.finditer(text):
@@ -228,11 +248,10 @@ def check_workbook(path: Path) -> None:
         sys.exit(f"{path}: time horizon intro!H26 is not 100")
 
 
-def apply_agtp_fix(src: Path, dst: Path) -> list[str]:
+def apply_agtp_fix(wb) -> list[str]:
     """Change p_1*life3_CO2 to p_3*life3_CO2 in every formula; return the cells."""
     from openpyxl.worksheet.formula import ArrayFormula
 
-    wb = openpyxl.load_workbook(src)
     patched = []
     for ws in wb.worksheets:
         for row in ws.iter_rows():
@@ -258,8 +277,41 @@ def apply_agtp_fix(src: Path, dst: Path) -> list[str]:
                     left.append(f"{ws.title}!{cell.coordinate}: {_pool_mismatches(text)}")
     if left:
         sys.exit(f"other CO2 pool/lifetime mismatches found, not corrected: {left}; stopping")
-    wb.save(dst)
     return patched
+
+
+def ch4_mol_mass(wb) -> float:
+    """The workbook's CH4 molar mass (gas_parameters table, "Methane - biogenic")."""
+    ws = wb["ghg_parameters"]
+    header = [c.value for c in ws[17]]
+    col = header.index("mol_mass") + 1
+    for row in range(18, 225):
+        if ws.cell(row, 1).value == "Methane - biogenic":
+            return ws.cell(row, col).value
+    sys.exit("ghg_parameters: no 'Methane - biogenic' row; stopping")
+
+
+def apply_ch4_table_fix(wb) -> str:
+    """Rescale the pasted CH4 AGWP/AGTP tables from 16.00 to the workbook's 16.05 g/mol."""
+    mm = ch4_mol_mass(wb)
+    if mm != CH4_MOL_MASS:
+        sys.exit(f"CH4 molar mass in ghg_parameters is {mm!r}, expected {CH4_MOL_MASS}; stopping")
+    ws = wb[EQ_SHEET]
+    factor = CH4_MOL_MASS_USED / mm
+    for col in CH4_TABLE_COLS:
+        if ws[f"{col}6"].value != CH4_TABLE_HEADERS[col]:
+            sys.exit(f"{EQ_SHEET}!{col}6 is {ws[f'{col}6'].value!r}; stopping")
+        for r in range(FIRST_ROW, LAST_ROW + 1):
+            v = ws[f"{col}{r}"].value
+            if not isinstance(v, (int, float)) or isinstance(v, bool):
+                sys.exit(f"{EQ_SHEET}!{col}{r} = {v!r} is not a pasted number; stopping")
+            ws[f"{col}{r}"].value = v * factor
+    return f"{EQ_SHEET}!O{FIRST_ROW}:O{LAST_ROW} and T{FIRST_ROW}:T{LAST_ROW} x {factor!r}"
+
+
+def read_ch4_tables(path: Path) -> dict[str, list[float]]:
+    ws = openpyxl.load_workbook(path, data_only=True)[EQ_SHEET]
+    return {c: [float(ws[f"{c}{r}"].value) for r in range(FIRST_ROW, LAST_ROW + 1)] for c in "OT"}
 
 
 def read_summary(path: Path) -> dict[str, float]:
@@ -320,6 +372,21 @@ def read_results(path: Path) -> dict[str, list[float]]:
     return out
 
 
+def check_ch4_tables(tables: dict, results: dict, fixed: bool) -> None:
+    """Independent check of the CH4 table correction, on the ch4_pulse_biogenic case.
+
+    For a 1 kg biogenic CH4 pulse at year 0, the CH4 IRF and CH4 temperature
+    change in year t are, by definition, AGWP_CH4(t) and AGTP_CH4(t), so the
+    tables must equal them.
+    """
+    for col, ref in (("O", "CH4_IRF"), ("T", "CH4_temp")):
+        ratios = [a / b for a, b in zip(tables[col], results[ref], strict=True) if b]
+        lo, hi = min(ratios), max(ratios)
+        print(f"CH4 table {col} / {ref}: ratio {lo!r} to {hi!r}", file=sys.stderr)
+        if fixed and max(abs(lo - 1), abs(hi - 1)) > 1e-12:
+            sys.exit(f"ch4_pulse_biogenic: corrected CH4 table {col} does not match {ref}")
+
+
 def check_results(case: str, inputs: dict, results: dict, summary: dict, fixed: bool) -> None:
     # Recalculation really ran: cumulative net emissions match the inputs.
     for gas in ("CO2", "CH4", "N2O"):
@@ -367,6 +434,11 @@ def main(argv=None) -> int:
         help="do not apply the AGTP p_1->p_3 correction (for checks only)",
     )
     ap.add_argument(
+        "--no-ch4-table-fix",
+        action="store_true",
+        help="do not rescale the pasted CH4 tables to 16.05 g/mol (for checks only)",
+    )
+    ap.add_argument(
         "--save-corrected",
         type=Path,
         help="also save the corrected workbook, recalculated with its shipped inputs",
@@ -384,16 +456,22 @@ def main(argv=None) -> int:
         outdir.mkdir()
         files = []
         fixed = not args.no_agtp_fix
+        ch4_fixed = not args.no_ch4_table_fix
+        if args.save_corrected and not (fixed and ch4_fixed):
+            sys.exit("--save-corrected needs both corrections")
+        wb = openpyxl.load_workbook(src)
         if fixed:
-            base = indir / "corrected.xlsx"
-            cells = apply_agtp_fix(src, base)
+            cells = apply_agtp_fix(wb)
             print(f"applied AGTP p_1->p_3 correction to {', '.join(cells)}", file=sys.stderr)
-            files.append(base)
         else:
-            if args.save_corrected:
-                sys.exit("--save-corrected needs the correction; drop --no-agtp-fix")
-            base = src
             print("WARNING: AGTP correction NOT applied (--no-agtp-fix)", file=sys.stderr)
+        if ch4_fixed:
+            print(f"applied CH4 table correction: {apply_ch4_table_fix(wb)}", file=sys.stderr)
+        else:
+            print("WARNING: CH4 table correction NOT applied (--no-ch4-table-fix)", file=sys.stderr)
+        base = indir / "corrected.xlsx"
+        wb.save(base)
+        files.append(base)
         for case, spec in CASES.items():
             f = indir / f"{case}.xlsx"
             write_case_workbook(base, f, spec)
@@ -405,6 +483,8 @@ def main(argv=None) -> int:
             results = read_results(outdir / f"{case}.xlsx")
             summary = read_summary(outdir / f"{case}.xlsx")
             check_results(case, inputs, results, summary, fixed)
+            if case == "ch4_pulse_biogenic":
+                check_ch4_tables(read_ch4_tables(outdir / f"{case}.xlsx"), results, ch4_fixed)
 
             d = args.out / case
             d.mkdir(parents=True, exist_ok=True)
