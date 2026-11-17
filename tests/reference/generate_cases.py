@@ -10,7 +10,8 @@ folder for the full citation, attribution and column provenance.
 In version 5, the AGTP of CO2 (``intro!E50``) multiplies the third CO2 pool
 (``life3_CO2``) by ``p_1`` instead of ``p_3``. The script finds every formula
 with that slip (only ``intro!E50`` in version 5; it stops if it finds any other
-cell or none) and changes ``p_1*life3_CO2`` to ``p_3*life3_CO2``. Pass
+cell or none, or if any other ``p_i``/``life<j>_CO2`` pair with i != j is left
+in any formula, in either order) and changes ``p_1*life3_CO2`` to ``p_3*life3_CO2``. Pass
 ``--no-agtp-fix`` to generate from the uncorrected workbook.
 
 For each case this script:
@@ -137,6 +138,18 @@ AGWP100_CO2 = 9.171093415657962e-14  # intro!D50 as shipped (W yr m-2 kg-1)
 # The AGTP correction: the cells version 5 has the slip in, and the pattern.
 AGTP_SLIP = re.compile(r"p_1(\s*\*\s*life3_CO2)")
 AGTP_SLIP_CELLS = ["intro!E50"]
+# Any CO2 pool fraction p_i next to a lifetime life<j>_CO2 with i != j, in either
+# order. After the correction there must be none left anywhere.
+POOL_PAIR = re.compile(r"p_(\d)\s*\*\s*life(\d)_CO2|life(\d)_CO2\s*\*\s*p_(\d)")
+
+
+def _pool_mismatches(text: str) -> list[str]:
+    out = []
+    for m in POOL_PAIR.finditer(text):
+        i, j = (m.group(1), m.group(2)) if m.group(1) else (m.group(4), m.group(3))
+        if i != j:
+            out.append(m.group(0))
+    return out
 
 
 def _pulse(year, kg):
@@ -235,6 +248,16 @@ def apply_agtp_fix(src: Path, dst: Path) -> list[str]:
                     patched.append(f"{ws.title}!{cell.coordinate}")
     if patched != AGTP_SLIP_CELLS:
         sys.exit(f"AGTP slip found in {patched}, expected exactly {AGTP_SLIP_CELLS}; stopping")
+    left = []
+    for ws in wb.worksheets:
+        for row in ws.iter_rows():
+            for cell in row:
+                v = cell.value
+                text = v.text if isinstance(v, ArrayFormula) else v
+                if isinstance(text, str) and text.startswith("=") and _pool_mismatches(text):
+                    left.append(f"{ws.title}!{cell.coordinate}: {_pool_mismatches(text)}")
+    if left:
+        sys.exit(f"other CO2 pool/lifetime mismatches found, not corrected: {left}; stopping")
     wb.save(dst)
     return patched
 

@@ -49,9 +49,10 @@ recorded on issue #15 and PR #24):
   means. Everything that divides by `AGTP_CO2` moves by the same factor, for
   example GTP₁₀₀(CH₄) 4.2724 → 4.2699 and GTP₁₀₀(N₂O) 234.346 → 234.206.
 - **Search:** every formula on every sheet was searched for `p_1*life3_CO2`
-  and for any `p_i*lifej_CO2` with i ≠ j. `intro!E50` is the only match. The
-  generator repeats the search on every run and stops if it finds a different
-  set of cells.
+  and for any `p_i`/`life<j>_CO2` pair with i ≠ j, in either order.
+  `intro!E50` is the only match. The generator repeats both searches on every
+  run. It stops if the slip is in any cell other than exactly `intro!E50`, or
+  if any other mismatched pair is left after the correction.
 - **Pasted tables:** `equivalency_metrics` column S (per-year CO₂ AGTP) is
   pasted values. It matches the *corrected* formula to 2.9e-14 and differs
   from the uncorrected one by 2.2%, so it does not carry the slip and is left
