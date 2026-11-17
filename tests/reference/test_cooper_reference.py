@@ -29,13 +29,9 @@ RTOL = 1e-9
 # so values far below the column's magnitude (for example near-zero tails) do
 # not demand more relative precision than the spreadsheet carries.
 
-# The second check (test_engine_matches_spreadsheet_where_large) uses rtol only,
-# on years where |expected| >= WINDOW x column peak. Below 1e-15 of the peak a
-# value is smaller than the rounding error on the peak itself (the spreadsheet
-# stores 15 significant digits), so in columns that add or subtract peak-sized
-# terms it may be rounding noise. Above it, every passing comparison agreed to
-# 5.4e-15 relative when this was written (2026-11-17).
-WINDOW = 1e-15
+# The second check (test_engine_matches_spreadsheet_where_nonzero) uses rtol only,
+# atol=0, on every year where the expected value is not zero (Jay's decision on
+# PR #24, 2026-11-17).
 
 # expected.csv column -> (DLCAResults attribute, column in that DataFrame).
 ENGINE_COLUMNS = {
@@ -165,6 +161,23 @@ def test_reference_uses_corrected_agtp():
     np.testing.assert_allclose(expected["GTP_sliding_CO2e"][0], 1.0, rtol=RTOL)
 
 
+def test_reference_uses_corrected_ch4_tables():
+    """The reference must be generated with the CH4 table correction (16.05 g/mol).
+
+    For a 1 kg CH4 pulse at year 0, year 0 of the sliding GWP and GTP is
+    AGWP_100(CH4) / AGWP_100(CO2) and AGTP_100(CH4) / AGTP_100(CO2). The
+    spreadsheet's own results give each AGWP and AGTP: the year-100 IRF and
+    temperature change of the 1 kg pulse cases. With the shipped CH4 tables
+    (made with 16.00 g/mol) both ratios below are 1.003125 instead of 1.
+    """
+    _, ch4, _ = load_case("ch4_pulse_biogenic")
+    _, co2, _ = load_case("co2_pulse")
+    gwp100 = ch4["CH4_IRF"][100] / co2["CO2_IRF"][100]
+    gtp100 = ch4["CH4_temp"][100] / co2["CO2_temp"][100]
+    np.testing.assert_allclose(ch4["GWP_sliding_CO2e"][0] / gwp100, 1.0, rtol=RTOL)
+    np.testing.assert_allclose(ch4["GTP_sliding_CO2e"][0] / gtp100, 1.0, rtol=RTOL)
+
+
 @pytest.mark.parametrize(("case", "column"), list(_params()))
 def test_engine_matches_spreadsheet(case, column):
     _, expected, _ = load_case(case)
@@ -176,19 +189,20 @@ def test_engine_matches_spreadsheet(case, column):
 
 
 @pytest.mark.parametrize(("case", "column"), list(_params()))
-def test_engine_matches_spreadsheet_where_large(case, column):
-    """Second check: relative error only, on every year the value is resolvable.
+def test_engine_matches_spreadsheet_where_nonzero(case, column):
+    """Second check: relative error only, on every year the expected value is not 0.
 
     The first check's atol (RTOL x column peak) lets any error pass once a value
     falls below 1e-9 of the peak, for example the CH4 mass after about year 260.
-    This one drops atol and compares only years where |expected| >= WINDOW x peak
-    (an all-zero column keeps every year, so it must match exactly).
+    This one drops atol and compares every year where expected != 0. Years where
+    expected == 0 are covered by the first check; an all-zero column is compared
+    in full here too, so it must match exactly.
     """
     _, expected, _ = load_case(case)
     frame, engine_col = ENGINE_COLUMNS[column]
     got = getattr(run_engine(case), frame)[engine_col].to_numpy(dtype=float)
     want = expected[column].to_numpy(dtype=float)
-    keep = np.abs(want) >= WINDOW * np.max(np.abs(want))
+    keep = want != 0 if np.any(want) else np.ones_like(want, dtype=bool)
     np.testing.assert_allclose(
         got[keep],
         want[keep],
