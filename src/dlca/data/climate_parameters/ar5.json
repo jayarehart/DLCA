@@ -1,0 +1,223 @@
+{
+  "schema_version": 1,
+  "name": "AR5",
+  "description": "IPCC AR5 WG1 Chapter 8 emission-metric parameters, as used by the Cooper et al. (2020) spreadsheet and DLCAInputData. No carbon-cycle feedback for non-CO2 gases (issue #33).",
+  "carbon_cycle_feedback": false,
+  "sources": {
+    "myhre2013": {
+      "citation": "Myhre, G., et al., 2013: Anthropogenic and Natural Radiative Forcing. In: Climate Change 2013: The Physical Science Basis. IPCC AR5 WG1, Chapter 8 and Supplementary Material 8.SM.",
+      "doi": "10.1017/CBO9781107415324.018"
+    },
+    "joos2013": {
+      "citation": "Joos, F., et al., 2013: Carbon dioxide and climate impulse response functions for the computation of greenhouse gas metrics: a multi-model analysis. Atmos. Chem. Phys., 13, 2793-2825.",
+      "doi": "10.5194/acp-13-2793-2013"
+    },
+    "boucher_reddy2008": {
+      "citation": "Boucher, O. and Reddy, M. S., 2008: Climate trade-off between black carbon and carbon dioxide emissions. Energy Policy, 36, 193-200.",
+      "doi": "10.1016/j.enpol.2007.08.028"
+    },
+    "trenberth_smith2005": {
+      "citation": "Trenberth, K. E. and Smith, L., 2005: The mass of the atmosphere: a constraint on global analyses. J. Climate, 18, 864-875.",
+      "doi": "10.1175/JCLI-3299.1"
+    },
+    "cooper2020": {
+      "citation": "Cooper, S. J. G., Green, R., Hattam, L., Roeder, M., Welfle, A., and McManus, M., 2020: Exploring temporal aspects of climate-change effects due to bioenergy. Biomass and Bioenergy, 142, 105778. Supplementary spreadsheet mmc2.xlsx (v5).",
+      "doi": "10.1016/j.biombioe.2020.105778"
+    },
+    "boucher2009": {
+      "citation": "Boucher, O., Friedlingstein, P., Collins, B., and Shine, K. P., 2009: The indirect global warming potential and global temperature change potential due to methane oxidation. Environ. Res. Lett., 4, 044007.",
+      "doi": "10.1088/1748-9326/4/4/044007"
+    }
+  },
+  "co2": {
+    "irf_a": {
+      "value": [
+        0.2173,
+        0.224,
+        0.2824,
+        0.2763
+      ],
+      "unit": "1",
+      "source": "joos2013",
+      "where": "Multi-model mean IRF fit, as used in AR5 8.SM.11 (Eq. 8.SM.10). a0 is the permanent fraction."
+    },
+    "irf_tau": {
+      "value": [
+        394.4,
+        36.54,
+        4.304
+      ],
+      "unit": "yr",
+      "source": "joos2013",
+      "where": "Time constants of the decaying pools a1..a3, AR5 8.SM.11 (Eq. 8.SM.10)."
+    },
+    "radiative_efficiency": {
+      "value": 1.37e-05,
+      "unit": "W m-2 ppb-1",
+      "source": "myhre2013",
+      "where": "Table 8.A.1"
+    },
+    "radiative_efficiency_scale": {
+      "value": 0.99746898064295,
+      "unit": "1",
+      "source": "cooper2020",
+      "where": "Cooper et al. 2020 spreadsheet (adj_factor_CO2 in DLCAInputData). Not an IPCC value.",
+      "note": "Decision D5 on #26: kept so the Cooper reference reproduces. It scales the AR5 RE so that AGWP100(CO2) = 9.17e-14 W m-2 yr kg-1, the AR5 Table 8.A.1 value; without it AGWP100 is 9.194e-14."
+    },
+    "molar_mass": {
+      "value": 44.01,
+      "unit": "g mol-1",
+      "source": "cooper2020",
+      "where": "Cooper et al. 2020 spreadsheet constants (mol_mass_CO2 in DLCAInputData)"
+    }
+  },
+  "ch4": {
+    "lifetime": {
+      "value": 12.4,
+      "unit": "yr",
+      "source": "myhre2013",
+      "where": "Table 8.A.1 (perturbation lifetime)"
+    },
+    "radiative_efficiency": {
+      "value": 0.000363,
+      "unit": "W m-2 ppb-1",
+      "source": "myhre2013",
+      "where": "Table 8.A.1 (direct)"
+    },
+    "indirect": {
+      "form": "multiplicative",
+      "o3": {
+        "value": 0.5,
+        "unit": "1",
+        "source": "myhre2013",
+        "where": "8.SM.11.3.2: tropospheric ozone enhances CH4 forcing by 50%"
+      },
+      "h2o": {
+        "value": 0.15,
+        "unit": "1",
+        "source": "myhre2013",
+        "where": "8.SM.11.3.2: stratospheric water vapour enhances CH4 forcing by 15%"
+      }
+    },
+    "molar_mass": {
+      "value": 16.05,
+      "unit": "g mol-1",
+      "source": "cooper2020",
+      "where": "Cooper et al. 2020 spreadsheet constants (mol_mass_CH4 in DLCAInputData)"
+    },
+    "fossil_co2_yield": {
+      "value": 0.5,
+      "unit": "mol CO2 per mol CH4 removed",
+      "source": "cooper2020",
+      "where": "Cooper et al. 2020 spreadsheet; Boucher et al. 2009 (to confirm)",
+      "note": "Decision D4 on #26. DLCAInputData stores 0.5 * 44/16 = 1.375 kg CO2 per kg CH4, using nominal integer molar masses; the mass conversion is left to the engine (#27)."
+    }
+  },
+  "n2o": {
+    "lifetime": {
+      "value": 121.0,
+      "unit": "yr",
+      "source": "myhre2013",
+      "where": "Table 8.A.1 (perturbation lifetime)"
+    },
+    "radiative_efficiency": {
+      "value": 0.003,
+      "unit": "W m-2 ppb-1",
+      "source": "myhre2013",
+      "where": "Table 8.A.1 (direct)"
+    },
+    "indirect": {
+      "form": "multiplicative",
+      "o3": {
+        "value": 0.0,
+        "unit": "W m-2 ppb-1",
+        "source": "myhre2013",
+        "where": "AR5 metrics include no N2O ozone term"
+      },
+      "ch4_change": {
+        "value": -0.36,
+        "unit": "ppb CH4 per ppb N2O",
+        "source": "myhre2013",
+        "where": "8.SM.11.3.3: factor (1 - 0.36 * RE_CH4,eff / RE_N2O)"
+      }
+    },
+    "molar_mass": {
+      "value": 44.02,
+      "unit": "g mol-1",
+      "source": "cooper2020",
+      "where": "Cooper et al. 2020 spreadsheet constants (mol_mass_N2O in DLCAInputData)"
+    }
+  },
+  "climate_response": {
+    "q": {
+      "value": [
+        0.631,
+        0.429
+      ],
+      "unit": "K (W m-2)-1",
+      "source": "boucher_reddy2008",
+      "where": "Two-box response as used in AR5 8.SM.11.2"
+    },
+    "d": {
+      "value": [
+        8.4,
+        409.5
+      ],
+      "unit": "yr",
+      "source": "boucher_reddy2008",
+      "where": "Two-box response as used in AR5 8.SM.11.2"
+    }
+  },
+  "atmosphere": {
+    "mass": {
+      "value": 5.1352e+18,
+      "unit": "kg",
+      "source": "trenberth_smith2005",
+      "where": "Total mass of the atmosphere"
+    },
+    "molar_mass_air": {
+      "value": 28.97,
+      "unit": "g mol-1",
+      "source": "trenberth_smith2005",
+      "where": "Mean molar mass of dry air"
+    }
+  },
+  "checks": {
+    "agwp100_co2": {
+      "value": 9.17e-14,
+      "unit": "W m-2 yr kg-1",
+      "source": "myhre2013",
+      "where": "Table 8.A.1"
+    },
+    "agtp100_co2": {
+      "value": 5.47e-16,
+      "unit": "K kg-1",
+      "source": "myhre2013",
+      "where": "Table 8.A.1"
+    },
+    "agwp100_ch4": {
+      "value": 2.61e-12,
+      "unit": "W m-2 yr kg-1",
+      "source": "myhre2013",
+      "where": "Table 8.A.1, no climate-carbon feedback (value to confirm against the PDF)"
+    },
+    "agwp100_n2o": {
+      "value": 2.43e-11,
+      "unit": "W m-2 yr kg-1",
+      "source": "myhre2013",
+      "where": "Table 8.A.1, no climate-carbon feedback (value to confirm against the PDF)"
+    },
+    "ch4_lifetime": {
+      "value": 12.4,
+      "unit": "yr",
+      "source": "myhre2013",
+      "where": "Table 8.A.1"
+    },
+    "n2o_lifetime": {
+      "value": 121.0,
+      "unit": "yr",
+      "source": "myhre2013",
+      "where": "Table 8.A.1"
+    }
+  }
+}

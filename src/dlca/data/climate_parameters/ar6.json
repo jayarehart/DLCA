@@ -1,0 +1,216 @@
+{
+  "schema_version": 1,
+  "name": "AR6",
+  "description": "IPCC AR6 WG1 Chapter 7 emission-metric parameters, as in the IPCC-WG1/Chapter-7 code that generated Table 7.SM.7. No carbon-cycle feedback for non-CO2 gases (decision D3 on #26; issue #33), so CH4 and N2O metrics are lower than the AR6 headline values.",
+  "carbon_cycle_feedback": false,
+  "sources": {
+    "forster2021": {
+      "citation": "Forster, P., et al., 2021: The Earth's Energy Budget, Climate Feedbacks, and Climate Sensitivity. In: Climate Change 2021: The Physical Science Basis. IPCC AR6 WG1, Chapter 7, pp. 923-1054. Supplementary Material (Smith et al. 2021) Tables 7.SM.5-7.SM.7.",
+      "doi": "10.1017/9781009157896.009"
+    },
+    "ipcc_ch7_code": {
+      "citation": "Smith, C. J., et al., 2021: Figure and data generation for Chapter 7 of the IPCC's Sixth Assessment Report, Working Group 1. github.com/IPCC-WG1/Chapter-7. Values read at commit 2f948c8 (notebooks/335_chapter7_generate_metrics.ipynb, src/ar6/metrics/), which is later than the v1.0 Zenodo release.",
+      "doi": "10.5281/zenodo.5211357"
+    },
+    "meinshausen2020": {
+      "citation": "Meinshausen, M., et al., 2020: The shared socio-economic pathway (SSP) greenhouse gas concentrations and their extensions to 2500. Geosci. Model Dev., 13, 3571-3605. Table 3, as coded in FaIR 1.6.2 meinshausen().",
+      "doi": "10.5194/gmd-13-3571-2020"
+    },
+    "joos2013": {
+      "citation": "Joos, F., et al., 2013: Carbon dioxide and climate impulse response functions for the computation of greenhouse gas metrics: a multi-model analysis. Atmos. Chem. Phys., 13, 2793-2825.",
+      "doi": "10.5194/acp-13-2793-2013"
+    },
+    "trenberth_smith2005": {
+      "citation": "Trenberth, K. E. and Smith, L., 2005: The mass of the atmosphere: a constraint on global analyses. J. Climate, 18, 864-875.",
+      "doi": "10.1175/JCLI-3299.1"
+    }
+  },
+  "co2": {
+    "irf_a": {
+      "value": [
+        0.2173,
+        0.224,
+        0.2824,
+        0.2763
+      ],
+      "unit": "1",
+      "source": "joos2013",
+      "where": "As used by AR6 (ipcc_ch7_code nb335 `a=`). a0 is the permanent fraction."
+    },
+    "irf_tau": {
+      "value": [
+        394.4,
+        36.54,
+        4.304
+      ],
+      "unit": "yr",
+      "source": "joos2013",
+      "where": "As used by AR6 (ipcc_ch7_code nb335 `alpha_co2=`), decaying pools a1..a3"
+    },
+    "radiative_efficiency": {
+      "value": 1.3330689487029317e-05,
+      "unit": "W m-2 ppb-1",
+      "source": "meinshausen2020",
+      "where": "scripts/derive_ar6_radiative_efficiency.py: +1 ppm above 2019 (409.9 ppm), formula re-referenced to 2019 as in ipcc_ch7_code co2_analytical(), times (1 + 0.05) rapid adjustment",
+      "published": 1.33e-05,
+      "published_where": "Table 7.SM.7 (ipcc_ch7_code data_output/7sm/metrics_supplement_cleaned.csv)",
+      "note": "Decision D1 on #26 (unrounded). The slope of the 1750-referenced formula at 2019 would be 1.3877e-05 and does not reproduce the published AGWP100."
+    },
+    "radiative_efficiency_scale": {
+      "value": 1.0,
+      "unit": "1",
+      "source": "forster2021",
+      "where": "No scaling: AR6 uses the RE above directly"
+    },
+    "molar_mass": {
+      "value": 44.01,
+      "unit": "g mol-1",
+      "source": "ipcc_ch7_code",
+      "where": "src/ar6/metrics/constants.py M_CO2"
+    }
+  },
+  "ch4": {
+    "lifetime": {
+      "value": 11.8,
+      "unit": "yr",
+      "source": "forster2021",
+      "where": "Table 7.15 / 7.SM.7 perturbation lifetime (ipcc_ch7_code nb335 alpha_ch4)"
+    },
+    "radiative_efficiency": {
+      "value": 0.00038864402860869495,
+      "unit": "W m-2 ppb-1",
+      "source": "meinshausen2020",
+      "where": "scripts/derive_ar6_radiative_efficiency.py: +1 ppb above 2019 (1866.3 ppb), as in ipcc_ch7_code ch4_analytical(), times (1 - 0.14) rapid adjustment",
+      "published": 0.000388,
+      "published_where": "Table 7.SM.7 (direct only)",
+      "note": "Decision D1 on #26 (unrounded)."
+    },
+    "indirect": {
+      "form": "additive",
+      "o3": {
+        "value": 0.00014,
+        "unit": "W m-2 ppb-1",
+        "source": "ipcc_ch7_code",
+        "where": "src/ar6/metrics/ch4.py ch4_o3 (ozone from CH4)"
+      },
+      "h2o": {
+        "value": 4e-05,
+        "unit": "W m-2 ppb-1",
+        "source": "ipcc_ch7_code",
+        "where": "src/ar6/metrics/ch4.py ch4_h2o (stratospheric water vapour from CH4)"
+      }
+    },
+    "molar_mass": {
+      "value": 16.043,
+      "unit": "g mol-1",
+      "source": "ipcc_ch7_code",
+      "where": "src/ar6/metrics/constants.py M_CH4"
+    },
+    "fossil_co2_yield": {
+      "value": null,
+      "unit": "mol CO2 per mol CH4 removed",
+      "source": "forster2021",
+      "where": "Table 7.15 footnote or 7.SM: not yet confirmed",
+      "note": "Decision D4 on #26: null until confirmed. ClimateParameters.fossil_ch4_co2_yield() raises instead of guessing."
+    }
+  },
+  "n2o": {
+    "lifetime": {
+      "value": 109.0,
+      "unit": "yr",
+      "source": "forster2021",
+      "where": "Table 7.15 / 7.SM.7 perturbation lifetime (ipcc_ch7_code n2o.py alpha_n2o)"
+    },
+    "radiative_efficiency": {
+      "value": 0.00319550741640458,
+      "unit": "W m-2 ppb-1",
+      "source": "meinshausen2020",
+      "where": "scripts/derive_ar6_radiative_efficiency.py: +1 ppb above 2019 (332.1 ppb), as in ipcc_ch7_code n2o_analytical(), times (1 + 0.07) rapid adjustment",
+      "published": 0.0032,
+      "published_where": "Table 7.SM.7 (direct only)",
+      "note": "Decision D1 on #26 (unrounded)."
+    },
+    "indirect": {
+      "form": "additive",
+      "o3": {
+        "value": 0.00055,
+        "unit": "W m-2 ppb-1",
+        "source": "ipcc_ch7_code",
+        "where": "src/ar6/metrics/n2o.py n2o_o3 (ozone from N2O)"
+      },
+      "ch4_change": {
+        "value": -1.7,
+        "unit": "ppb CH4 per ppb N2O",
+        "source": "ipcc_ch7_code",
+        "where": "src/ar6/metrics/n2o.py f_n2o_ch4 (CH4 destroyed per N2O, after AR5 8.SM.11.3.3)"
+      }
+    },
+    "molar_mass": {
+      "value": 44.0,
+      "unit": "g mol-1",
+      "source": "ipcc_ch7_code",
+      "where": "src/ar6/metrics/constants.py M_N2O"
+    }
+  },
+  "climate_response": {
+    "q": {
+      "value": [
+        0.443767728883447,
+        0.313998206372015
+      ],
+      "unit": "K (W m-2)-1",
+      "source": "ipcc_ch7_code",
+      "where": "nb335 q (\"what Bill used\")",
+      "note": "Decision D2 on #26. The notebook also has q2 = 0.319591049742508 (\"Zeb's file\", commented out); only 0.313998 reproduces AGTP100(CO2) = 3.95e-16."
+    },
+    "d": {
+      "value": [
+        3.424102092311,
+        285.003477841911
+      ],
+      "unit": "yr",
+      "source": "ipcc_ch7_code",
+      "where": "nb335 d"
+    }
+  },
+  "atmosphere": {
+    "mass": {
+      "value": 5.1352e+18,
+      "unit": "kg",
+      "source": "trenberth_smith2005",
+      "where": "Total mass of the atmosphere (ipcc_ch7_code constants.py M_ATMOS)"
+    },
+    "molar_mass_air": {
+      "value": 28.97,
+      "unit": "g mol-1",
+      "source": "ipcc_ch7_code",
+      "where": "src/ar6/metrics/constants.py M_AIR"
+    }
+  },
+  "checks": {
+    "agwp100_co2": {
+      "value": 8.95e-14,
+      "unit": "W m-2 yr kg-1",
+      "source": "forster2021",
+      "where": "Table 7.SM.7"
+    },
+    "agtp100_co2": {
+      "value": 3.95e-16,
+      "unit": "K kg-1",
+      "source": "forster2021",
+      "where": "Table 7.SM.7"
+    },
+    "ch4_lifetime": {
+      "value": 11.8,
+      "unit": "yr",
+      "source": "forster2021",
+      "where": "Table 7.15 / 7.SM.7"
+    },
+    "n2o_lifetime": {
+      "value": 109.0,
+      "unit": "yr",
+      "source": "forster2021",
+      "where": "Table 7.15 / 7.SM.7"
+    }
+  }
+}
