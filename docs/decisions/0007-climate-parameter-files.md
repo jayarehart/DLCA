@@ -53,13 +53,12 @@ case-insensitive; unknown names raise `ValueError` listing the valid ones).
 - D3: neither set includes a carbon-cycle feedback (CCF) for non-CO₂ gases
   (`carbon_cycle_feedback: false`). So DLCA's AR6 CH₄ and N₂O metrics are lower
   than the AR6 headline values. Issue #33 covers adding it.
-- D4: the fossil CH₄ → CO₂ yield is 0.5 mol/mol in AR5 (Cooper spreadsheet;
-  Boucher et al. 2009, to confirm) and `null` in AR6 until it is confirmed from
-  Table 7.15 or 7.SM. `fossil_ch4_co2_yield()` raises rather than guessing.
-  The PDF check confirms AR5's 0.5 (Table 8.A.1 note ‡: the lower limit of
-  Boucher et al. 2009). It also found that AR6 §7.6.1.3 (p. 1013) gives a
-  central molar yield of 75% (range 50–100%, low confidence). Whether AR6
-  should use 0.75 is open for Jay.
+- D4 (revised by Jay on 2026-11-18): the fossil CH₄ → CO₂ yield is 0.5 mol/mol
+  in AR5 and 0.75 mol/mol in AR6. AR5's value is from Table 8.A.1 note ‡ (the
+  lower limit of Boucher et al. 2009), also used by the Cooper spreadsheet.
+  AR6's is the central value in §7.6.1.3 (p. 1013), with an assessed range of
+  50–100% and low confidence. A set without a value (`null`) makes
+  `fossil_ch4_co2_yield()` raise rather than guess.
 - D5: AR5 keeps the Cooper spreadsheet's CO₂ RE scale factor 0.99746898. It
   makes AGWP₁₀₀(CO₂) = 9.17e-14 and is labelled as not an IPCC value.
 - D6: AR6 is the default.
@@ -83,7 +82,7 @@ case-insensitive; unknown names raise `ValueError` listing the valid ones).
 - The engine (issues #27–#29) reads `ClimateParameters` instead of
   `DLCAInputData`. `DLCAInputData` stays until #31.
 - Each `Result` (#31) records the set's name, `fingerprint()` and "no CCF".
-- AR6 cannot be used for fossil CH₄ until the yield is confirmed (#30).
+- AR5 and AR6 fossil CH₄ results differ partly because the yields differ (0.5 vs 0.75), as well as the forcing parameters (#30).
 - Converting the yield to kg CO₂ per kg CH₄ is left to the engine. The old
   engine used nominal masses 44/16 (giving 1.375). Using the set's molar masses
   44.01/16.05 would give 1.3713 and break the Cooper match, so #27 must choose

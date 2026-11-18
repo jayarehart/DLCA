@@ -162,13 +162,13 @@ class ClimateParameters:
     def fossil_ch4_co2_yield(self) -> float:
         """CO2 formed per fossil CH4 removed [mol mol-1].
 
-        Raises ``ValueError`` if this set has no confirmed value (AR6 for now;
-        decision D4 on issue #26), so a guessed value is never used silently.
+        Raises ``ValueError`` if the set has no value (``None``), so a guessed
+        value is never used silently. Both shipped sets have one (decision D4, #26).
         """
         if self.ch4_fossil_co2_yield is None:
             raise ValueError(
-                f"Parameter set {self.name!r} has no confirmed fossil CH4 to CO2 yield "
-                "(issue #26, decision D4). Use a set that has one, or supply a value with "
+                f"Parameter set {self.name!r} has no fossil CH4 to CO2 yield. "
+                "Use a set that has one, or supply a value with "
                 "dataclasses.replace(params, ch4_fossil_co2_yield=...)."
             )
         return self.ch4_fossil_co2_yield

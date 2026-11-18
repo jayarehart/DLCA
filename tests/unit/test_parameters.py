@@ -354,9 +354,13 @@ def test_sets_differ():
 # --- fossil CH4 yield (decision D4) ---
 
 
-def test_ar6_fossil_ch4_yield_raises_instead_of_guessing():
-    p = dlca.get_parameters("AR6")
-    assert p.ch4_fossil_co2_yield is None
+def test_ar6_fossil_ch4_yield_is_the_ar6_central_value():
+    # Decision D4 as revised on #26: AR6 Ch7 Section 7.6.1.3 central value 75% (molar).
+    assert dlca.get_parameters("AR6").fossil_ch4_co2_yield() == 0.75
+
+
+def test_missing_fossil_ch4_yield_raises_instead_of_guessing():
+    p = dataclasses.replace(dlca.get_parameters("AR6"), ch4_fossil_co2_yield=None)
     with pytest.raises(ValueError, match="fossil CH4"):
         p.fossil_ch4_co2_yield()
 
