@@ -196,6 +196,15 @@ def test_ar5_agwp20_co2_matches_published():
     )
 
 
+@pytest.mark.parametrize("metric", ["agwp100", "agtp100"])
+@pytest.mark.parametrize("gas", ["ch4", "n2o"])
+def test_ar6_ch4_n2o_match_ipcc_code_without_ccf(metric, gas):
+    """Expected values from running the IPCC Chapter 7 functions (not a published table)."""
+    compute = agwp_decaying if metric == "agwp100" else agtp_decaying
+    expected = checks("AR6")[f"{metric}_{gas}"]
+    assert matches_printed(compute(dlca.get_parameters("AR6"), gas), expected)
+
+
 @pytest.mark.parametrize("gas", ["ch4", "n2o"])
 def test_ar6_re_including_chemistry_matches_table_7_15(gas):
     """Checks the AR6 additive indirect terms (O3, H2O, N2O->CH4) against Table 7.15."""
@@ -240,6 +249,10 @@ MISTAKES = [
     ("AR6", "re_eff_ch4", {"ch4_h2o": 0.0}),  # AR6 water-vapour term lost
     ("AR6", "re_eff_n2o", {"n2o_ch4_change": 1.7}),  # AR6 sign flip
     ("AR6", "re_eff_n2o", {"n2o_o3": 0.0}),  # AR6 N2O ozone term lost
+    ("AR6", "agwp100_ch4", {"ch4_h2o": 0.0}),  # small term lost: caught at 6 digits
+    ("AR6", "agwp100_ch4", {"ch4_lifetime": 12.4}),  # AR5 CH4 lifetime in AR6
+    ("AR6", "agwp100_n2o", {"n2o_ch4_change": 1.7}),  # sign flip
+    ("AR6", "agtp100_n2o", {"climate_q": (0.443767728883447, 0.319591049742508)}),  # D2 other q2
 ]
 
 
@@ -252,6 +265,7 @@ def test_checks_detect_deliberate_mistakes(name, check, change):
         "agwp100_ch4": lambda q: agwp_decaying(q, "ch4"),
         "agwp100_n2o": lambda q: agwp_decaying(q, "n2o"),
         "agtp100_ch4": lambda q: agtp_decaying(q, "ch4"),
+        "agtp100_n2o": lambda q: agtp_decaying(q, "n2o"),
         "re_eff_ch4": lambda q: q.effective_radiative_efficiency("ch4"),
         "re_eff_n2o": lambda q: q.effective_radiative_efficiency("n2o"),
     }[check]

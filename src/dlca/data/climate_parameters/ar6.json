@@ -219,6 +219,30 @@
       "unit": "W m-2 ppb-1",
       "source": "forster2021",
       "where": "Table 7.15 (p. 1016): N2O radiative efficiency including chemical effects"
+    },
+    "agwp100_ch4": {
+      "value": 2.35905e-12,
+      "unit": "W m-2 yr kg-1",
+      "source": "ipcc_ch7_code",
+      "where": "scripts/check_ar6_against_ipcc_code.py: ipcc_ch7_code ch4_analytical() at commit 2f948c8 with FaIR 1.6.2, notebook-335 inputs, H = 100, no carbon-cycle feedback. Not a published table. Stored at 6 significant figures (full value 2.359051322126759e-12)."
+    },
+    "agtp100_ch4": {
+      "value": 1.93488e-15,
+      "unit": "K kg-1",
+      "source": "ipcc_ch7_code",
+      "where": "scripts/check_ar6_against_ipcc_code.py: ipcc_ch7_code ch4_analytical() at commit 2f948c8 with FaIR 1.6.2, notebook-335 inputs, H = 100, no carbon-cycle feedback. Not a published table. Stored at 6 significant figures (full value 1.9348805843625857e-15)."
+    },
+    "agwp100_n2o": {
+      "value": 2.33188e-11,
+      "unit": "W m-2 yr kg-1",
+      "source": "ipcc_ch7_code",
+      "where": "scripts/check_ar6_against_ipcc_code.py: ipcc_ch7_code n2o_analytical() at commit 2f948c8 with FaIR 1.6.2, notebook-335 inputs, H = 100, no carbon-cycle feedback. Not a published table. Stored at 6 significant figures (full value 2.331875408381331e-11)."
+    },
+    "agtp100_n2o": {
+      "value": 8.63187e-14,
+      "unit": "K kg-1",
+      "source": "ipcc_ch7_code",
+      "where": "scripts/check_ar6_against_ipcc_code.py: ipcc_ch7_code n2o_analytical() at commit 2f948c8 with FaIR 1.6.2, notebook-335 inputs, H = 100, no carbon-cycle feedback. Not a published table. Stored at 6 significant figures (full value 8.631871665279023e-14)."
     }
   }
 }

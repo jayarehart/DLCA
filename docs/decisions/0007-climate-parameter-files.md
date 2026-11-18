@@ -88,11 +88,13 @@ case-insensitive; unknown names raise `ValueError` listing the valid ones).
   engine used nominal masses 44/16 (giving 1.375). Using the set's molar masses
   44.01/16.05 would give 1.3713 and break the Cooper match, so #27 must choose
   on purpose.
-- The AR6 additive indirect terms are checked only through Table 7.15's
-  radiative efficiency including chemistry (CH₄ 5.7e-4, N₂O 2.8e-3), at two
-  printed digits. The AR6 CH₄ and N₂O AGWP and AGTP are not checked, because
-  the published values include CCF. The lifetime checks compare a hand-copied
-  number with itself, so they catch only an edit to one copy.
+- The AR6 CH₄ and N₂O AGWP₁₀₀ and AGTP₁₀₀ are checked against the IPCC Chapter 7
+  functions themselves, run without CCF (`scripts/check_ar6_against_ipcc_code.py`,
+  FaIR 1.6.2, commit 2f948c8). They agree within 4.5e-16 relative and are stored
+  at six figures. This is outside DLCA but not a published table: the published
+  values include CCF. Table 7.15's RE including chemistry is a second, looser
+  check. The lifetime checks compare a hand-copied number with itself, so they
+  catch only an edit to one copy.
 - Changing any value is a `science` change and follows the deliberate lane.
 - Not in any of the three PDFs: the CO₂ IRF, AR5 q and d and the −0.36 factor
   (AR5 8.SM, not checked), AR6 q and d, the molar masses and the mass of the
