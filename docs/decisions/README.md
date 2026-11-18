@@ -45,3 +45,4 @@ link is fine.
 | [0004](0004-mit-license.md) | MIT license | Accepted |
 | [0005](0005-backend-agnostic-api.md) | Backend-agnostic API | Accepted |
 | [0006](0006-adopt-cairn-practices-subset.md) | Adopt a subset of cairn practices | Accepted |
+| [0007](0007-climate-parameter-files.md) | Climate parameter files, `ClimateParameters` and the selector | Accepted |
