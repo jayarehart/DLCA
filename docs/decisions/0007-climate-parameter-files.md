@@ -1,8 +1,8 @@
 # 0007. Climate parameter files, `ClimateParameters` and the selector
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-18
-- **Decided by:**
+- **Decided by:** Jay Arehart
 
 ## Context
 
