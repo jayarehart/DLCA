@@ -12,8 +12,9 @@ parameters were uncited class attributes on `DLCAInputData`. Record 0005 says
 the API takes and returns JSON-serialisable values. Issue #26 holds the
 proposal and Jay's decisions D1–D6 (comment of 2026-11-18). The AR6 values come
 from the IPCC-WG1/Chapter-7 code that generated Table 7.SM.7
-([doi:10.5281/zenodo.5211357](https://doi.org/10.5281/zenodo.5211357)), because
-ipcc.ch blocked downloading the PDFs.
+([doi:10.5281/zenodo.5211357](https://doi.org/10.5281/zenodo.5211357)). Every
+value the reports print was later checked against the AR6 Ch. 7, Ch. 7 SM and
+AR5 Ch. 8 PDFs (#26, comment of 2026-11-18), and all of them matched.
 
 ## Decision
 
@@ -22,7 +23,8 @@ ipcc.ch blocked downloading the PDFs.
 `importlib.resources`. Each value is a leaf `{value, unit, source, where}`,
 optionally with `note`, `published` and `published_where`. `source` is a key
 into the file's `sources`, and each source has a citation and a DOI. A test
-enforces this. Indirect forcing has a `form`: `multiplicative` (AR5) or
+enforces this. The AR6 Ch. 7 SM has no DOI of its own, so SM values cite the
+chapter DOI plus the SM table number. Indirect forcing has a `form`: `multiplicative` (AR5) or
 `additive` (AR6). A `checks` block holds published values (as printed) for the
 independent check. `schema_version` is 1.
 
@@ -44,12 +46,20 @@ case-insensitive; unknown names raise `ValueError` listing the valid ones).
   adjustments (+5%, −14%, +7%). This is the only method we found that
   reproduces the published AGWP₁₀₀(CO₂).
 - D2: AR6 q₂ = 0.313998206372015, which reproduces AGTP₁₀₀(CO₂) = 3.95e-16.
+  This doesn't match the SM. The two-layer model in SM §7.SM.5.2 converts to
+  q = 0.44347 and 0.31989, d = 3.444 and 285.06 yr (ECS 3.00 °C), close to the
+  commented-out 0.319591. The table-reproducing value gives ECS 2.98 °C. Jay to
+  confirm.
 - D3: neither set includes a carbon-cycle feedback (CCF) for non-CO₂ gases
   (`carbon_cycle_feedback: false`). So DLCA's AR6 CH₄ and N₂O metrics are lower
   than the AR6 headline values. Issue #33 covers adding it.
 - D4: the fossil CH₄ → CO₂ yield is 0.5 mol/mol in AR5 (Cooper spreadsheet;
   Boucher et al. 2009, to confirm) and `null` in AR6 until it is confirmed from
   Table 7.15 or 7.SM. `fossil_ch4_co2_yield()` raises rather than guessing.
+  The PDF check confirms AR5's 0.5 (Table 8.A.1 note ‡: the lower limit of
+  Boucher et al. 2009). It also found that AR6 §7.6.1.3 (p. 1013) gives a
+  central molar yield of 75% (range 50–100%, low confidence). Whether AR6
+  should use 0.75 is open for Jay.
 - D5: AR5 keeps the Cooper spreadsheet's CO₂ RE scale factor 0.99746898. It
   makes AGWP₁₀₀(CO₂) = 9.17e-14 and is labelled as not an IPCC value.
 - D6: AR6 is the default.
@@ -78,14 +88,16 @@ case-insensitive; unknown names raise `ValueError` listing the valid ones).
   engine used nominal masses 44/16 (giving 1.375). Using the set's molar masses
   44.01/16.05 would give 1.3713 and break the Cooper match, so #27 must choose
   on purpose.
-- Nothing yet checks the AR6 additive indirect terms (CH₄ O₃/H₂O, N₂O O₃ and
-  N₂O→CH₄) against a value from outside DLCA, because the published CH₄ and N₂O
-  metrics include CCF. The lifetime checks compare a hand-copied number with
-  itself, so they catch only an edit to one copy.
+- The AR6 additive indirect terms are checked only through Table 7.15's
+  radiative efficiency including chemistry (CH₄ 5.7e-4, N₂O 2.8e-3), at two
+  printed digits. The AR6 CH₄ and N₂O AGWP and AGTP are not checked, because
+  the published values include CCF. The lifetime checks compare a hand-copied
+  number with itself, so they catch only an edit to one copy.
 - Changing any value is a `science` change and follows the deliberate lane.
-- Not yet checked against the IPCC PDFs: the AR6 values, the exact table and
-  section numbers in `where`, the AR5 CH₄ and N₂O AGWP₁₀₀ check values, and the
-  AR6 SM's own citation.
+- Not in any of the three PDFs: the CO₂ IRF, AR5 q and d and the −0.36 factor
+  (AR5 8.SM, not checked), AR6 q and d, the molar masses and the mass of the
+  atmosphere. These are cited to Joos et al. 2013, AR5 8.SM.11, the Cooper
+  spreadsheet or the IPCC code.
 
 ## References
 

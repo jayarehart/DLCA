@@ -5,7 +5,7 @@
   "carbon_cycle_feedback": false,
   "sources": {
     "forster2021": {
-      "citation": "Forster, P., et al., 2021: The Earth's Energy Budget, Climate Feedbacks, and Climate Sensitivity. In: Climate Change 2021: The Physical Science Basis. IPCC AR6 WG1, Chapter 7, pp. 923-1054. Supplementary Material (Smith et al. 2021) Tables 7.SM.5-7.SM.7.",
+      "citation": "Forster, P., et al., 2021: The Earth's Energy Budget, Climate Feedbacks, and Climate Sensitivity. In: Climate Change 2021: The Physical Science Basis. IPCC AR6 WG1, Chapter 7, pp. 923-1054. Supplementary Material (Smith et al. 2021) Tables 7.SM.5-7.SM.7. The SM has no DOI of its own (its citation reads 'Available from https://www.ipcc.ch/'), so SM values cite this chapter DOI plus the SM table.",
       "doi": "10.1017/9781009157896.009"
     },
     "ipcc_ch7_code": {
@@ -19,10 +19,6 @@
     "joos2013": {
       "citation": "Joos, F., et al., 2013: Carbon dioxide and climate impulse response functions for the computation of greenhouse gas metrics: a multi-model analysis. Atmos. Chem. Phys., 13, 2793-2825.",
       "doi": "10.5194/acp-13-2793-2013"
-    },
-    "trenberth_smith2005": {
-      "citation": "Trenberth, K. E. and Smith, L., 2005: The mass of the atmosphere: a constraint on global analyses. J. Climate, 18, 864-875.",
-      "doi": "10.1175/JCLI-3299.1"
     }
   },
   "co2": {
@@ -35,7 +31,7 @@
       ],
       "unit": "1",
       "source": "joos2013",
-      "where": "As used by AR6 (ipcc_ch7_code nb335 `a=`). a0 is the permanent fraction."
+      "where": "Section 7.6.1.5 (p. 1016): 'as in AR5 (Joos et al., 2013)'; values from ipcc_ch7_code nb335 `a=`. a0 is the permanent fraction."
     },
     "irf_tau": {
       "value": [
@@ -45,15 +41,15 @@
       ],
       "unit": "yr",
       "source": "joos2013",
-      "where": "As used by AR6 (ipcc_ch7_code nb335 `alpha_co2=`), decaying pools a1..a3"
+      "where": "Section 7.6.1.5 (p. 1016), as in AR5; values from ipcc_ch7_code nb335 `alpha_co2=`"
     },
     "radiative_efficiency": {
       "value": 1.3330689487029317e-05,
       "unit": "W m-2 ppb-1",
       "source": "meinshausen2020",
-      "where": "scripts/derive_ar6_radiative_efficiency.py: +1 ppm above 2019 (409.9 ppm), formula re-referenced to 2019 as in ipcc_ch7_code co2_analytical(), times (1 + 0.05) rapid adjustment",
+      "where": "scripts/derive_ar6_radiative_efficiency.py: +1 ppm above 2019 (409.9 ppm), formula re-referenced to 2019 as in ipcc_ch7_code co2_analytical(), times (1 + 0.05) rapid adjustment. Meinshausen coefficients as SM Table 7.SM.1; 2019 concentrations as Table 7.5 (p. 947); rapid adjustments as Table 7.3 (pp. 944-945).",
       "published": 1.33e-05,
-      "published_where": "Table 7.SM.7 (ipcc_ch7_code data_output/7sm/metrics_supplement_cleaned.csv)",
+      "published_where": "Table 7.15 (p. 1016); Table 7.SM.7 (SM p. 16)",
       "note": "Decision D1 on #26 (unrounded). The slope of the 1750-referenced formula at 2019 would be 1.3877e-05 and does not reproduce the published AGWP100."
     },
     "radiative_efficiency_scale": {
@@ -74,15 +70,15 @@
       "value": 11.8,
       "unit": "yr",
       "source": "forster2021",
-      "where": "Table 7.15 / 7.SM.7 perturbation lifetime (ipcc_ch7_code nb335 alpha_ch4)"
+      "where": "Table 7.15 (p. 1016); Section 7.6.1.1 (p. 1011). Perturbation lifetime 11.8 +/- 1.8 yr."
     },
     "radiative_efficiency": {
       "value": 0.00038864402860869495,
       "unit": "W m-2 ppb-1",
       "source": "meinshausen2020",
-      "where": "scripts/derive_ar6_radiative_efficiency.py: +1 ppb above 2019 (1866.3 ppb), as in ipcc_ch7_code ch4_analytical(), times (1 - 0.14) rapid adjustment",
+      "where": "scripts/derive_ar6_radiative_efficiency.py: +1 ppb above 2019 (1866.3 ppb), as in ipcc_ch7_code ch4_analytical(), times (1 - 0.14) rapid adjustment. Meinshausen coefficients as SM Table 7.SM.1; 2019 concentrations as Table 7.5 (p. 947); rapid adjustments as Table 7.3 (pp. 944-945).",
       "published": 0.000388,
-      "published_where": "Table 7.SM.7 (direct only)",
+      "published_where": "Table 7.SM.7 (SM p. 16), direct only; truncated from 0.00038864",
       "note": "Decision D1 on #26 (unrounded)."
     },
     "indirect": {
@@ -90,14 +86,14 @@
       "o3": {
         "value": 0.00014,
         "unit": "W m-2 ppb-1",
-        "source": "ipcc_ch7_code",
-        "where": "src/ar6/metrics/ch4.py ch4_o3 (ozone from CH4)"
+        "source": "forster2021",
+        "where": "Section 7.6.1.3 (p. 1013): 1.4 +/- 0.7 e-4 (ipcc_ch7_code ch4.py ch4_o3)"
       },
       "h2o": {
         "value": 4e-05,
         "unit": "W m-2 ppb-1",
-        "source": "ipcc_ch7_code",
-        "where": "src/ar6/metrics/ch4.py ch4_h2o (stratospheric water vapour from CH4)"
+        "source": "forster2021",
+        "where": "Section 7.6.1.3 (p. 1013): 0.4 +/- 0.4 e-4 (ipcc_ch7_code ch4.py ch4_h2o)"
       }
     },
     "molar_mass": {
@@ -110,8 +106,8 @@
       "value": null,
       "unit": "mol CO2 per mol CH4 removed",
       "source": "forster2021",
-      "where": "Table 7.15 footnote or 7.SM: not yet confirmed",
-      "note": "Decision D4 on #26: null until confirmed. ClimateParameters.fossil_ch4_co2_yield() raises instead of guessing."
+      "where": "Not set (decision D4). Section 7.6.1.3 (p. 1013) gives a central 75% molar yield, range 50-100%, low confidence.",
+      "note": "Decision D4 on #26: null. The PDF check (#26, 2026-11-18) found AR6's 75% central value; switching to it is Jay's decision. fossil_ch4_co2_yield() raises while null."
     }
   },
   "n2o": {
@@ -119,15 +115,15 @@
       "value": 109.0,
       "unit": "yr",
       "source": "forster2021",
-      "where": "Table 7.15 / 7.SM.7 perturbation lifetime (ipcc_ch7_code n2o.py alpha_n2o)"
+      "where": "Table 7.15 (p. 1016); Section 7.6.1.1 (p. 1011). Perturbation lifetime 109 +/- 10 yr."
     },
     "radiative_efficiency": {
       "value": 0.00319550741640458,
       "unit": "W m-2 ppb-1",
       "source": "meinshausen2020",
-      "where": "scripts/derive_ar6_radiative_efficiency.py: +1 ppb above 2019 (332.1 ppb), as in ipcc_ch7_code n2o_analytical(), times (1 + 0.07) rapid adjustment",
+      "where": "scripts/derive_ar6_radiative_efficiency.py: +1 ppb above 2019 (332.1 ppb), as in ipcc_ch7_code n2o_analytical(), times (1 + 0.07) rapid adjustment. Meinshausen coefficients as SM Table 7.SM.1; 2019 concentrations as Table 7.5 (p. 947); rapid adjustments as Table 7.3 (pp. 944-945).",
       "published": 0.0032,
-      "published_where": "Table 7.SM.7 (direct only)",
+      "published_where": "Table 7.SM.7 (SM p. 16), direct only",
       "note": "Decision D1 on #26 (unrounded)."
     },
     "indirect": {
@@ -135,14 +131,14 @@
       "o3": {
         "value": 0.00055,
         "unit": "W m-2 ppb-1",
-        "source": "ipcc_ch7_code",
-        "where": "src/ar6/metrics/n2o.py n2o_o3 (ozone from N2O)"
+        "source": "forster2021",
+        "where": "Section 7.6.1.3 (p. 1014): 5.5 +/- 0.4 e-4 (ipcc_ch7_code n2o.py n2o_o3)"
       },
       "ch4_change": {
         "value": -1.7,
         "unit": "ppb CH4 per ppb N2O",
-        "source": "ipcc_ch7_code",
-        "where": "src/ar6/metrics/n2o.py f_n2o_ch4 (CH4 destroyed per N2O, after AR5 8.SM.11.3.3)"
+        "source": "forster2021",
+        "where": "Section 7.6.1.3 (p. 1014): -1.7 ppb CH4 per ppb N2O (ipcc_ch7_code n2o.py f_n2o_ch4)"
       }
     },
     "molar_mass": {
@@ -161,7 +157,7 @@
       "unit": "K (W m-2)-1",
       "source": "ipcc_ch7_code",
       "where": "nb335 q (\"what Bill used\")",
-      "note": "Decision D2 on #26. The notebook also has q2 = 0.319591049742508 (\"Zeb's file\", commented out); only 0.313998 reproduces AGTP100(CO2) = 3.95e-16."
+      "note": "Decision D2 on #26. The notebook also has q2 = 0.319591049742508 (\"Zeb's file\", commented out); only 0.313998 reproduces AGTP100(CO2) = 3.95e-16. The SM's two-layer model (Section 7.SM.5.2, SM p. 15: C=7.7, C_D=147, alpha=-1.31, eps=1.03, kappa=0.88) converts to q = 0.44347, 0.31989 and d = 3.444, 285.06 yr (ECS 3.00 C), close to the commented-out value. 0.313998 (ECS 2.98 C) is kept because it reproduces the published tables; Jay to confirm."
     },
     "d": {
       "value": [
@@ -170,15 +166,15 @@
       ],
       "unit": "yr",
       "source": "ipcc_ch7_code",
-      "where": "nb335 d"
+      "where": "nb335 d (the SM two-layer model converts to 3.444, 285.06 yr; see q note)"
     }
   },
   "atmosphere": {
     "mass": {
       "value": 5.1352e+18,
       "unit": "kg",
-      "source": "trenberth_smith2005",
-      "where": "Mass of the dry atmosphere (ipcc_ch7_code constants.py M_ATMOS)"
+      "source": "ipcc_ch7_code",
+      "where": "src/ar6/metrics/constants.py M_ATMOS (dry-air mass of Trenberth and Smith 2005); not printed in AR6"
     },
     "molar_mass_air": {
       "value": 28.97,
@@ -192,25 +188,37 @@
       "value": 8.95e-14,
       "unit": "W m-2 yr kg-1",
       "source": "forster2021",
-      "where": "Table 7.SM.7"
+      "where": "Table 7.SM.7 (SM p. 16)"
     },
     "agtp100_co2": {
       "value": 3.95e-16,
       "unit": "K kg-1",
       "source": "forster2021",
-      "where": "Table 7.SM.7"
+      "where": "Table 7.SM.7 (SM p. 16)"
     },
     "ch4_lifetime": {
       "value": 11.8,
       "unit": "yr",
       "source": "forster2021",
-      "where": "Table 7.15 / 7.SM.7"
+      "where": "Table 7.15 (p. 1016)"
     },
     "n2o_lifetime": {
       "value": 109.0,
       "unit": "yr",
       "source": "forster2021",
-      "where": "Table 7.15 / 7.SM.7"
+      "where": "Table 7.15 (p. 1016)"
+    },
+    "re_eff_ch4": {
+      "value": 0.00057,
+      "unit": "W m-2 ppb-1",
+      "source": "forster2021",
+      "where": "Table 7.15 (p. 1016): CH4 radiative efficiency including chemical effects"
+    },
+    "re_eff_n2o": {
+      "value": 0.0028,
+      "unit": "W m-2 ppb-1",
+      "source": "forster2021",
+      "where": "Table 7.15 (p. 1016): N2O radiative efficiency including chemical effects"
     }
   }
 }

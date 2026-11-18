@@ -39,7 +39,7 @@
       ],
       "unit": "1",
       "source": "joos2013",
-      "where": "Multi-model mean IRF fit, as used in AR5 8.SM.11 (Eq. 8.SM.10). a0 is the permanent fraction."
+      "where": "Table 8.A.1 note * (p. 737): Joos et al. 2013 IRF; values in AR5 8.SM.11 (not checked against 8.SM). a0 is the permanent fraction."
     },
     "irf_tau": {
       "value": [
@@ -49,13 +49,13 @@
       ],
       "unit": "yr",
       "source": "joos2013",
-      "where": "Time constants of the decaying pools a1..a3, AR5 8.SM.11 (Eq. 8.SM.10)."
+      "where": "Joos et al. 2013 IRF via AR5 8.SM.11 (not checked against 8.SM); decaying pools a1..a3"
     },
     "radiative_efficiency": {
       "value": 1.37e-05,
       "unit": "W m-2 ppb-1",
       "source": "myhre2013",
-      "where": "Table 8.A.1"
+      "where": "Table 8.A.1 (p. 731)"
     },
     "radiative_efficiency_scale": {
       "value": 0.99746898064295,
@@ -76,13 +76,13 @@
       "value": 12.4,
       "unit": "yr",
       "source": "myhre2013",
-      "where": "Table 8.A.1 (perturbation lifetime)"
+      "where": "Table 8.A.1 (p. 731); Section 8.2.3.3 (p. 675). Perturbation lifetime."
     },
     "radiative_efficiency": {
       "value": 0.000363,
       "unit": "W m-2 ppb-1",
       "source": "myhre2013",
-      "where": "Table 8.A.1 (direct)"
+      "where": "Table 8.A.1 (p. 731), direct"
     },
     "indirect": {
       "form": "multiplicative",
@@ -90,13 +90,13 @@
         "value": 0.5,
         "unit": "1",
         "source": "myhre2013",
-        "where": "8.SM.11.3.2: tropospheric ozone enhances CH4 forcing by 50%"
+        "where": "Section 8.7.2.1 (p. 717) and 8.SM.12: ozone enhances CH4 forcing by 50%"
       },
       "h2o": {
         "value": 0.15,
         "unit": "1",
         "source": "myhre2013",
-        "where": "8.SM.11.3.2: stratospheric water vapour enhances CH4 forcing by 15%"
+        "where": "Section 8.7.2.1 (p. 717) and 8.SM.12: stratospheric water vapour enhances CH4 forcing by 15%"
       }
     },
     "molar_mass": {
@@ -108,8 +108,8 @@
     "fossil_co2_yield": {
       "value": 0.5,
       "unit": "mol CO2 per mol CH4 removed",
-      "source": "cooper2020",
-      "where": "Cooper et al. 2020 spreadsheet; Boucher et al. 2009 (to confirm)",
+      "source": "myhre2013",
+      "where": "Table 8.A.1 note ‡ (p. 738): 50% of the carbon, the lower limit of Boucher et al. 2009. Also the Cooper et al. 2020 spreadsheet value.",
       "note": "Decision D4 on #26. DLCAInputData stores 0.5 * 44/16 = 1.375 kg CO2 per kg CH4, using nominal integer molar masses; the mass conversion is left to the engine (#27)."
     }
   },
@@ -118,13 +118,13 @@
       "value": 121.0,
       "unit": "yr",
       "source": "myhre2013",
-      "where": "Table 8.A.1 (perturbation lifetime)"
+      "where": "Table 8.A.1 (p. 731); p. 675. Perturbation lifetime."
     },
     "radiative_efficiency": {
       "value": 0.003,
       "unit": "W m-2 ppb-1",
       "source": "myhre2013",
-      "where": "Table 8.A.1 (direct)"
+      "where": "Table 8.A.1 (p. 731), direct"
     },
     "indirect": {
       "form": "multiplicative",
@@ -138,7 +138,7 @@
         "value": -0.36,
         "unit": "ppb CH4 per ppb N2O",
         "source": "myhre2013",
-        "where": "8.SM.11.3.3: factor (1 - 0.36 * RE_CH4,eff / RE_N2O)"
+        "where": "AR5 8.SM (not checked against 8.SM); restated in AR6 Ch7 Section 7.6.1.3 (p. 1014). Factor (1 - 0.36 * RE_CH4,eff / RE_N2O)."
       }
     },
     "molar_mass": {
@@ -156,7 +156,7 @@
       ],
       "unit": "K (W m-2)-1",
       "source": "boucher_reddy2008",
-      "where": "Two-box response as used in AR5 8.SM.11.2"
+      "where": "Table 8.A.1 notes (p. 738): temperature IRF from Boucher and Reddy 2008; values in AR5 8.SM.11 (not checked against 8.SM)"
     },
     "d": {
       "value": [
@@ -165,7 +165,7 @@
       ],
       "unit": "yr",
       "source": "boucher_reddy2008",
-      "where": "Two-box response as used in AR5 8.SM.11.2"
+      "where": "Table 8.A.1 notes (p. 738): temperature IRF from Boucher and Reddy 2008; values in AR5 8.SM.11 (not checked against 8.SM)"
     }
   },
   "atmosphere": {
@@ -178,8 +178,8 @@
     "molar_mass_air": {
       "value": 28.97,
       "unit": "g mol-1",
-      "source": "trenberth_smith2005",
-      "where": "Mean molar mass of dry air"
+      "source": "cooper2020",
+      "where": "Cooper et al. 2020 spreadsheet constants (mol_mass_air in DLCAInputData); not printed in AR5"
     }
   },
   "checks": {
@@ -187,37 +187,55 @@
       "value": 9.17e-14,
       "unit": "W m-2 yr kg-1",
       "source": "myhre2013",
-      "where": "Table 8.A.1"
+      "where": "Table 8.A.1 (p. 731)"
     },
     "agtp100_co2": {
       "value": 5.47e-16,
       "unit": "K kg-1",
       "source": "myhre2013",
-      "where": "Table 8.A.1"
+      "where": "Table 8.A.1 (p. 731)"
     },
     "agwp100_ch4": {
       "value": 2.61e-12,
       "unit": "W m-2 yr kg-1",
       "source": "myhre2013",
-      "where": "Table 8.A.1, no climate-carbon feedback (value to confirm against the PDF)"
+      "where": "Table 8.A.1 (p. 731), no carbon-cycle feedback"
     },
     "agwp100_n2o": {
       "value": 2.43e-11,
       "unit": "W m-2 yr kg-1",
       "source": "myhre2013",
-      "where": "Table 8.A.1, no climate-carbon feedback (value to confirm against the PDF)"
+      "where": "Table 8.A.1 (p. 731), no carbon-cycle feedback"
     },
     "ch4_lifetime": {
       "value": 12.4,
       "unit": "yr",
       "source": "myhre2013",
-      "where": "Table 8.A.1"
+      "where": "Table 8.A.1 (p. 731)"
     },
     "n2o_lifetime": {
       "value": 121.0,
       "unit": "yr",
       "source": "myhre2013",
-      "where": "Table 8.A.1"
+      "where": "Table 8.A.1 (p. 731)"
+    },
+    "agtp100_ch4": {
+      "value": 2.34e-15,
+      "unit": "K kg-1",
+      "source": "myhre2013",
+      "where": "Table 8.A.1 (p. 731), no carbon-cycle feedback"
+    },
+    "agtp100_n2o": {
+      "value": 1.28e-13,
+      "unit": "K kg-1",
+      "source": "myhre2013",
+      "where": "Table 8.A.1 (p. 731), no carbon-cycle feedback"
+    },
+    "agwp20_co2": {
+      "value": 2.49e-14,
+      "unit": "W m-2 yr kg-1",
+      "source": "myhre2013",
+      "where": "Table 8.A.1 (p. 731)"
     }
   }
 }

@@ -2,7 +2,8 @@
 
 Independent check: closed-form AGWP100 and AGTP100 of CO2 (and AR5 CH4/N2O
 AGWP100) computed here from each set's values, compared with the published IPCC
-tables at their printed precision. The expected values sit in the ``checks``
+tables at their printed precision. Table and page numbers were checked against
+the IPCC PDFs on #26 (comment of 2026-11-18). The expected values sit in the ``checks``
 block of each JSON file, copied from the tables; the closed forms are written in
 this file, not taken from the package.
 """
@@ -58,6 +59,15 @@ def agtp_co2(p: ClimateParameters, h: float = 100.0) -> float:
 def agwp_decaying(p: ClimateParameters, gas: str, h: float = 100.0) -> float:
     life = {"ch4": p.ch4_lifetime, "n2o": p.n2o_lifetime}[gas]
     return specific_forcing(p, gas) * life * (1 - math.exp(-h / life))
+
+
+def agtp_decaying(p: ClimateParameters, gas: str, h: float = 100.0) -> float:
+    life = {"ch4": p.ch4_lifetime, "n2o": p.n2o_lifetime}[gas]
+    total = sum(
+        q * life * (math.exp(-h / life) - math.exp(-h / d)) / (life - d)
+        for q, d in zip(p.climate_q, p.climate_d, strict=True)
+    )
+    return specific_forcing(p, gas) * total
 
 
 def matches_printed(value: float, printed: float, *, truncated_ok: bool = False) -> bool:
@@ -174,6 +184,25 @@ def test_ar5_agwp100_ch4_n2o_match_published(gas):
     assert matches_printed(agwp_decaying(dlca.get_parameters("AR5"), gas), expected)
 
 
+@pytest.mark.parametrize("gas", ["ch4", "n2o"])
+def test_ar5_agtp100_ch4_n2o_match_published(gas):
+    expected = checks("AR5")[f"agtp100_{gas}"]
+    assert matches_printed(agtp_decaying(dlca.get_parameters("AR5"), gas), expected)
+
+
+def test_ar5_agwp20_co2_matches_published():
+    assert matches_printed(
+        agwp_co2(dlca.get_parameters("AR5"), h=20.0), checks("AR5")["agwp20_co2"]
+    )
+
+
+@pytest.mark.parametrize("gas", ["ch4", "n2o"])
+def test_ar6_re_including_chemistry_matches_table_7_15(gas):
+    """Checks the AR6 additive indirect terms (O3, H2O, N2O->CH4) against Table 7.15."""
+    p = dlca.get_parameters("AR6")
+    assert matches_printed(p.effective_radiative_efficiency(gas), checks("AR6")[f"re_eff_{gas}"])
+
+
 @pytest.mark.parametrize("name", SETS)
 @pytest.mark.parametrize("gas", ["ch4", "n2o"])
 def test_lifetimes_match_published(name, gas):
@@ -206,6 +235,11 @@ MISTAKES = [
     ("AR6", "agwp100_co2", {"co2_re": 1.33e-05}),  # rounded RE (D1 option a)
     ("AR5", "agwp100_ch4", {"ch4_o3": 0.0}),  # ozone term lost
     ("AR5", "agwp100_n2o", {"n2o_ch4_change": 0.36}),  # sign flip
+    ("AR5", "agtp100_ch4", {"climate_d": (409.5, 8.4)}),  # climate response times swapped
+    ("AR6", "re_eff_ch4", {"ch4_o3": 0.0}),  # AR6 ozone term lost
+    ("AR6", "re_eff_ch4", {"ch4_h2o": 0.0}),  # AR6 water-vapour term lost
+    ("AR6", "re_eff_n2o", {"n2o_ch4_change": 1.7}),  # AR6 sign flip
+    ("AR6", "re_eff_n2o", {"n2o_o3": 0.0}),  # AR6 N2O ozone term lost
 ]
 
 
@@ -217,6 +251,9 @@ def test_checks_detect_deliberate_mistakes(name, check, change):
         "agtp100_co2": agtp_co2,
         "agwp100_ch4": lambda q: agwp_decaying(q, "ch4"),
         "agwp100_n2o": lambda q: agwp_decaying(q, "n2o"),
+        "agtp100_ch4": lambda q: agtp_decaying(q, "ch4"),
+        "re_eff_ch4": lambda q: q.effective_radiative_efficiency("ch4"),
+        "re_eff_n2o": lambda q: q.effective_radiative_efficiency("n2o"),
     }[check]
     assert not matches_printed(compute(p), checks(name)[check])
 
