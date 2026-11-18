@@ -115,7 +115,10 @@ def burden(
             The CH4 removed during year k, ``ch4[k-1] * (1 - exp(-1/tau_CH4))``,
             times ``params.fossil_ch4_co2_yield()`` [mol/mol] times
             ``CO2_PER_CH4_MASS_RATIO``, is added to the CO2 emissions of year k
-            before the CO2 pools are computed.
+            before the CO2 pools are computed. The flag applies to all of the
+            CH4 in ``emissions``; for a mix of fossil and biogenic CH4, call
+            ``burden()`` once for each and add the results (it is linear).
+            Negative CH4 (net removal) then gives negative oxidised CO2.
 
     Returns:
         A ``Burden`` with arrays in kg.

@@ -119,6 +119,22 @@ def test_fossil_ch4_oxidised_co2_same_step(set_name):
     np.testing.assert_allclose(b.ch4[YEARS], EXPECTED[set_name]["ch4"], rtol=RTOL, atol=0)
 
 
+@pytest.mark.parametrize(("set_name", "r"), [("AR5", 0.5 * 44 / 16), ("AR6", 0.75 * 44 / 16)])
+def test_fossil_ch4_conserves_carbon_every_year(set_name, r):
+    """All CH4 that leaves becomes CO2, in every year, not just years 1 and 2.
+
+    By year k the CO2 formed must be r * (1 - CH4 left), where CH4 left is the
+    hand-computed exp(-k/tau). Over the full 500 years that is r (1 - exp(-500/tau)),
+    which is 1.375 (AR5) and 2.0625 (AR6) to double precision. Catches a timing,
+    lifetime or yield fault after year 2 that the year-1/2 check would miss.
+    """
+    tau = {"AR5": 12.4, "AR6": 11.8}[set_name]
+    b = burden({"ch4": pulse()}, get_parameters(set_name), fossil_ch4=True)
+    t = np.arange(N)
+    np.testing.assert_allclose(np.cumsum(b.ch4_to_co2), r * (1 - np.exp(-t / tau)), rtol=1e-12)
+    np.testing.assert_allclose(b.ch4_to_co2.sum(), r * (1 - np.exp(-500 / tau)), rtol=1e-12)
+
+
 def test_biogenic_ch4_makes_no_co2():
     b = burden({"ch4": pulse()}, get_parameters("AR6"))
     assert not np.any(b.co2) and not np.any(b.ch4_to_co2)
