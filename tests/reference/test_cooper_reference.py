@@ -19,7 +19,9 @@ import pandas as pd
 import pytest
 
 from dlca import engine as DLCA
+from dlca.climate import burden
 from dlca.models import EmissionsFluxTotal
+from dlca.parameters import get_parameters
 
 CASES_DIR = Path(__file__).parent / "cases"
 CASES = sorted(p.name for p in CASES_DIR.iterdir() if (p / "expected.csv").exists())
@@ -69,32 +71,6 @@ MISSING_FROM_ENGINE = [
     "GTP_sliding_CO2e",
 ]
 
-FOSSIL_CH4_REASON = (
-    "Known bug, fixed in M1 (Jay's decision on PR #24, 2026-11-17): CH4_to_CO2 is "
-    "used before it is assigned in calc_decay. With fossil_CH4=True, calc_decay adds "
-    "CO2_mass_df['CH4_to_CO2'] to the CO2 pools before it assigns that row's value, "
-    "so the oxidised-CH4 CO2 is never added. CH4_to_CO2 itself matches; CO2 mass, "
-    "forcing and temperature miss it."
-)
-# Columns that fail for ch4_pulse_fossil, with the measured disagreement
-# (max |engine - spreadsheet| / max |spreadsheet| over years 0-500).
-XFAIL = {
-    ("ch4_pulse_fossil", col): f"{FOSSIL_CH4_REASON} Measured: {size}."
-    for col, size in {
-        "CO2_mass": "1.0 (engine CO2 mass is 0; spreadsheet peaks at 0.769 kg)",
-        "CO2_mass0": "1.0",
-        "CO2_mass1": "1.0",
-        "CO2_mass2": "1.0",
-        "CO2_mass3": "1.0",
-        "CO2_radfor": "1.0",
-        "CO2_IRF": "1.0",
-        "IRF_all": "0.142",
-        "IRF_over_AGWP_CO2": "0.142",
-        "CO2_temp": "1.0",
-        "temp_change": "0.0143",
-    }.items()
-}
-
 
 @cache
 def load_case(case):
@@ -118,6 +94,22 @@ def run_engine(case):
     )
     time_horizon = int(settings["time_horizon"])
     engine.calc_decay(input_flux=flux)
+    # The atmospheric masses come from dlca.climate.burden() (issue #27), which
+    # fixes calc_decay's fossil CH4 ordering bug. The old engine's forcing and
+    # temperature steps (replaced in #28, #29) then read these masses.
+    b = burden(
+        {"co2": inputs["CO2_flux"], "ch4": inputs["CH4_flux"], "n2o": inputs["N2O_flux"]},
+        get_parameters("AR5"),
+        fossil_ch4=engine._inputdata.fossil_CH4,
+    )
+    results = engine.Results
+    results.mass_in_atm_df = pd.DataFrame(
+        {"CO2": b.co2, "CH4": b.ch4, "N2O": b.n2o}, index=results.mass_in_atm_df.index
+    )
+    results.CO2_mass_df = pd.DataFrame(
+        {**{f"mass{i}": b.co2_pools[i] for i in range(4)}, "CH4_to_CO2": b.ch4_to_co2},
+        index=results.CO2_mass_df.index,
+    )
     engine.calc_AGWP(time_horizon=time_horizon)
     engine.calc_AGTP(time_horizon=time_horizon)
     return engine.Results
@@ -126,12 +118,7 @@ def run_engine(case):
 def _params():
     for case in CASES:
         for col in ENGINE_COLUMNS:
-            marks = []
-            if (case, col) in XFAIL:
-                marks = [
-                    pytest.mark.xfail(strict=True, raises=AssertionError, reason=XFAIL[(case, col)])
-                ]
-            yield pytest.param(case, col, id=f"{case}-{col}", marks=marks)
+            yield pytest.param(case, col, id=f"{case}-{col}")
 
 
 def test_cases_present():
