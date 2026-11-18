@@ -157,7 +157,7 @@
       "unit": "K (W m-2)-1",
       "source": "ipcc_ch7_code",
       "where": "nb335 q (\"what Bill used\")",
-      "note": "Decision D2 on #26. The notebook also has q2 = 0.319591049742508 (\"Zeb's file\", commented out); only 0.313998 reproduces AGTP100(CO2) = 3.95e-16. The SM's two-layer model (Section 7.SM.5.2, SM p. 15: C=7.7, C_D=147, alpha=-1.31, eps=1.03, kappa=0.88) converts to q = 0.44347, 0.31989 and d = 3.444, 285.06 yr (ECS 3.00 C), close to the commented-out value. 0.313998 (ECS 2.98 C) is kept because it reproduces the published tables; Jay to confirm."
+      "note": "Decision D2 on #26. The notebook also has q2 = 0.319591049742508 (\"Zeb's file\", commented out); only 0.313998 reproduces AGTP100(CO2) = 3.95e-16. The SM's two-layer model (Section 7.SM.5.2, SM p. 15: C=7.7, C_D=147, alpha=-1.31, eps=1.03, kappa=0.88) converts to q = 0.44347, 0.31989 and d = 3.444, 285.06 yr (ECS 3.00 C), close to the commented-out value. 0.313998 (ECS 2.98 C) is kept because it reproduces the published tables; Confirmed by Jay on 2026-11-18 (#26)."
     },
     "d": {
       "value": [

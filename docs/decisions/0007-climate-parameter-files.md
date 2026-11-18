@@ -48,8 +48,8 @@ case-insensitive; unknown names raise `ValueError` listing the valid ones).
 - D2: AR6 q₂ = 0.313998206372015, which reproduces AGTP₁₀₀(CO₂) = 3.95e-16.
   This doesn't match the SM. The two-layer model in SM §7.SM.5.2 converts to
   q = 0.44347 and 0.31989, d = 3.444 and 285.06 yr (ECS 3.00 °C), close to the
-  commented-out 0.319591. The table-reproducing value gives ECS 2.98 °C. Jay to
-  confirm.
+  commented-out 0.319591. The table-reproducing value gives ECS 2.98 °C. Jay
+  confirmed 0.313998 on 2026-11-18.
 - D3: neither set includes a carbon-cycle feedback (CCF) for non-CO₂ gases
   (`carbon_cycle_feedback: false`). So DLCA's AR6 CH₄ and N₂O metrics are lower
   than the AR6 headline values. Issue #33 covers adding it.
