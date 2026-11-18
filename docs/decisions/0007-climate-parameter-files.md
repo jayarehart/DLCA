@@ -75,7 +75,13 @@ case-insensitive; unknown names raise `ValueError` listing the valid ones).
 - Each `Result` (#31) records the set's name, `fingerprint()` and "no CCF".
 - AR6 cannot be used for fossil CH₄ until the yield is confirmed (#30).
 - Converting the yield to kg CO₂ per kg CH₄ is left to the engine. The old
-  engine used nominal masses 44/16, not the set's molar masses (#27 decides).
+  engine used nominal masses 44/16 (giving 1.375). Using the set's molar masses
+  44.01/16.05 would give 1.3713 and break the Cooper match, so #27 must choose
+  on purpose.
+- Nothing yet checks the AR6 additive indirect terms (CH₄ O₃/H₂O, N₂O O₃ and
+  N₂O→CH₄) against a value from outside DLCA, because the published CH₄ and N₂O
+  metrics include CCF. The lifetime checks compare a hand-copied number with
+  itself, so they catch only an edit to one copy.
 - Changing any value is a `science` change and follows the deliberate lane.
 - Not yet checked against the IPCC PDFs: the AR6 values, the exact table and
   section numbers in `where`, the AR5 CH₄ and N₂O AGWP₁₀₀ check values, and the

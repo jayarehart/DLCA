@@ -173,7 +173,7 @@
       "value": 5.1352e+18,
       "unit": "kg",
       "source": "trenberth_smith2005",
-      "where": "Total mass of the atmosphere"
+      "where": "Mass of the dry atmosphere"
     },
     "molar_mass_air": {
       "value": 28.97,

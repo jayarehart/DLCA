@@ -193,7 +193,8 @@ def test_ar6_unrounded_re_match_derivation_script_and_published():
         leaf = doc[gas]["radiative_efficiency"]
         assert leaf["value"] == derived[gas], gas
         # Table 7.SM.7 prints CH4 as 0.000388 for 0.00038864 (truncated, not rounded).
-        assert matches_printed(leaf["value"], leaf["published"], truncated_ok=True), gas
+        truncated_ok = gas == "ch4"
+        assert matches_printed(leaf["value"], leaf["published"], truncated_ok=truncated_ok), gas
 
 
 # The checks above must be able to fail. Each mutation is a plausible mistake.
