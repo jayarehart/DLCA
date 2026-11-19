@@ -42,7 +42,8 @@ __all__ = ["RESULT_SCHEMA", "RESULT_SCHEMA_VERSION", "Result", "assess"]
 RESULT_SCHEMA = "dlca.result"
 # Bump whenever the form of Result.to_dict() changes.
 # 2: burden, forcing and temperature carry parameter_fingerprint (#37, G6).
-RESULT_SCHEMA_VERSION = 2
+# 3: burden carries ccf_co2 and the parameter values carry the CCF fields (#33, C7).
+RESULT_SCHEMA_VERSION = 3
 
 
 def _package_version() -> str:
@@ -92,8 +93,8 @@ class Result:
         parameter_set: ``parameters.name``. A variant keeps its set's name, so
             this alone does not identify the values; the fingerprint does.
         parameter_fingerprint: ``parameters.fingerprint()``.
-        carbon_cycle_feedback: ``parameters.carbon_cycle_feedback``; False for
-            the shipped AR5 and AR6 sets (no CCF, record 0007 D3).
+        carbon_cycle_feedback: ``parameters.carbon_cycle_feedback``: True for
+            the shipped AR6 set, False for AR5 (decision C6 on #33, record 0010).
         dlca_version: Version of the package that made the result.
     """
 

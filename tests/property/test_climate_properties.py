@@ -25,7 +25,11 @@ Tolerance. The functions are sums of products, so rounding error in an output
 is bounded by a small multiple of machine epsilon times the same output
 computed from the absolute values of the emissions, f(|x|). The kernels and
 specific forcings are all positive (so is the two-box response to a decaying
-forcing, for tau above or below d), so f(|x|) >= |f(x)| element by element. The
+forcing, for tau above or below d), so f(|x|) >= |f(x)| element by element.
+(The carbon-cycle feedback of AR6, #33, adds a CO2 release that turns negative
+after some decades as the sinks take carbon back, so for it this bound is not
+exact. The CCF part is about 5% of a CH4 or N2O output and its negative tail is
+smaller still, so the allowance still holds with a wide margin.) The
 comparisons allow ``RTOL * max(f(|x|))`` per output array; any real fault (an
 offset, a dropped sign, a year shift) moves an output by a fraction of order
 one of that scale.
@@ -36,6 +40,7 @@ environment to derandomise (fixed examples), as the CI workflow on GitHub does.
 
 from __future__ import annotations
 
+import dataclasses
 import os
 
 import numpy as np
@@ -48,6 +53,7 @@ from dlca.climate import GASES, agtp, burden, forcing, gtp, gwi, temperature
 from dlca.parameters import get_parameters
 
 PARAMS = {name: get_parameters(name) for name in ("AR5", "AR6")}
+NO_CCF = {name: dataclasses.replace(p, carbon_cycle_feedback=False) for name, p in PARAMS.items()}
 RTOL = 1e-9
 MAX_EXAMPLES = 50
 MAX_YEARS = 130  # past the default 100-year horizon
@@ -289,7 +295,8 @@ def test_temperature_of_pulse_in_any_year_equals_agtp(set_name, pkm):
     ``agtp(gas, 0)`` and the temperature must both be exactly zero.
     """
     gas, n, k, m = pkm
-    p = PARAMS[set_name]
+    # Without CCF (C6 on #33): with it, CH4 and N2O also warm through CO2.
+    p = NO_CCF[set_name]
     e = {gas: np.r_[np.zeros(k), m, np.zeros(n - k - 1)]}
     t = temperature(burden(e, p), p)
     expected = m * agtp(gas, np.arange(n - k, dtype=float), p)

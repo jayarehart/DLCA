@@ -41,6 +41,16 @@ as pure NumPy functions with cited AR5 and AR6 parameter sets.
   made with another parameter set, or with a variant of the same one. `Result`
   refuses a burden, forcing or temperature of another set, and its schema version is now 2 (#37,
   decision record 0009, Proposed).
+- **AR6 CH₄ and N₂O now include the carbon-cycle feedback (CCF)** of Gasser et
+  al. (2017), computed exactly (#33, decision record 0010, Proposed). AR6 CH₄
+  GWP₁₀₀ goes from 26.37 to 28.02, CH₄ GWP₂₀ from 79.15 to 81.27, CH₄ GTP₁₀₀
+  from 4.90 to 5.58, and N₂O GWP₁₀₀ from 260.6 to 274.4; CO₂ and all AR5 results
+  are unchanged. The printed Table 7.SM.7 values (27.9, 273) carry the IPCC
+  code's 0.1-year step error in the CCF term. `Burden` has a new `ccf_co2`
+  series; `ClimateParameters` has `ccf_gamma`, `ccf_weights`, `ccf_timescales`
+  and `molar_mass_c`; the `Result` schema version is now 3. For the old
+  behaviour use `dataclasses.replace(get_parameters("AR6"),
+  carbon_cycle_feedback=False)`; AR5 refuses CCF.
 
 ### Fixed
 

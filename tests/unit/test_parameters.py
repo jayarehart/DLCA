@@ -336,7 +336,7 @@ def test_missing_fossil_ch4_yield_raises_instead_of_guessing():
         p.fossil_ch4_co2_yield()
 
 
-def test_no_set_claims_carbon_cycle_feedback():
-    # Decision D3 on #26: no CCF in M1 (#33).
-    for name in SETS:
-        assert dlca.get_parameters(name).carbon_cycle_feedback is False
+def test_ccf_on_for_ar6_off_for_ar5():
+    # Decision C6 on #33 (supersedes D3 on #26): AR6 ships with CCF, AR5 without.
+    assert dlca.get_parameters("AR6").carbon_cycle_feedback is True
+    assert dlca.get_parameters("AR5").carbon_cycle_feedback is False

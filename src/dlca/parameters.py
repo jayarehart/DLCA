@@ -35,6 +35,8 @@ _SCHEMA_VERSION = 1
 _INDIRECT_FORMS = ("multiplicative", "additive")
 _GASES = ("co2", "ch4", "n2o")
 _TUPLE_LENGTHS = {"co2_a": 4, "co2_tau": 3, "climate_q": 2, "climate_d": 2}
+_CCF_TUPLES = ("ccf_weights", "ccf_timescales")
+_CCF_FIELDS = ("ccf_gamma", "ccf_weights", "ccf_timescales", "molar_mass_c")
 
 
 @dataclass(frozen=True)
@@ -53,8 +55,11 @@ class ClimateParameters:
     Attributes:
         name: Set name, for example ``"AR6"``.
         description: One-line description of the set.
-        carbon_cycle_feedback: Whether non-CO2 metrics include a carbon-cycle
-            feedback. False for both shipped sets (issue #33).
+        carbon_cycle_feedback: Whether CH4 and N2O results include the
+            carbon-cycle feedback (CCF): the CO2 the land and ocean sinks release
+            because those gases warm the climate (Gasser et al. 2017). True for
+            AR6, False for AR5 (decision C6 on #33). Turn it off with
+            ``dataclasses.replace(params, carbon_cycle_feedback=False)``.
         co2_a: CO2 impulse-response fractions a0..a3 [1]; a0 is permanent.
         co2_tau: Time constants of the decaying pools a1..a3 [yr].
         co2_re: CO2 radiative efficiency [W m-2 ppb-1].
@@ -73,6 +78,14 @@ class ClimateParameters:
         atm_mass: Mass of the atmosphere [kg].
         ch4_fossil_co2_yield: CO2 formed per CH4 removed [mol mol-1], or None if
             the set has no confirmed value. Read it with ``fossil_ch4_co2_yield()``.
+        ccf_gamma: CCF intensity: carbon released by the sinks per year per K of
+            warming [kg C yr-1 K-1], or None if the set has no CCF (AR5).
+        ccf_weights: Weights of the three CCF response terms [1]; they sum to 1.
+            None if the set has no CCF.
+        ccf_timescales: Time constants of the three CCF response terms [yr].
+            None if the set has no CCF.
+        molar_mass_c: Molar mass of carbon [g mol-1], to turn the CCF carbon into
+            CO2. None if the set has no CCF.
         sources: The sources cited by the set's JSON file.
     """
 
@@ -101,6 +114,10 @@ class ClimateParameters:
     molar_mass_air: float
     atm_mass: float
     ch4_fossil_co2_yield: float | None
+    ccf_gamma: float | None
+    ccf_weights: tuple[float, float, float] | None
+    ccf_timescales: tuple[float, float, float] | None
+    molar_mass_c: float | None
     sources: tuple[Source, ...] = field(default=(), compare=True)
 
     def __post_init__(self) -> None:
@@ -111,6 +128,12 @@ class ClimateParameters:
             if len(value) != length:
                 raise ValueError(f"{name} needs {length} values, got {len(value)}")
             object.__setattr__(self, name, value)
+        for name in _CCF_TUPLES:
+            if getattr(self, name) is not None:
+                value = tuple(float(v) for v in getattr(self, name))
+                if len(value) != 3:
+                    raise ValueError(f"{name} needs 3 values, got {len(value)}")
+                object.__setattr__(self, name, value)
         object.__setattr__(
             self,
             "sources",
@@ -127,6 +150,32 @@ class ClimateParameters:
                 raise ValueError(f"{name} must be positive")
         if any(t <= 0 for t in self.co2_tau + self.climate_d):
             raise ValueError("co2_tau and climate_d must be positive")
+        self._check_ccf()
+
+    def _check_ccf(self) -> None:
+        """CCF values: all None, or all given and valid; required when CCF is on."""
+        values = {name: getattr(self, name) for name in _CCF_FIELDS}
+        given = [name for name, value in values.items() if value is not None]
+        if given and len(given) != len(values):
+            missing = sorted(set(values) - set(given))
+            raise ValueError(f"CCF values must be all given or all None; missing {missing}")
+        if not given:
+            if self.carbon_cycle_feedback:
+                raise ValueError(
+                    f"Parameter set {self.name!r} has no carbon-cycle feedback values "
+                    "(ccf_gamma, ccf_weights, ccf_timescales, molar_mass_c), so "
+                    "carbon_cycle_feedback cannot be True. AR5 has no CCF formulation "
+                    "in DLCA (decision C1 on #33)."
+                )
+            return
+        if not (math.isfinite(self.ccf_gamma) and self.ccf_gamma > 0):
+            raise ValueError("ccf_gamma must be positive")
+        if not math.isclose(sum(self.ccf_weights), 1.0, rel_tol=0, abs_tol=1e-9):
+            raise ValueError(f"ccf_weights must sum to 1, got {sum(self.ccf_weights)}")
+        if any(not t > 0 for t in self.ccf_timescales):
+            raise ValueError("ccf_timescales must be positive")
+        if not self.molar_mass_c > 0:
+            raise ValueError("molar_mass_c must be positive")
 
     def effective_radiative_efficiency(self, gas: str) -> float:
         """Radiative efficiency including indirect effects [W m-2 ppb-1].
@@ -222,6 +271,7 @@ def _from_document(doc: dict[str, Any]) -> ClimateParameters:
         raise ValueError(f"unsupported schema_version {doc.get('schema_version')!r}")
     co2, ch4, n2o = doc["co2"], doc["ch4"], doc["n2o"]
     climate, atmosphere = doc["climate_response"], doc["atmosphere"]
+    ccf = doc.get("carbon_cycle")  # absent for a set with no CCF (AR5)
     return ClimateParameters(
         name=doc["name"],
         description=doc["description"],
@@ -248,6 +298,10 @@ def _from_document(doc: dict[str, Any]) -> ClimateParameters:
         molar_mass_air=_value(atmosphere["molar_mass_air"]),
         atm_mass=_value(atmosphere["mass"]),
         ch4_fossil_co2_yield=_value(ch4["fossil_co2_yield"]),
+        ccf_gamma=_value(ccf["gamma"]) if ccf else None,
+        ccf_weights=_value(ccf["weights"]) if ccf else None,
+        ccf_timescales=_value(ccf["timescales"]) if ccf else None,
+        molar_mass_c=_value(ccf["molar_mass_c"]) if ccf else None,
         sources=tuple(Source(key=k, **v) for k, v in doc["sources"].items()),
     )
 
