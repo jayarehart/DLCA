@@ -36,6 +36,11 @@ as pure NumPy functions with cited AR5 and AR6 parameter sets.
 ### Changed
 
 - Fossil CH₄ is given as the `ch4_fossil` emissions key, not as a flag (#30).
+- `Burden`, `Forcing` and `Temperature` record `parameter_fingerprint`, also in
+  `to_dict()`. `forcing()` and `temperature()` raise `ValueError` for a burden
+  made with another parameter set, or with a variant of the same one. `Result`
+  refuses components of another set, and its schema version is now 2 (#37,
+  decision record 0009, Proposed).
 
 ### Fixed
 
