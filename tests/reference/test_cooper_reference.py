@@ -19,7 +19,7 @@ import pandas as pd
 import pytest
 
 from dlca import engine as DLCA
-from dlca.climate import agwp, burden, forcing, gwi
+from dlca.climate import agwp, burden, forcing, gtp, gwi, temperature
 from dlca.models import EmissionsFluxTotal
 from dlca.parameters import get_parameters
 
@@ -62,6 +62,9 @@ ENGINE_COLUMNS = {
     "IRF_over_AGWP_CO2": ("equiv_df", "LCA_dyn"),
     "GWP_static_CO2e": ("equiv_df", "LCA_static"),
     "GWP_sliding_CO2e": ("equiv_df", "GWP_sliding_CO2e"),
+    "GTP_static_CO2e": ("equiv_df", "GTP_static_CO2e"),
+    "temp_over_AGTP_CO2": ("equiv_df", "temp_over_AGTP_CO2"),
+    "GTP_sliding_CO2e": ("equiv_df", "GTP_sliding_CO2e"),
 }
 
 # (case, column) pairs where dlca.climate disagrees with the spreadsheet on purpose.
@@ -72,14 +75,14 @@ KNOWN_DIFFERENCES = {
         "oxidised CO2 out, so it is 28.456 at every year while its own LCA_dyn[100] is "
         "29.687. Measured: up to 4.3% higher than the spreadsheet (29.687 from year 100)."
     ),
+    ("ch4_pulse_fossil", "GTP_sliding_CO2e"): (
+        "Decision T2 on #29: gtp().sliding counts the CO2 formed from fossil CH4. The "
+        "spreadsheet's sliding GTP uses its pasted CH4 AGTP table, which leaves the "
+        "oxidised CO2 out, so it is 4.270 at every year while its own "
+        "temp_over_AGTP_CO2[100] is 5.676. Measured: up to 33% higher than the "
+        "spreadsheet (5.676 from year 100)."
+    ),
 }
-
-# Spreadsheet columns the engine has no output for (see test_metric_missing_from_engine).
-MISSING_FROM_ENGINE = [
-    "GTP_static_CO2e",
-    "temp_over_AGTP_CO2",
-    "GTP_sliding_CO2e",
-]
 
 
 @cache
@@ -121,19 +124,18 @@ def run_engine(case):
         index=results.CO2_mass_df.index,
     )
     engine.calc_AGWP(time_horizon=time_horizon)
-    engine.calc_AGTP(time_horizon=time_horizon)
     # Forcing, integrated forcing and the dynamic and sliding GWI come from
-    # dlca.climate.forcing() and gwi() (issue #28). calc_AGWP still runs because
-    # calc_AGTP reads the specific forcings it stores and LCA_static is still
-    # its output (#13, #29).
+    # dlca.climate.forcing() and gwi() (issue #28); temperature and the dynamic,
+    # sliding and static GTP from temperature() and gtp() (issue #29). calc_AGWP
+    # still runs because LCA_static is still its output (#30). calc_AGTP no
+    # longer runs.
     params = get_parameters("AR5")
+    emissions = {"co2": inputs["CO2_flux"], "ch4": inputs["CH4_flux"], "n2o": inputs["N2O_flux"]}
+    fossil = engine._inputdata.fossil_CH4
     f = forcing(b, params)
-    g = gwi(
-        {"co2": inputs["CO2_flux"], "ch4": inputs["CH4_flux"], "n2o": inputs["N2O_flux"]},
-        params,
-        horizon=time_horizon,
-        fossil_ch4=engine._inputdata.fossil_CH4,
-    )
+    g = gwi(emissions, params, horizon=time_horizon, fossil_ch4=fossil)
+    temp = temperature(b, params)
+    p = gtp(emissions, params, horizon=time_horizon, fossil_ch4=fossil)
     index = results.irf_df.index
     results.irf_df = pd.DataFrame(
         {
@@ -147,8 +149,20 @@ def run_engine(case):
         },
         index=index,
     )
+    results.temp_change_df = pd.DataFrame(
+        {
+            "CO2_temp": temp.co2,
+            "CH4_temp": temp.ch4,
+            "N2O_temp": temp.n2o,
+            "temp_change": temp.total,
+        },
+        index=index,
+    )
     results.equiv_df["LCA_dyn"] = g.dynamic
     results.equiv_df["GWP_sliding_CO2e"] = g.sliding
+    results.equiv_df["temp_over_AGTP_CO2"] = p.dynamic
+    results.equiv_df["GTP_sliding_CO2e"] = p.sliding
+    results.equiv_df["GTP_static_CO2e"] = p.static
     return results
 
 
@@ -255,26 +269,6 @@ def test_engine_matches_spreadsheet_where_nonzero(case, column):
         atol=0,
         err_msg=f"{case}: {column} (years {np.flatnonzero(keep)[[0, -1]]})",
     )
-
-
-@pytest.mark.xfail(
-    strict=True,
-    raises=KeyError,
-    reason=(
-        "Engine gap, not on the audit list: calc_AGTP builds AGTP_rev and AGTP_CO2 but "
-        "returns neither, so there is no sliding GTP, static GTP or temperature/AGTP_CO2 "
-        "output to compare (#29). GWP_sliding_CO2e now comes from gwi() (#28). "
-        "(The spreadsheet's AGTP_CO2, intro!E50, has the same p_1-for-p_3 slip as "
-        "the engine's.)"
-    ),
-)
-@pytest.mark.parametrize("column", MISSING_FROM_ENGINE)
-def test_metric_missing_from_engine(column):
-    results = run_engine("building_lifecycle")
-    _, expected, _ = load_case("building_lifecycle")
-    got = results.equiv_df[column].to_numpy(dtype=float)  # KeyError today
-    want = expected[column].to_numpy(dtype=float)
-    np.testing.assert_allclose(got, want, rtol=RTOL, atol=RTOL * np.max(np.abs(want)))
 
 
 @pytest.mark.xfail(
