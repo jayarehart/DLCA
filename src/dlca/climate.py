@@ -103,7 +103,17 @@ def _fingerprint_from(data: Mapping) -> str:
     """The ``parameter_fingerprint`` of a ``to_dict()`` output (for ``from_dict()``)."""
     if "parameter_fingerprint" not in data:
         raise ValueError("missing key(s) ['parameter_fingerprint']")
-    return str(data["parameter_fingerprint"])
+    value = data["parameter_fingerprint"]
+    if not isinstance(value, str):
+        raise ValueError(f"parameter_fingerprint must be a string, got {type(value).__name__}")
+    return value
+
+
+def _require_fingerprint_str(obj: object) -> None:
+    """``__post_init__`` check shared by ``Burden``, ``Forcing`` and ``Temperature``."""
+    value = obj.parameter_fingerprint  # type: ignore[attr-defined]
+    if not isinstance(value, str):
+        raise TypeError(f"parameter_fingerprint must be a string, got {type(value).__name__}")
 
 
 def _check_same_set(b: Burden, params: ClimateParameters, function: str) -> str:
@@ -146,6 +156,9 @@ class Burden:
     n2o: NDArray[np.float64]
     ch4_to_co2: NDArray[np.float64]
     parameter_fingerprint: str
+
+    def __post_init__(self) -> None:
+        _require_fingerprint_str(self)
 
     def to_dict(self) -> dict[str, list | str]:
         """JSON-serialisable dict of plain lists and the fingerprint (decision record 0005)."""
@@ -340,6 +353,9 @@ class Forcing:
     ch4_integrated: NDArray[np.float64]
     n2o_integrated: NDArray[np.float64]
     parameter_fingerprint: str
+
+    def __post_init__(self) -> None:
+        _require_fingerprint_str(self)
 
     @property
     def total(self) -> NDArray[np.float64]:
@@ -684,6 +700,9 @@ class Temperature:
     ch4: NDArray[np.float64]
     n2o: NDArray[np.float64]
     parameter_fingerprint: str
+
+    def __post_init__(self) -> None:
+        _require_fingerprint_str(self)
 
     @property
     def total(self) -> NDArray[np.float64]:
