@@ -12,6 +12,7 @@ import dataclasses
 from collections.abc import Mapping
 from dataclasses import dataclass
 from importlib import metadata
+from types import MappingProxyType
 from typing import Any
 
 import numpy as np
@@ -56,12 +57,17 @@ def _read_only(array: NDArray[np.float64]) -> NDArray[np.float64]:
 
 
 def _freeze(component: Any) -> Any:
-    """Make every array field of a component read-only (in place) and return it."""
+    """Make a component's array fields read-only and its mappings immutable (in place)."""
     for f in dataclasses.fields(component):
         value = getattr(component, f.name)
         if isinstance(value, np.ndarray):
             _read_only(value)
+        elif isinstance(value, Mapping) and not isinstance(value, MappingProxyType):
+            object.__setattr__(component, f.name, MappingProxyType(dict(value)))
     return component
+
+
+_COMPONENTS = ("burden", "forcing", "temperature", "gwi", "gtp", "static_gwp")
 
 
 @dataclass(frozen=True, eq=False)
@@ -117,6 +123,42 @@ class Result:
             )
         if self.carbon_cycle_feedback != self.parameters.carbon_cycle_feedback:
             raise ValueError("carbon_cycle_feedback does not match the stored parameter set")
+        self._check_consistent()
+        # Read-only arrays and immutable mappings however the result was built.
+        emissions = {
+            key: _read_only(np.array(self.emissions[key], dtype=float)) for key in EMISSION_KEYS
+        }
+        object.__setattr__(self, "emissions", MappingProxyType(emissions))
+        for name in _COMPONENTS:
+            _freeze(getattr(self, name))
+
+    def _check_consistent(self) -> None:
+        """Every series has one value per year, and every metric uses ``horizon``."""
+        if set(self.emissions) != set(EMISSION_KEYS):
+            raise ValueError(f"emissions must have exactly the keys {list(EMISSION_KEYS)}")
+        n = np.shape(self.emissions["co2"])
+        if len(n) != 1:
+            raise ValueError("emissions must be 1-D")
+        n = n[0]
+        pools = len(self.parameters.co2_a)
+        for name in _COMPONENTS:
+            component = getattr(self, name)
+            for f in dataclasses.fields(component):
+                value = getattr(component, f.name)
+                if not isinstance(value, np.ndarray):
+                    continue
+                want = (pools, n) if f.name == "co2_pools" else (n,)
+                if value.shape != want:
+                    raise ValueError(f"{name}.{f.name} has shape {value.shape}, expected {want}")
+        for key in EMISSION_KEYS:
+            if np.shape(self.emissions[key]) != (n,):
+                raise ValueError(f"emissions[{key!r}] must have {n} values")
+        for name in ("gwi", "gtp", "static_gwp"):
+            if getattr(self, name).horizon != self.horizon:
+                raise ValueError(
+                    f"{name}.horizon {getattr(self, name).horizon} differs from horizon "
+                    f"{self.horizon}"
+                )
 
     def to_dict(self) -> dict[str, Any]:
         """JSON-serialisable dict of plain lists, floats, strings and bools (record 0005).

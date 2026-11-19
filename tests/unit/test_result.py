@@ -185,3 +185,39 @@ def test_assess_rejects_the_old_fossil_flag():
     """No fossil_ch4 flag (decision A1): fossil CH4 is the ch4_fossil key (S4 on #30)."""
     with pytest.raises(TypeError):
         dlca.assess({"ch4": [1.0, 0.0]}, fossil_ch4=True)
+
+
+def test_result_mappings_cannot_be_changed():
+    r = dlca.assess(all_keys(), parameters="AR5")
+    with pytest.raises(TypeError):
+        r.emissions["co2"] = np.zeros(N)
+    with pytest.raises(TypeError):
+        r.static_gwp.gwp["ch4"] = 1.0
+
+
+def test_result_built_directly_is_frozen_too():
+    """Result's own __post_init__ freezes; assess() and from_dict() are not the only guard."""
+    r = dlca.assess(all_keys(), parameters="AR5")
+    raw = {key: value.copy() for key, value in all_keys().items()}
+    direct = dataclasses.replace(r, emissions=raw)
+    assert not direct.emissions["co2"].flags.writeable
+    assert raw["co2"].flags.writeable  # the caller's array is copied, not frozen
+
+
+@pytest.mark.parametrize(
+    ("edit", "match"),
+    [
+        (lambda d: d["gwi"].update(horizon=7.0), "gwi.horizon"),
+        (lambda d: d["gtp"].update(horizon=7.0), "gtp.horizon"),
+        (lambda d: d["static_gwp"].update(horizon=7.0), "static_gwp.horizon"),
+        (lambda d: d["emissions"].update(co2=[1.0, 2.0]), "shape|values"),
+        (lambda d: d["forcing"].update(ch4=d["forcing"]["ch4"][:-1]), "forcing.ch4"),
+        (lambda d: d["burden"].update(co2_pools=d["burden"]["co2_pools"][:3]), "co2_pools"),
+    ],
+)
+def test_from_dict_rejects_an_inconsistent_result(edit, match):
+    """Found by the fresh-session review: from_dict accepted mixed horizons and lengths."""
+    d = json.loads(json.dumps(dlca.assess(all_keys(), parameters="AR5").to_dict()))
+    edit(d)
+    with pytest.raises(ValueError, match=match):
+        dlca.Result.from_dict(d)
