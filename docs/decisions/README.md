@@ -48,3 +48,4 @@ link is fine.
 | [0007](0007-climate-parameter-files.md) | Climate parameter files, `ClimateParameters` and the selector | Accepted |
 | [0008](0008-assess-entry-point-and-result.md) | Public entry point `assess()` and the `Result` object | Proposed |
 | [0009](0009-parameter-fingerprint-guard.md) | Climate results record their parameter set; mixing sets raises | Proposed |
+| [0010](0010-carbon-cycle-feedback.md) | Carbon-cycle feedback for CH₄ and N₂O (AR6 on, exact) | Proposed |
