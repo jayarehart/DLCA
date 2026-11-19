@@ -173,5 +173,5 @@ def test_bad_input_raises(emissions):
 
 def test_to_dict_is_plain_lists():
     d = burden({"co2": [1.0, 0.0]}, get_parameters("AR6")).to_dict()
-    assert set(d) == {"co2", "co2_pools", "ch4", "n2o", "ch4_to_co2"}
+    assert set(d) == {"co2", "co2_pools", "ch4", "n2o", "ch4_to_co2", "parameter_fingerprint"}
     assert isinstance(d["co2_pools"][0][0], float)

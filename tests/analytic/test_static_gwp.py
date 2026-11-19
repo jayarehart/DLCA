@@ -156,7 +156,11 @@ def test_one_call_equals_two_calls():
 
     def flat(e):
         b, g, t, s = burden(e, p), gwi(e, p, horizon=50), gtp(e, p, horizon=50), static_gwp(e, p)
-        out = {f"burden.{k}": np.asarray(v) for k, v in b.to_dict().items()}
+        out = {
+            f"burden.{k}": np.asarray(v)
+            for k, v in b.to_dict().items()
+            if k != "parameter_fingerprint"  # a string, not a series (#37)
+        }
         out |= {f"gwi.{k}": getattr(g, k) for k in ("dynamic", "sliding", "static")}
         out |= {f"gtp.{k}": getattr(t, k) for k in ("dynamic", "sliding", "static")}
         out |= {f"static.{k}": getattr(s, k) for k in EMISSION_KEYS}
