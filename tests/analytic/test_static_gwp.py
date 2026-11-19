@@ -9,9 +9,9 @@ or from the parameter JSON files:
   GTP20 68, GTP100 6.
 
 Tolerance (decision D4 on #28): half a unit in the last printed digit. The AR6
-Table 7.15 values include a carbon-cycle feedback the AR6 set leaves out, so they
-are checked in #33 (decision S7 on #30); AR6 is covered here only by the
-closed-form-against-quadrature test.
+Table 7.15 values include a carbon-cycle feedback, which the AR6 set now has
+(#33); its checks are in test_ccf.py (decision S7 on #30). AR6 is covered here
+only by the closed-form-against-quadrature test.
 
 Faults these catch that no other test does: the oxidised CO2 left out of the
 fossil static factor, or added to non-fossil CH4; the whole-year route used for
@@ -117,8 +117,9 @@ def test_fossil_static_close_to_sliding(name):
     """Decision S2-A: for a fossil pulse, static (closed form) and sliding (whole
     years) differ only by the whole-year timing of the oxidised CO2: measured
     0.019% to 0.050% (AR6, H = 20); this bounds it at 0.1%. For non-fossil CH4
-    they agree to rounding."""
-    p = get_parameters(name)
+    they agree to rounding. Without CCF (C6 on #33): the CCF adds its own
+    whole-year timing, tested in test_ccf.py."""
+    p = dataclasses.replace(get_parameters(name), carbon_cycle_feedback=False)
     for horizon in (20, 100):
         fossil = gwi(pulse("ch4_fossil"), p, horizon=horizon)
         np.testing.assert_allclose(fossil.static[-1], fossil.sliding[-1], rtol=1e-3)

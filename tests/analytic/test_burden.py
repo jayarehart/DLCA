@@ -112,7 +112,9 @@ def test_co2_pools_match_closed_form(set_name):
 
 @pytest.mark.parametrize("set_name", ["AR5", "AR6"])
 def test_fossil_ch4_oxidised_co2_same_step(set_name):
-    b = burden({"ch4_fossil": pulse()}, get_parameters(set_name))
+    # Without CCF (C6 on #33), so the CO2 is the oxidised CO2 alone.
+    p = dataclasses.replace(get_parameters(set_name), carbon_cycle_feedback=False)
+    b = burden({"ch4_fossil": pulse()}, p)
     assert b.co2[0] == 0.0
     np.testing.assert_allclose(b.co2[[1, 2]], FOSSIL_CO2[set_name], rtol=RTOL, atol=0)
     # The CH4 itself is unchanged by oxidation to CO2.
@@ -136,8 +138,10 @@ def test_fossil_ch4_conserves_carbon_every_year(set_name, r):
 
 
 def test_biogenic_ch4_makes_no_co2():
-    b = burden({"ch4": pulse()}, get_parameters("AR6"))
-    assert not np.any(b.co2) and not np.any(b.ch4_to_co2)
+    # Without CCF (C6 on #33). With CCF the CO2 is the CCF CO2 alone (test_ccf.py).
+    p = dataclasses.replace(get_parameters("AR6"), carbon_cycle_feedback=False)
+    b = burden({"ch4": pulse()}, p)
+    assert not np.any(b.co2) and not np.any(b.ch4_to_co2) and not np.any(b.ccf_co2)
 
 
 def test_late_pulse_is_shifted_irf():
@@ -173,5 +177,13 @@ def test_bad_input_raises(emissions):
 
 def test_to_dict_is_plain_lists():
     d = burden({"co2": [1.0, 0.0]}, get_parameters("AR6")).to_dict()
-    assert set(d) == {"co2", "co2_pools", "ch4", "n2o", "ch4_to_co2", "parameter_fingerprint"}
+    assert set(d) == {
+        "co2",
+        "co2_pools",
+        "ch4",
+        "n2o",
+        "ch4_to_co2",
+        "ccf_co2",
+        "parameter_fingerprint",
+    }
     assert isinstance(d["co2_pools"][0][0], float)

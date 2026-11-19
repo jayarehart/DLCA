@@ -102,7 +102,8 @@ def test_integrated_forcing_of_pulse_equals_agwp(name, gas):
     Catches forcing() and agwp() using different specific forcings, lifetimes or
     pool weights, in AR6 too (the Cooper reference covers only AR5).
     """
-    p = get_parameters(name)
+    # Without CCF (C6 on #33): this checks the gas's own response; CCF has its own tests.
+    p = dataclasses.replace(get_parameters(name), carbon_cycle_feedback=False)
     t = np.arange(301)
     e = {gas: np.r_[1.0, np.zeros(300)]}
     got = getattr(forcing(burden(e, p), p), f"{gas}_integrated")

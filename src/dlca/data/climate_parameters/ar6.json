@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "name": "AR6",
-  "description": "IPCC AR6 WG1 Chapter 7 emission-metric parameters, as in the IPCC-WG1/Chapter-7 code that generated Table 7.SM.7. No carbon-cycle feedback for non-CO2 gases (decision D3 on #26; issue #33), so CH4 and N2O metrics are lower than the AR6 headline values.",
-  "carbon_cycle_feedback": false,
+  "description": "IPCC AR6 WG1 Chapter 7 emission-metric parameters, as in the IPCC-WG1/Chapter-7 code that generated Table 7.SM.7. CH4 and N2O include the carbon-cycle feedback of Gasser et al. (2017), computed exactly; the published CCF values carry the IPCC code's 0.1-yr step error, so DLCA gives CH4 GWP100 28.02 and N2O 274.4 against the printed 27.9 and 273 (decisions C1-C8 on #33; decision record 0010).",
+  "carbon_cycle_feedback": true,
   "sources": {
     "forster2021": {
       "citation": "Forster, P., et al., 2021: The Earth's Energy Budget, Climate Feedbacks, and Climate Sensitivity. In: Climate Change 2021: The Physical Science Basis. IPCC AR6 WG1, Chapter 7, pp. 923-1054. Supplementary Material (Smith et al. 2021) Tables 7.SM.5-7.SM.7. The SM has no DOI of its own (its citation reads 'Available from https://www.ipcc.ch/'), so SM values cite this chapter DOI plus the SM table.",
@@ -19,6 +19,10 @@
     "joos2013": {
       "citation": "Joos, F., et al., 2013: Carbon dioxide and climate impulse response functions for the computation of greenhouse gas metrics: a multi-model analysis. Atmos. Chem. Phys., 13, 2793-2825.",
       "doi": "10.5194/acp-13-2793-2013"
+    },
+    "gasser2017": {
+      "citation": "Gasser, T., Peters, G. P., Fuglestvedt, J. S., Collins, W. J., Shindell, D. T., and Ciais, P., 2017: Accounting for the climate-carbon feedback in emission metrics. Earth Syst. Dynam., 8, 235-253.",
+      "doi": "10.5194/esd-8-235-2017"
     }
   },
   "co2": {
@@ -169,6 +173,41 @@
       "where": "nb335 d (the SM two-layer model converts to 3.444, 285.06 yr; see q note)"
     }
   },
+  "carbon_cycle": {
+    "gamma": {
+      "value": 3015000000000.0,
+      "unit": "kg C yr-1 K-1",
+      "source": "gasser2017",
+      "where": "Table 1 (p. 241), 'Mean' row: gamma = 3.015 GtC yr-1 K-1; unit also in Section 2.3 (p. 238). ipcc_ch7_code src/ar6/metrics/gasser.py has 3.015*1E12 with the comment 'kgCO2/yr/K', but multiplies by M_CO2/M_C, so it uses kg C (checked on #33, 2026-11-19).",
+      "note": "Fitted for a +0.2 C step on a present-day background (Section 4, p. 243); Fig. 3 shows it varies with step size and background (+-1 SD rows: 4.264 and 1.964). Uncertainty is out of scope (#33)."
+    },
+    "weights": {
+      "value": [
+        0.6368,
+        0.3322,
+        0.031
+      ],
+      "unit": "1",
+      "source": "gasser2017",
+      "where": "Table 1 (p. 241), 'Mean' row: alpha_1..alpha_3 (the paper's weights, which sum to 1, Section 3.3). ipcc_ch7_code gasser.py `a`."
+    },
+    "timescales": {
+      "value": [
+        2.376,
+        30.14,
+        490.1
+      ],
+      "unit": "yr",
+      "source": "gasser2017",
+      "where": "Table 1 (p. 241), 'Mean' row: tau_1..tau_3. ipcc_ch7_code gasser.py `alpha` (the code swaps the paper's names)."
+    },
+    "molar_mass_c": {
+      "value": 12.0,
+      "unit": "g mol-1",
+      "source": "ipcc_ch7_code",
+      "where": "src/ar6/metrics/constants.py M_C (comment '12.01?'). Converts the CCF carbon to CO2 with molar_mass_co2 / molar_mass_c, as gasser.py does. 12.011 would lower the CCF part by 0.09% (decision C5 on #33)."
+    }
+  },
   "atmosphere": {
     "mass": {
       "value": 5.1352e+18,
@@ -243,6 +282,74 @@
       "unit": "K kg-1",
       "source": "ipcc_ch7_code",
       "where": "scripts/check_ar6_against_ipcc_code.py: ipcc_ch7_code n2o_analytical() at commit 2f948c8 with FaIR 1.6.2, notebook-335 inputs, H = 100, no carbon-cycle feedback. Not a published table. Stored at 6 significant figures (full value 8.631871665279023e-14)."
+    },
+    "agwp20_ch4_ccf": {
+      "value": 1.9778e-12,
+      "unit": "W m-2 yr kg-1",
+      "source": "ipcc_ch7_code",
+      "where": "scripts/check_ar6_against_ipcc_code.py: ipcc_ch7_code ch4_analytical() plus carbon_cycle_adjustment() at commit 2f948c8 with FaIR 1.6.2, notebook-335 inputs, H = 20, run at dt = 0.02 and 0.01 yr and Richardson-extrapolated to dt -> 0 (2 f(0.01) - f(0.02)); full value 1.9777972905456196e-12. Stored at 5 significant figures. Not a published table (decision C2 on #33).",
+      "note": "At the published dt = 0.1 yr the code gives 1.9760779442146506e-12; the difference is the code's step-size error in the CCF term."
+    },
+    "agwp100_ch4_ccf": {
+      "value": 2.5066e-12,
+      "unit": "W m-2 yr kg-1",
+      "source": "ipcc_ch7_code",
+      "where": "scripts/check_ar6_against_ipcc_code.py: ipcc_ch7_code ch4_analytical() plus carbon_cycle_adjustment() at commit 2f948c8 with FaIR 1.6.2, notebook-335 inputs, H = 100, run at dt = 0.02 and 0.01 yr and Richardson-extrapolated to dt -> 0 (2 f(0.01) - f(0.02)); full value 2.5066458384669152e-12. Stored at 5 significant figures. Not a published table (decision C2 on #33).",
+      "note": "At the published dt = 0.1 yr the code gives 2.492428008209284e-12; the difference is the code's step-size error in the CCF term."
+    },
+    "agtp20_ch4_ccf": {
+      "value": 2.6115e-14,
+      "unit": "K kg-1",
+      "source": "ipcc_ch7_code",
+      "where": "scripts/check_ar6_against_ipcc_code.py: ipcc_ch7_code ch4_analytical() plus carbon_cycle_adjustment() at commit 2f948c8 with FaIR 1.6.2, notebook-335 inputs, H = 20, run at dt = 0.02 and 0.01 yr and Richardson-extrapolated to dt -> 0 (2 f(0.01) - f(0.02)); full value 2.6115242059336424e-14. Stored at 5 significant figures. Not a published table (decision C2 on #33).",
+      "note": "At the published dt = 0.1 yr the code gives 2.6053878873650953e-14; the difference is the code's step-size error in the CCF term."
+    },
+    "agtp100_ch4_ccf": {
+      "value": 2.2004e-15,
+      "unit": "K kg-1",
+      "source": "ipcc_ch7_code",
+      "where": "scripts/check_ar6_against_ipcc_code.py: ipcc_ch7_code ch4_analytical() plus carbon_cycle_adjustment() at commit 2f948c8 with FaIR 1.6.2, notebook-335 inputs, H = 100, run at dt = 0.02 and 0.01 yr and Richardson-extrapolated to dt -> 0 (2 f(0.01) - f(0.02)); full value 2.20040424979115e-15. Stored at 5 significant figures. Not a published table (decision C2 on #33).",
+      "note": "At the published dt = 0.1 yr the code gives 2.1217758908584695e-15; the difference is the code's step-size error in the CCF term."
+    },
+    "agwp20_n2o_ccf": {
+      "value": 6.6546e-12,
+      "unit": "W m-2 yr kg-1",
+      "source": "ipcc_ch7_code",
+      "where": "scripts/check_ar6_against_ipcc_code.py: ipcc_ch7_code n2o_analytical() plus carbon_cycle_adjustment() at commit 2f948c8 with FaIR 1.6.2, notebook-335 inputs, H = 20, run at dt = 0.02 and 0.01 yr and Richardson-extrapolated to dt -> 0 (2 f(0.01) - f(0.02)); full value 6.654584117579786e-12. Stored at 5 significant figures. Not a published table (decision C2 on #33).",
+      "note": "At the published dt = 0.1 yr the code gives 6.650013142673688e-12; the difference is the code's step-size error in the CCF term."
+    },
+    "agwp100_n2o_ccf": {
+      "value": 2.4549e-11,
+      "unit": "W m-2 yr kg-1",
+      "source": "ipcc_ch7_code",
+      "where": "scripts/check_ar6_against_ipcc_code.py: ipcc_ch7_code n2o_analytical() plus carbon_cycle_adjustment() at commit 2f948c8 with FaIR 1.6.2, notebook-335 inputs, H = 100, run at dt = 0.02 and 0.01 yr and Richardson-extrapolated to dt -> 0 (2 f(0.01) - f(0.02)); full value 2.4548915353676948e-11. Stored at 5 significant figures. Not a published table (decision C2 on #33).",
+      "note": "At the published dt = 0.1 yr the code gives 2.4455347405633777e-11; the difference is the code's step-size error in the CCF term."
+    },
+    "agtp20_n2o_ccf": {
+      "value": 1.4731e-13,
+      "unit": "K kg-1",
+      "source": "ipcc_ch7_code",
+      "where": "scripts/check_ar6_against_ipcc_code.py: ipcc_ch7_code n2o_analytical() plus carbon_cycle_adjustment() at commit 2f948c8 with FaIR 1.6.2, notebook-335 inputs, H = 20, run at dt = 0.02 and 0.01 yr and Richardson-extrapolated to dt -> 0 (2 f(0.01) - f(0.02)); full value 1.473064859801468e-13. Stored at 5 significant figures. Not a published table (decision C2 on #33).",
+      "note": "At the published dt = 0.1 yr the code gives 1.4712415922072103e-13; the difference is the code's step-size error in the CCF term."
+    },
+    "agtp100_n2o_ccf": {
+      "value": 9.2693e-14,
+      "unit": "K kg-1",
+      "source": "ipcc_ch7_code",
+      "where": "scripts/check_ar6_against_ipcc_code.py: ipcc_ch7_code n2o_analytical() plus carbon_cycle_adjustment() at commit 2f948c8 with FaIR 1.6.2, notebook-335 inputs, H = 100, run at dt = 0.02 and 0.01 yr and Richardson-extrapolated to dt -> 0 (2 f(0.01) - f(0.02)); full value 9.2693293657951e-14. Stored at 5 significant figures. Not a published table (decision C2 on #33).",
+      "note": "At the published dt = 0.1 yr the code gives 9.192686261879182e-14; the difference is the code's step-size error in the CCF term."
+    },
+    "gwp100_ch4_ccf_published": {
+      "value": 27.9,
+      "unit": "1",
+      "source": "forster2021",
+      "where": "Table 7.SM.7 (SM p. 16), GWP-100 with carbon-cycle feedback. Reproduced by ipcc_ch7_code at dt = 0.1 yr (27.8592); DLCA's exact value differs (decision C2 on #33), so tests mark it xfail(strict=True)."
+    },
+    "gwp100_n2o_ccf_published": {
+      "value": 273,
+      "unit": "1",
+      "source": "forster2021",
+      "where": "Table 7.SM.7 (SM p. 16), GWP-100 with carbon-cycle feedback. Reproduced by ipcc_ch7_code at dt = 0.1 yr (273.3506); DLCA's exact value differs (decision C2 on #33), so tests mark it xfail(strict=True)."
     }
   }
 }

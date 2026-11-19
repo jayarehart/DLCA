@@ -104,7 +104,8 @@ def test_ar6_agtp100_co2_matches_table_7sm7():
 @pytest.mark.parametrize(("gas", "code_value"), [("ch4", "1.93488e-15"), ("n2o", "8.63187e-14")])
 def test_ar6_agtp100_matches_ipcc_code(gas, code_value):
     """Not a published table: IPCC Chapter 7 code values, no carbon-cycle feedback."""
-    assert_matches_table(agtp(gas, 100, get_parameters("AR6")), code_value)
+    p = dataclasses.replace(get_parameters("AR6"), carbon_cycle_feedback=False)
+    assert_matches_table(agtp(gas, 100, p), code_value)
 
 
 @pytest.mark.parametrize("name", ["AR5", "AR6"])
@@ -117,7 +118,8 @@ def test_temperature_of_pulse_equals_agtp(name, gas):
     the p1 -> p3 slip, a wrong pool weight or lifetime in either, and an
     off-by-one in temperature()'s convolution, in AR6 too.
     """
-    p = get_parameters(name)
+    # Without CCF (C6 on #33): this checks the gas's own response; CCF has its own tests.
+    p = dataclasses.replace(get_parameters(name), carbon_cycle_feedback=False)
     t = np.arange(501)
     got = getattr(temperature(burden(pulse(gas, 501), p), p), gas)
     want = agtp(gas, t, p)

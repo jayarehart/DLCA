@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "name": "AR5",
-  "description": "IPCC AR5 WG1 Chapter 8 emission-metric parameters, as used by the Cooper et al. (2020) spreadsheet and DLCAInputData. No carbon-cycle feedback for non-CO2 gases (issue #33).",
+  "description": "IPCC AR5 WG1 Chapter 8 emission-metric parameters, as used by the Cooper et al. (2020) spreadsheet and DLCAInputData. No carbon-cycle feedback (CCF) for non-CO2 gases: AR5's Collins et al. (2013) CCF method is not implemented, and carbon_cycle_feedback=True is refused (decision C1 on #33).",
   "carbon_cycle_feedback": false,
   "sources": {
     "myhre2013": {

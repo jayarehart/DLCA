@@ -64,12 +64,13 @@ def test_result_records_its_parameter_set():
         r = dlca.assess(all_keys(), parameters=name)
         assert r.parameter_set == name
         assert r.parameter_fingerprint == p.fingerprint()
-        assert r.carbon_cycle_feedback is False
+        ccf = {"AR5": False, "AR6": True}[name]  # decision C6 on #33
+        assert r.carbon_cycle_feedback is ccf
         assert r.parameters == p
         d = r.to_dict()["parameters"]
         assert d["name"] == name
         assert d["fingerprint"] == p.fingerprint()
-        assert d["carbon_cycle_feedback"] is False
+        assert d["carbon_cycle_feedback"] is ccf
         assert d["values"] == p.to_dict()
 
 
@@ -96,7 +97,8 @@ def test_from_dict_rejects_edited_parameter_values():
     [
         ("schema", "something.else", "not a DLCA result"),
         ("schema_version", 1, "schema_version"),  # v1 predates the fingerprints (#37)
-        ("schema_version", 3, "schema_version"),
+        ("schema_version", 2, "schema_version"),  # v2 predates ccf_co2 and the CCF values (#33)
+        ("schema_version", 4, "schema_version"),
     ],
 )
 def test_from_dict_rejects_other_schemas(field, value, match):
