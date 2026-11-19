@@ -87,8 +87,8 @@ def test_ar6_pulse_through_assess_matches_table_7sm7(parameters):
     """AR6 by name, case-insensitive, and as the default (record 0002)."""
     kwargs = {} if parameters is None else {"parameters": parameters}
     r = dlca.assess(pulse("co2"), horizon=100, **kwargs)
-    assert r.parameter_set == "AR6"
     assert_matches_table(r.forcing.total_integrated[100], "8.95e-14")
     assert_matches_table(r.temperature.total[100], "3.95e-16")
     assert_matches_table(r.gwi.agwp_co2, "8.95e-14")
     assert_matches_table(r.gtp.agtp_co2, "3.95e-16")
+    assert r.parameter_set == "AR6"
