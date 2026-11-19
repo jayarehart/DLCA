@@ -92,7 +92,7 @@ def test_ar5_fossil_ch4_gtp_matches_table_8a1(horizon, printed):
     only just outside the rounding, so H = 100 is the real check.
     """
     p = get_parameters("AR5")
-    result = gtp(pulse("ch4"), p, horizon=horizon, fossil_ch4=True)
+    result = gtp(pulse("ch4_fossil"), p, horizon=horizon)
     assert_matches_table(result.dynamic[horizon], printed)
     assert_matches_table(result.sliding[horizon], printed)
 
@@ -164,20 +164,10 @@ def test_gtp_sliding_equals_dynamic_after_horizon():
     """
     p = get_parameters("AR5")
     rng = np.random.default_rng(29)
-    e = {gas: rng.uniform(0.0, 1.0, 200) for gas in ("co2", "ch4", "n2o")}
-    for fossil in (False, True):
-        result = gtp(e, p, horizon=100, fossil_ch4=fossil)
-        np.testing.assert_allclose(result.sliding[100:], result.dynamic[100], rtol=1e-12)
-
-
-def test_gtp_static_ignores_fossil_flag():
-    """Decision T3 on #29: static GTP counts CH4 only, as the spreadsheet does."""
-    p = get_parameters("AR5")
-    bio = gtp(pulse("ch4"), p, fossil_ch4=False)
-    fos = gtp(pulse("ch4"), p, fossil_ch4=True)
-    np.testing.assert_array_equal(bio.static, fos.static)
-    # Positive control: the same comparison separates them on dynamic.
-    assert fos.dynamic[100] > bio.dynamic[100] * 1.2
+    # Fossil and non-fossil CH4 in one call (the ch4_fossil key, #30).
+    e = {key: rng.uniform(0.0, 1.0, 200) for key in ("co2", "ch4", "ch4_fossil", "n2o")}
+    result = gtp(e, p, horizon=100)
+    np.testing.assert_allclose(result.sliding[100:], result.dynamic[100], rtol=1e-12)
 
 
 def test_agtp_shape_and_scalar():
@@ -220,10 +210,10 @@ def test_inputs_not_mutated():
     """temperature(), agtp() and gtp() accept a frozen ClimateParameters and read-only arrays."""
     p = get_parameters("AR5")
     before = p.fingerprint()
-    e = {gas: np.linspace(1.0, 2.0, 50) for gas in ("co2", "ch4", "n2o")}
+    e = {key: np.linspace(1.0, 2.0, 50) for key in ("co2", "ch4", "ch4_fossil", "n2o")}
     for arr in e.values():
         arr.flags.writeable = False
-    b = burden(e, p, fossil_ch4=True)
+    b = burden(e, p)
     for name in ("co2", "co2_pools", "ch4", "n2o", "ch4_to_co2"):
         getattr(b, name).flags.writeable = False
     copies = {name: getattr(b, name).copy() for name in ("co2", "co2_pools", "ch4", "n2o")}
@@ -232,7 +222,7 @@ def test_inputs_not_mutated():
 
     temperature(b, p)
     agtp("co2", h, p)
-    gtp(e, p, fossil_ch4=True)
+    gtp(e, p)
 
     assert p.fingerprint() == before
     for name, copy in copies.items():

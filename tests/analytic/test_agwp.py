@@ -79,8 +79,8 @@ def test_ar5_fossil_ch4_gwp100_matches_table_8a1():
     sliding value (28.46) leaves it out and would fail this.
     """
     p = get_parameters("AR5")
-    e = {"ch4": np.r_[1.0, np.zeros(200)]}
-    result = gwi(e, p, horizon=100, fossil_ch4=True)
+    e = {"ch4_fossil": np.r_[1.0, np.zeros(200)]}
+    result = gwi(e, p, horizon=100)
     assert_matches_table(result.dynamic[100], "30")
     assert_matches_table(result.sliding[100], "30")
 
@@ -150,10 +150,10 @@ def test_inputs_not_mutated():
     with pytest.raises(dataclasses.FrozenInstanceError):
         p.co2_re = 0.0  # type: ignore[misc]
 
-    e = {gas: np.linspace(1.0, 2.0, 50) for gas in ("co2", "ch4", "n2o")}
+    e = {key: np.linspace(1.0, 2.0, 50) for key in ("co2", "ch4", "ch4_fossil", "n2o")}
     for arr in e.values():
         arr.flags.writeable = False
-    b = burden(e, p, fossil_ch4=True)
+    b = burden(e, p)
     for name in ("co2", "co2_pools", "ch4", "n2o", "ch4_to_co2"):
         getattr(b, name).flags.writeable = False
     copies = {name: getattr(b, name).copy() for name in ("co2", "co2_pools", "ch4", "n2o")}
@@ -162,7 +162,7 @@ def test_inputs_not_mutated():
 
     forcing(b, p)
     agwp("co2", h, p)
-    gwi(e, p, fossil_ch4=True)
+    gwi(e, p)
 
     assert p.fingerprint() == before
     for name, copy in copies.items():

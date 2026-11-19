@@ -89,11 +89,19 @@ def two_profiles(draw) -> tuple[dict[str, np.ndarray], dict[str, np.ndarray]]:
     return draw(profile(n)), draw(profile(n))
 
 
+def as_fossil(e, fossil_ch4: bool):
+    """The profile with its CH4 under the ``ch4_fossil`` key if fossil_ch4 (#30, S4)."""
+    if not fossil_ch4:
+        return e
+    return {("ch4_fossil" if gas == "ch4" else gas): v for gas, v in e.items()}
+
+
 def outputs(e, params, *, fossil_ch4: bool, horizon: float) -> dict[str, np.ndarray]:
     """Every array that burden(), forcing() and gwi() return, by name."""
-    b = burden(e, params, fossil_ch4=fossil_ch4)
+    e = as_fossil(e, fossil_ch4)
+    b = burden(e, params)
     f = forcing(b, params)
-    g = gwi(e, params, horizon=horizon, fossil_ch4=fossil_ch4)
+    g = gwi(e, params, horizon=horizon)
     out = {f"burden.{k}": v for k, v in b.to_dict().items()}
     out |= {f"forcing.{k}": v for k, v in f.to_dict().items()}
     out |= {"gwi.dynamic": g.dynamic, "gwi.sliding": g.sliding}
@@ -194,7 +202,7 @@ def test_time_shift_sliding_gwi(set_name, fossil_ch4, es, h):
     p = PARAMS[set_name]
 
     def absolute_sliding(x, horizon):
-        g = gwi(x, p, horizon=horizon, fossil_ch4=fossil_ch4)
+        g = gwi(as_fossil(x, fossil_ch4), p, horizon=horizon)
         return {"gwi.sliding": g.sliding * g.agwp_co2}
 
     late = absolute_sliding(delay(e, s), h)

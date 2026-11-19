@@ -75,6 +75,18 @@ KNOWN_DIFFERENCES = {
         "oxidised CO2 out, so it is 28.456 at every year while its own LCA_dyn[100] is "
         "29.687. Measured: up to 4.3% higher than the spreadsheet (29.687 from year 100)."
     ),
+    ("ch4_pulse_fossil", "GWP_static_CO2e"): (
+        "Decision S3 on #30: static GWP counts the CO2 formed from fossil CH4, by "
+        "the closed form of AR5 Table 8.A.1 (GWP100 = 30). The spreadsheet's static "
+        "GWP uses the CH4-only GWP100 (28.456). Measured: 29.693, 4.3% higher than "
+        "the spreadsheet at every year."
+    ),
+    ("ch4_pulse_fossil", "GTP_static_CO2e"): (
+        "Decision S3 on #30 (replacing T3 on #29): static GTP counts the CO2 formed "
+        "from fossil CH4, by the closed form of AR5 Table 8.A.1 (GTP100 = 6). The "
+        "spreadsheet's static GTP uses the CH4-only GTP100 (4.270). Measured: 5.674, "
+        "33% higher than the spreadsheet at every year."
+    ),
     ("ch4_pulse_fossil", "GTP_sliding_CO2e"): (
         "Decision T2 on #29: gtp().sliding counts the CO2 formed from fossil CH4. The "
         "spreadsheet's sliding GTP uses its pasted CH4 AGTP table, which leaves the "
@@ -110,11 +122,10 @@ def run_engine(case):
     # The atmospheric masses come from dlca.climate.burden() (issue #27), which
     # fixes calc_decay's fossil CH4 ordering bug. The old engine's forcing and
     # temperature steps (replaced in #28, #29) then read these masses.
-    b = burden(
-        {"co2": inputs["CO2_flux"], "ch4": inputs["CH4_flux"], "n2o": inputs["N2O_flux"]},
-        get_parameters("AR5"),
-        fossil_ch4=engine._inputdata.fossil_CH4,
-    )
+    # The fossil_CH4 setting puts the case's CH4 under the ch4_fossil key (#30, S4).
+    ch4_key = "ch4_fossil" if engine._inputdata.fossil_CH4 else "ch4"
+    emissions = {"co2": inputs["CO2_flux"], ch4_key: inputs["CH4_flux"], "n2o": inputs["N2O_flux"]}
+    b = burden(emissions, get_parameters("AR5"))
     results = engine.Results
     results.mass_in_atm_df = pd.DataFrame(
         {"CO2": b.co2, "CH4": b.ch4, "N2O": b.n2o}, index=results.mass_in_atm_df.index
@@ -124,18 +135,16 @@ def run_engine(case):
         index=results.CO2_mass_df.index,
     )
     engine.calc_AGWP(time_horizon=time_horizon)
-    # Forcing, integrated forcing and the dynamic and sliding GWI come from
-    # dlca.climate.forcing() and gwi() (issue #28); temperature and the dynamic,
-    # sliding and static GTP from temperature() and gtp() (issue #29). calc_AGWP
-    # still runs because LCA_static is still its output (#30). calc_AGTP no
-    # longer runs.
+    # Forcing, integrated forcing and the dynamic, sliding and static GWI come from
+    # dlca.climate.forcing() and gwi() (issues #28, #30); temperature and the
+    # dynamic, sliding and static GTP from temperature() and gtp() (#29, #30).
+    # calc_AGWP still runs only because it builds the result tables overwritten
+    # below; none of its values are checked. calc_AGTP no longer runs.
     params = get_parameters("AR5")
-    emissions = {"co2": inputs["CO2_flux"], "ch4": inputs["CH4_flux"], "n2o": inputs["N2O_flux"]}
-    fossil = engine._inputdata.fossil_CH4
     f = forcing(b, params)
-    g = gwi(emissions, params, horizon=time_horizon, fossil_ch4=fossil)
+    g = gwi(emissions, params, horizon=time_horizon)
     temp = temperature(b, params)
-    p = gtp(emissions, params, horizon=time_horizon, fossil_ch4=fossil)
+    p = gtp(emissions, params, horizon=time_horizon)
     index = results.irf_df.index
     results.irf_df = pd.DataFrame(
         {
@@ -159,6 +168,7 @@ def run_engine(case):
         index=index,
     )
     results.equiv_df["LCA_dyn"] = g.dynamic
+    results.equiv_df["LCA_static"] = g.static
     results.equiv_df["GWP_sliding_CO2e"] = g.sliding
     results.equiv_df["temp_over_AGTP_CO2"] = p.dynamic
     results.equiv_df["GTP_sliding_CO2e"] = p.sliding

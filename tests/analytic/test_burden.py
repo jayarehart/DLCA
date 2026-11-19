@@ -112,7 +112,7 @@ def test_co2_pools_match_closed_form(set_name):
 
 @pytest.mark.parametrize("set_name", ["AR5", "AR6"])
 def test_fossil_ch4_oxidised_co2_same_step(set_name):
-    b = burden({"ch4": pulse()}, get_parameters(set_name), fossil_ch4=True)
+    b = burden({"ch4_fossil": pulse()}, get_parameters(set_name))
     assert b.co2[0] == 0.0
     np.testing.assert_allclose(b.co2[[1, 2]], FOSSIL_CO2[set_name], rtol=RTOL, atol=0)
     # The CH4 itself is unchanged by oxidation to CO2.
@@ -129,7 +129,7 @@ def test_fossil_ch4_conserves_carbon_every_year(set_name, r):
     lifetime or yield fault after year 2 that the year-1/2 check would miss.
     """
     tau = {"AR5": 12.4, "AR6": 11.8}[set_name]
-    b = burden({"ch4": pulse()}, get_parameters(set_name), fossil_ch4=True)
+    b = burden({"ch4_fossil": pulse()}, get_parameters(set_name))
     t = np.arange(N)
     np.testing.assert_allclose(np.cumsum(b.ch4_to_co2), r * (1 - np.exp(-t / tau)), rtol=1e-12)
     np.testing.assert_allclose(b.ch4_to_co2.sum(), r * (1 - np.exp(-500 / tau)), rtol=1e-12)
@@ -149,9 +149,9 @@ def test_late_pulse_is_shifted_irf():
 
 def test_fossil_ch4_needs_a_yield():
     params = dataclasses.replace(get_parameters("AR6"), ch4_fossil_co2_yield=None)
-    burden({"ch4": pulse()}, params)  # fine without fossil_ch4
+    burden({"ch4": pulse()}, params)  # fine without fossil CH4
     with pytest.raises(ValueError, match="fossil CH4"):
-        burden({"ch4": pulse()}, params, fossil_ch4=True)
+        burden({"ch4_fossil": pulse()}, params)
 
 
 @pytest.mark.parametrize(
