@@ -19,7 +19,7 @@ import pandas as pd
 import pytest
 
 from dlca import engine as DLCA
-from dlca.climate import burden
+from dlca.climate import agwp, burden, forcing, gwi
 from dlca.models import EmissionsFluxTotal
 from dlca.parameters import get_parameters
 
@@ -61,13 +61,23 @@ ENGINE_COLUMNS = {
     "N2O_net": ("cum_net_emissions", "N2O_net"),
     "IRF_over_AGWP_CO2": ("equiv_df", "LCA_dyn"),
     "GWP_static_CO2e": ("equiv_df", "LCA_static"),
+    "GWP_sliding_CO2e": ("equiv_df", "GWP_sliding_CO2e"),
+}
+
+# (case, column) pairs where dlca.climate disagrees with the spreadsheet on purpose.
+KNOWN_DIFFERENCES = {
+    ("ch4_pulse_fossil", "GWP_sliding_CO2e"): (
+        "Decision D2 on #28: gwi().sliding counts the CO2 formed from fossil CH4. The "
+        "spreadsheet's sliding GWP uses its pasted CH4 AGWP table, which leaves the "
+        "oxidised CO2 out, so it is 28.456 at every year while its own LCA_dyn[100] is "
+        "29.687. Measured: up to 4.3% higher than the spreadsheet (29.687 from year 100)."
+    ),
 }
 
 # Spreadsheet columns the engine has no output for (see test_metric_missing_from_engine).
 MISSING_FROM_ENGINE = [
     "GTP_static_CO2e",
     "temp_over_AGTP_CO2",
-    "GWP_sliding_CO2e",
     "GTP_sliding_CO2e",
 ]
 
@@ -112,13 +122,42 @@ def run_engine(case):
     )
     engine.calc_AGWP(time_horizon=time_horizon)
     engine.calc_AGTP(time_horizon=time_horizon)
-    return engine.Results
+    # Forcing, integrated forcing and the dynamic and sliding GWI come from
+    # dlca.climate.forcing() and gwi() (issue #28). calc_AGWP still runs because
+    # calc_AGTP reads the specific forcings it stores and LCA_static is still
+    # its output (#13, #29).
+    params = get_parameters("AR5")
+    f = forcing(b, params)
+    g = gwi(
+        {"co2": inputs["CO2_flux"], "ch4": inputs["CH4_flux"], "n2o": inputs["N2O_flux"]},
+        params,
+        horizon=time_horizon,
+        fossil_ch4=engine._inputdata.fossil_CH4,
+    )
+    index = results.irf_df.index
+    results.irf_df = pd.DataFrame(
+        {
+            "CO2_radfor": f.co2,
+            "CH4_radfor": f.ch4,
+            "N2O_radfor": f.n2o,
+            "CO2_IRF": f.co2_integrated,
+            "CH4_IRF": f.ch4_integrated,
+            "N2O_IRF": f.n2o_integrated,
+            "IRF_all": f.total_integrated,
+        },
+        index=index,
+    )
+    results.equiv_df["LCA_dyn"] = g.dynamic
+    results.equiv_df["GWP_sliding_CO2e"] = g.sliding
+    return results
 
 
 def _params():
     for case in CASES:
         for col in ENGINE_COLUMNS:
-            yield pytest.param(case, col, id=f"{case}-{col}")
+            reason = KNOWN_DIFFERENCES.get((case, col))
+            marks = [pytest.mark.xfail(strict=True, raises=AssertionError, reason=reason)]
+            yield pytest.param(case, col, id=f"{case}-{col}", marks=marks if reason else [])
 
 
 def test_cases_present():
@@ -165,6 +204,25 @@ def test_reference_uses_corrected_ch4_tables():
     np.testing.assert_allclose(ch4["GTP_sliding_CO2e"][0] / gtp100, 1.0, rtol=RTOL)
 
 
+def test_ch4_agwp_table_every_year():
+    """Every year 0-500 of the corrected CH4 AGWP table against closed-form agwp().
+
+    The pasted table (equivalency_metrics!O7:O507) is not committed.
+    generate_cases.py checks that, once corrected, it equals the CH4_IRF of
+    ch4_pulse_biogenic to 1e-12 at every year (the IRF of a 1 kg pulse is, by
+    definition, AGWP(t)); this compares that column with agwp("ch4", t) at every
+    year, not one row (PR #25 review point; decision D5 on #28). With the
+    uncorrected 16.00 g/mol table every year would be off by 0.31%.
+    """
+    _, ch4, _ = load_case("ch4_pulse_biogenic")
+    years = ch4["year"].to_numpy()
+    want = ch4["CH4_IRF"].to_numpy(dtype=float)
+    got = agwp("ch4", years, get_parameters("AR5"))
+    assert want[0] == 0.0 and got[0] == 0.0
+    np.testing.assert_allclose(got[1:], want[1:], rtol=RTOL, atol=0)
+    assert len(years) == 501 and years[-1] == 500
+
+
 @pytest.mark.parametrize(("case", "column"), list(_params()))
 def test_engine_matches_spreadsheet(case, column):
     _, expected, _ = load_case(case)
@@ -203,10 +261,11 @@ def test_engine_matches_spreadsheet_where_nonzero(case, column):
     strict=True,
     raises=KeyError,
     reason=(
-        "Engine gap, not on the audit list: calc_AGWP/calc_AGTP build AGWP_rev/AGTP_rev "
-        "and AGTP_CO2 but return none of them, so there is no sliding GWP/GTP, static "
-        "GTP or temperature/AGTP_CO2 output to compare. (The spreadsheet's AGTP_CO2, "
-        "intro!E50, has the same p_1-for-p_3 slip as the engine's.)"
+        "Engine gap, not on the audit list: calc_AGTP builds AGTP_rev and AGTP_CO2 but "
+        "returns neither, so there is no sliding GTP, static GTP or temperature/AGTP_CO2 "
+        "output to compare (#29). GWP_sliding_CO2e now comes from gwi() (#28). "
+        "(The spreadsheet's AGTP_CO2, intro!E50, has the same p_1-for-p_3 slip as "
+        "the engine's.)"
     ),
 )
 @pytest.mark.parametrize("column", MISSING_FROM_ENGINE)

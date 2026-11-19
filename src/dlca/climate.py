@@ -13,6 +13,15 @@ pool) the mass in year k is
 so a 1 kg pulse at year 0 gives exactly exp(-t/tau) at whole years t. This is
 computed as a convolution of the emissions with that kernel, with no Python loop
 over years. Decision on issue #27 (2026-11-18).
+
+Forcing and GWI (issue #28, decisions D1-D5, 2026-11-18). The forcing in year t
+is the specific forcing times the burden at the start of year t, just after that
+year's pulse. Between whole years each pool decays as a continuous exponential,
+so the forcing integrated over year j -> j+1 is exact:
+
+    A * sum_p m_p[j] * g_p,  g_p = 1 (permanent pool), tau_p (1 - exp(-1/tau_p)).
+
+For a pulse this equals the closed-form ``agwp()`` at whole years.
 """
 
 from __future__ import annotations
@@ -25,7 +34,18 @@ from numpy.typing import ArrayLike, NDArray
 
 from dlca.parameters import ClimateParameters
 
-__all__ = ["CO2_PER_CH4_MASS_RATIO", "GASES", "Burden", "burden"]
+__all__ = [
+    "CO2_PER_CH4_MASS_RATIO",
+    "GASES",
+    "GWI",
+    "Burden",
+    "Forcing",
+    "agwp",
+    "burden",
+    "forcing",
+    "gwi",
+    "specific_forcing",
+]
 
 GASES = ("co2", "ch4", "n2o")
 
@@ -152,4 +172,210 @@ def burden(
         ch4=ch4,
         n2o=n2o,
         ch4_to_co2=ch4_to_co2,
+    )
+
+
+def _molar_mass(gas: str, params: ClimateParameters) -> float:
+    return {
+        "co2": params.molar_mass_co2,
+        "ch4": params.molar_mass_ch4,
+        "n2o": params.molar_mass_n2o,
+    }[gas]
+
+
+def _check_gas(gas: str) -> str:
+    if not isinstance(gas, str) or gas.lower() not in GASES:
+        raise ValueError(f"unknown gas {gas!r}; expected one of {list(GASES)}")
+    return gas.lower()
+
+
+def _lifetime(gas: str, params: ClimateParameters) -> float:
+    return params.ch4_lifetime if gas == "ch4" else params.n2o_lifetime
+
+
+def specific_forcing(gas: str, params: ClimateParameters) -> float:
+    """Radiative forcing per kg of a gas in the atmosphere [W m-2 kg-1].
+
+    ``params.effective_radiative_efficiency(gas)`` [W m-2 ppb-1], which holds the
+    indirect CH4 and N2O effects, times the ppb per kg of gas,
+    ``molar_mass_air / molar_mass_<gas> * 1e9 / atm_mass``.
+    """
+    gas = _check_gas(gas)
+    ppb_per_kg = params.molar_mass_air / _molar_mass(gas, params) * 1e9 / params.atm_mass
+    return params.effective_radiative_efficiency(gas) * ppb_per_kg
+
+
+@dataclass(frozen=True, eq=False)
+class Forcing:
+    """Radiative forcing of each gas, one value per year.
+
+    Attributes:
+        co2, ch4, n2o: Forcing at the start of year t, just after that year's
+            pulse [W m-2]. Shape (N,).
+        co2_integrated, ch4_integrated, n2o_integrated: Forcing integrated from
+            year 0 to the start of year t [W yr m-2]; 0 at year 0. Shape (N,).
+    """
+
+    co2: NDArray[np.float64]
+    ch4: NDArray[np.float64]
+    n2o: NDArray[np.float64]
+    co2_integrated: NDArray[np.float64]
+    ch4_integrated: NDArray[np.float64]
+    n2o_integrated: NDArray[np.float64]
+
+    @property
+    def total(self) -> NDArray[np.float64]:
+        """Sum of the gases' forcing [W m-2]."""
+        return self.co2 + self.ch4 + self.n2o
+
+    @property
+    def total_integrated(self) -> NDArray[np.float64]:
+        """Sum of the gases' integrated forcing [W yr m-2]."""
+        return self.co2_integrated + self.ch4_integrated + self.n2o_integrated
+
+    def to_dict(self) -> dict[str, list]:
+        """JSON-serialisable dict of plain lists (decision record 0005)."""
+        names = ("co2", "ch4", "n2o", "co2_integrated", "ch4_integrated", "n2o_integrated")
+        return {name: getattr(self, name).tolist() for name in names}
+
+
+def _integrate(increments: NDArray[np.float64]) -> NDArray[np.float64]:
+    """Integrated value at the start of each year: 0, then a running sum."""
+    out = np.zeros_like(increments)
+    out[1:] = np.cumsum(increments[:-1])
+    return out
+
+
+def forcing(b: Burden, params: ClimateParameters) -> Forcing:
+    """Radiative forcing and integrated forcing from a ``Burden``.
+
+    Args:
+        b: Atmospheric masses from ``burden()`` [kg].
+        params: The climate parameter set; it should be the one ``b`` was made with.
+
+    Returns:
+        A ``Forcing`` with arrays of the burden's length. Inputs are not changed.
+    """
+    a_co2 = specific_forcing("co2", params)
+    g = np.array([1.0] + [tau * (1.0 - np.exp(-1.0 / tau)) for tau in params.co2_tau])
+    if b.co2_pools.shape[0] != g.shape[0]:
+        raise ValueError(f"co2_pools must have {g.shape[0]} pools, got {b.co2_pools.shape[0]}")
+    out = {
+        "co2": a_co2 * b.co2,
+        "co2_integrated": _integrate(a_co2 * (g @ b.co2_pools)),
+    }
+    for gas in ("ch4", "n2o"):
+        a = specific_forcing(gas, params)
+        tau = _lifetime(gas, params)
+        mass = getattr(b, gas)
+        out[gas] = a * mass
+        out[f"{gas}_integrated"] = _integrate(a * tau * (1.0 - np.exp(-1.0 / tau)) * mass)
+    return Forcing(**out)
+
+
+def agwp(gas: str, horizon: ArrayLike, params: ClimateParameters) -> NDArray[np.float64] | float:
+    """Absolute global warming potential of a 1 kg pulse [W m-2 yr kg-1], closed form.
+
+    - CO2: ``A * (a0 H + sum_i a_i tau_i (1 - exp(-H / tau_i)))``.
+    - CH4, N2O: ``A * tau (1 - exp(-H / tau))``.
+
+    ``A`` is ``specific_forcing(gas, params)``. No carbon-cycle feedback (#33),
+    and CH4 is not oxidised to CO2 (see #30).
+
+    Args:
+        gas: ``"co2"``, ``"ch4"`` or ``"n2o"``.
+        horizon: Time horizon(s) H [yr], >= 0. Any shape.
+        params: The climate parameter set.
+
+    Returns:
+        An array of ``horizon``'s shape, or a float for a scalar ``horizon``.
+    """
+    gas = _check_gas(gas)
+    h = np.asarray(horizon, dtype=float)
+    if not np.all(np.isfinite(h)) or np.any(h < 0):
+        raise ValueError("horizon must be finite and >= 0")
+    a = specific_forcing(gas, params)
+    if gas == "co2":
+        a0, *a_decaying = params.co2_a
+        shape = a0 * h
+        for ai, tau in zip(a_decaying, params.co2_tau, strict=True):
+            shape = shape + ai * tau * (1.0 - np.exp(-h / tau))
+    else:
+        tau = _lifetime(gas, params)
+        shape = tau * (1.0 - np.exp(-h / tau))
+    out = a * shape
+    return float(out) if out.ndim == 0 else out
+
+
+@dataclass(frozen=True, eq=False)
+class GWI:
+    """Global warming impact in kg CO2-equivalent, one value per year.
+
+    Attributes:
+        dynamic: Forcing integrated from year 0 to year t, divided by
+            ``agwp_co2`` [kg CO2e]. Shape (N,). (The old ``equiv_df.LCA_dyn``.)
+        sliding: Forcing integrated up to the fixed year ``horizon`` from the
+            emissions of years 0..t, divided by ``agwp_co2`` [kg CO2e]. An
+            emission in year k gets horizon ``max(horizon - k, 0)``, so
+            ``sliding[t] == dynamic[horizon]`` for t >= horizon. CO2 formed from
+            fossil CH4 counts as CO2 emitted in the year it forms (decision D2,
+            #28). Shape (N,). (The Cooper spreadsheet's ``GWP_sliding_CO2e``.)
+        horizon: Time horizon [yr].
+        agwp_co2: ``agwp("co2", horizon, params)`` [W m-2 yr kg-1].
+    """
+
+    dynamic: NDArray[np.float64]
+    sliding: NDArray[np.float64]
+    horizon: float
+    agwp_co2: float
+
+    def to_dict(self) -> dict:
+        """JSON-serialisable dict (decision record 0005)."""
+        return {
+            "dynamic": self.dynamic.tolist(),
+            "sliding": self.sliding.tolist(),
+            "horizon": self.horizon,
+            "agwp_co2": self.agwp_co2,
+        }
+
+
+def gwi(
+    emissions: Mapping[str, ArrayLike],
+    params: ClimateParameters,
+    *,
+    horizon: float = 100,
+    fossil_ch4: bool = False,
+) -> GWI:
+    """Cumulative dynamic GWI and sliding GWP from annual emissions.
+
+    Args:
+        emissions: As for ``burden()``: kg of each gas per year, index 0 = year 0.
+        params: The climate parameter set.
+        horizon: Time horizon H [yr] for the CO2 normalisation and the sliding
+            GWP; > 0.
+        fossil_ch4: As for ``burden()``.
+
+    Returns:
+        A ``GWI``. Both series are normalised by AGWP_H(CO2) from the same
+        ``params``.
+    """
+    horizon = float(horizon)
+    if not np.isfinite(horizon) or horizon <= 0:
+        raise ValueError(f"horizon must be finite and > 0, got {horizon}")
+    e = _validate(emissions)
+    b = burden(e, params, fossil_ch4=fossil_ch4)
+    f = forcing(b, params)
+    ref = agwp("co2", horizon, params)
+
+    n = b.co2.shape[0]
+    remaining = np.clip(horizon - np.arange(n, dtype=float), 0.0, None)
+    contribution = (e["co2"] + b.ch4_to_co2) * agwp("co2", remaining, params)
+    for gas in ("ch4", "n2o"):
+        contribution = contribution + e[gas] * agwp(gas, remaining, params)
+
+    return GWI(
+        dynamic=f.total_integrated / ref,
+        sliding=np.cumsum(contribution) / ref,
+        horizon=horizon,
+        agwp_co2=ref,
     )
