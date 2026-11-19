@@ -11,14 +11,6 @@ def _read(name):
         return pd.read_csv(f)
 
 
-def load_AGTP_supp_data():
-    return _read("AGTP_supp_data.csv")
-
-
-def load_AGWP_supp_data():
-    return _read("AGWP_supp_data.csv")
-
-
 def load_EUI_data():
     return _read("DOE_energyuse_fake.csv")
 
