@@ -93,7 +93,8 @@ def test_ccf_adds_the_expected_amount_positive_control():
 def test_pulse_dynamic_and_sliding_close_to_closed_form(gas, horizon):
     """Whole-year CCF (trapezoid, C4) against the closed form, for a 1 kg pulse.
 
-    Measured worst case 8.2e-4 (N2O GWP20); the bound is 1e-3. Deliberate-mistake
+    Measured worst case 8.2e-4 (N2O GWP20); the bound is 1e-3 (approved by Jay on
+    2026-11-19, PR #48). Deliberate-mistake
     runs on #33: the CCF CO2 a year late, the left rule, a dropped whole-year CCF,
     or the CCF also in the sliding CH4 term all fail here. (A year early passes
     here; the time-shift tests catch it.) The sliding GWI and GTP must equal the
