@@ -5,8 +5,10 @@ commit 2f948c8, FaIR 1.6.2), run at dt = 0.02 and 0.01 yr and
 Richardson-extrapolated to dt -> 0, gives the AR6 AGWP and AGTP with CCF stored
 in the ``*_ccf`` checks of ``ar6.json`` (``scripts/check_ar6_against_ipcc_code.py``).
 They come from code outside DLCA, not from ``agwp()``/``agtp()``. They are stored
-at 5 significant figures; the closed form agrees with them to 5e-6 relative,
-about a quarter of the spread between two Richardson estimates.
+in full and compared at 1e-5 relative (tolerance approved by Jay on 2026-11-19,
+PR #48); the closed form agrees with them to 4.8e-6 or better, about a quarter
+of the spread between two Richardson estimates. At this tolerance a +0.1% error
+in gamma fails all eight checks.
 
 The printed Table 7.SM.7 values (CH4 GWP100 27.9, N2O 273) come from the same
 code at dt = 0.1 yr, whose CCF term carries a 10-30% step-size error. DLCA's exact
@@ -39,6 +41,8 @@ from dlca.parameters import get_parameters, load_document
 AR6 = get_parameters("AR6")
 AR6_NO_CCF = dataclasses.replace(AR6, carbon_cycle_feedback=False)
 CHECKS = {k: v["value"] for k, v in load_document("AR6")["checks"].items()}
+# Relative tolerance of the IPCC-code CCF checks (Jay, 2026-11-19, PR #48).
+CCF_CHECK_RTOL = 1e-5
 
 
 def half_unit(printed: float, digits: int = 5) -> float:
@@ -57,10 +61,10 @@ def pulse(key: str, n: int = 201, at: int = 0) -> dict[str, np.ndarray]:
 @pytest.mark.parametrize("metric", ["agwp", "agtp"])
 @pytest.mark.parametrize("horizon", [20, 100])
 def test_ar6_closed_form_matches_ipcc_code(gas, metric, horizon):
-    """agwp()/agtp() with CCF equal the IPCC code taken to dt -> 0 (5 sig. fig.)."""
+    """agwp()/agtp() with CCF equal the IPCC code taken to dt -> 0 (1e-5 relative)."""
     expected = CHECKS[f"{metric}{horizon}_{gas}_ccf"]
     got = {"agwp": agwp, "agtp": agtp}[metric](gas, horizon, AR6)
-    assert abs(got - expected) <= half_unit(expected), f"got {got!r}, expected {expected}"
+    np.testing.assert_allclose(got, expected, rtol=CCF_CHECK_RTOL, atol=0)
 
 
 @pytest.mark.xfail(
