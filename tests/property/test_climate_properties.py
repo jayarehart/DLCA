@@ -1,4 +1,7 @@
-"""Property tests for ``burden()``, ``forcing()`` and ``gwi()`` (issue #32).
+"""Property tests for the climate engine (issues #32 and #40).
+
+Functions covered: ``burden()``, ``forcing()``, ``gwi()`` (#32), and
+``temperature()``, ``gtp()`` and ``agtp()`` (#40).
 
 The analytic and reference tests check fixed cases: unit pulses and a few
 spreadsheet profiles. These tests check invariants that must hold for *any*
@@ -12,13 +15,17 @@ parameter sets:
 
 Every output array is checked: the burden (total CO2, the four CO2 pools, CH4,
 N2O, CO2 from fossil CH4), the forcing and integrated forcing of each gas, and
-the dynamic and sliding GWI. ``agwp()`` is checked through ``gwi()``, which
-calls it for the sliding GWI and the CO2 normalisation.
+the dynamic and sliding GWI, the temperature change of each gas, and the
+dynamic, sliding and static GTP. ``agwp()`` and ``agtp()`` are checked through
+``gwi()`` and ``gtp()``, which call them for the sliding and static series and
+the CO2 normalisation. ``agtp()`` is also checked directly as the impulse
+response of ``temperature()`` for a pulse in any year.
 
 Tolerance. The functions are sums of products, so rounding error in an output
 is bounded by a small multiple of machine epsilon times the same output
 computed from the absolute values of the emissions, f(|x|). The kernels and
-specific forcings are all positive, so f(|x|) >= |f(x)| element by element. The
+specific forcings are all positive (so is the two-box response to a decaying
+forcing, for tau above or below d), so f(|x|) >= |f(x)| element by element. The
 comparisons allow ``RTOL * max(f(|x|))`` per output array; any real fault (an
 offset, a dropped sign, a year shift) moves an output by a fraction of order
 one of that scale.
@@ -37,7 +44,7 @@ from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 from hypothesis.extra.numpy import arrays
 
-from dlca.climate import GASES, burden, forcing, gwi
+from dlca.climate import GASES, agtp, burden, forcing, gtp, gwi, temperature
 from dlca.parameters import get_parameters
 
 PARAMS = {name: get_parameters(name) for name in ("AR5", "AR6")}
@@ -97,14 +104,18 @@ def as_fossil(e, fossil_ch4: bool):
 
 
 def outputs(e, params, *, fossil_ch4: bool, horizon: float) -> dict[str, np.ndarray]:
-    """Every array that burden(), forcing() and gwi() return, by name."""
+    """Every array that burden(), forcing(), gwi(), temperature() and gtp() return."""
     e = as_fossil(e, fossil_ch4)
     b = burden(e, params)
     f = forcing(b, params)
     g = gwi(e, params, horizon=horizon)
+    t = temperature(b, params)
+    p = gtp(e, params, horizon=horizon)
     out = {f"burden.{k}": v for k, v in b.to_dict().items()}
     out |= {f"forcing.{k}": v for k, v in f.to_dict().items()}
     out |= {"gwi.dynamic": g.dynamic, "gwi.sliding": g.sliding}
+    out |= {f"temperature.{k}": v for k, v in t.to_dict().items()}
+    out |= {"gtp.dynamic": p.dynamic, "gtp.sliding": p.sliding, "gtp.static": p.static}
     return {k: np.asarray(v, dtype=float) for k, v in out.items()}
 
 
@@ -168,9 +179,9 @@ def delay(e, s):
 def test_time_shift(set_name, fossil_ch4, es, h):
     """Delaying emissions by s years delays every output by s years.
 
-    The sliding GWI is the exception by design: an emission in year k is
-    counted to the fixed year H, so its horizon is H - k, and a delay shortens
-    it. It is checked separately in ``test_time_shift_sliding_gwi``.
+    The sliding GWI and sliding GTP are the exception by design: an emission in
+    year k is counted to the fixed year H, so its horizon is H - k, and a delay
+    shortens it. They are checked separately in ``test_time_shift_sliding``.
     """
     e, s = es
     n = len(e["co2"])
@@ -178,7 +189,7 @@ def test_time_shift(set_name, fossil_ch4, es, h):
     run = lambda x: outputs(x, p, fossil_ch4=fossil_ch4, horizon=h)  # noqa: E731
     late, early, bound = run(delay(e, s)), run(e), run(absolute(e))
     for out in (late, early, bound):
-        del out["gwi.sliding"]
+        del out["gwi.sliding"], out["gtp.sliding"]
     assert_close(
         {k: v[..., s:] for k, v in late.items()},
         {k: v[..., : n - s] for k, v in early.items()},
@@ -186,32 +197,39 @@ def test_time_shift(set_name, fossil_ch4, es, h):
     )
 
 
+def absolute_sliding(e, params, *, fossil_ch4: bool, horizon: float) -> dict[str, np.ndarray]:
+    """Sliding GWI and GTP times their CO2 normalisation (AGWP_H, AGTP_H)."""
+    e = as_fossil(e, fossil_ch4)
+    g = gwi(e, params, horizon=horizon)
+    p = gtp(e, params, horizon=horizon)
+    return {"gwi.sliding": g.sliding * g.agwp_co2, "gtp.sliding": p.sliding * p.agtp_co2}
+
+
 @both_sets
 @both_ch4_modes
 @SETTINGS
 @given(es=profile_and_shift(), h=horizon)
-def test_time_shift_sliding_gwi(set_name, fossil_ch4, es, h):
-    """Sliding GWI: a delay of s years under horizon H equals no delay under H - s.
+def test_time_shift_sliding(set_name, fossil_ch4, es, h):
+    """Sliding GWI and GTP: a delay of s years under H equals no delay under H - s.
 
-    In absolute terms (times AGWP_H(CO2)), since the normalisation differs.
+    In absolute terms (times AGWP_H or AGTP_H of CO2), since the normalisation
+    differs.
     """
     e, s = es
     if h - s <= 0:
         h = s + 1.0
     n = len(e["co2"])
-    p = PARAMS[set_name]
-
-    def absolute_sliding(x, horizon):
-        g = gwi(as_fossil(x, fossil_ch4), p, horizon=horizon)
-        return {"gwi.sliding": g.sliding * g.agwp_co2}
-
-    late = absolute_sliding(delay(e, s), h)
-    early = absolute_sliding(e, h - s)
-    assert np.all(late["gwi.sliding"][:s] == 0.0)
+    run = lambda x, horizon: absolute_sliding(  # noqa: E731
+        x, PARAMS[set_name], fossil_ch4=fossil_ch4, horizon=horizon
+    )
+    late = run(delay(e, s), h)
+    early = run(e, h - s)
+    for name, out in late.items():
+        assert np.all(out[:s] == 0.0), name
     assert_close(
-        {"gwi.sliding": late["gwi.sliding"][s:]},
-        {"gwi.sliding": early["gwi.sliding"][: n - s]},
-        absolute_sliding(absolute(e), h - s),
+        {k: v[s:] for k, v in late.items()},
+        {k: v[: n - s] for k, v in early.items()},
+        run(absolute(e), h - s),
     )
 
 
@@ -232,11 +250,47 @@ def test_zero_in_gives_exactly_zero_out(set_name, fossil_ch4, ek, h):
     """No emissions before year k gives exactly zero (``==``) output before year k.
 
     With k equal to the length, the emissions are all zero and so is every
-    output. Integrated forcing (from year 0 to the start of year t) and the CO2
-    formed from fossil CH4 (removed during year t) are also exactly zero at
-    year k.
+    output. Integrated forcing (from year 0 to the start of year t), the CO2
+    formed from fossil CH4 (removed during year t), and the temperature and
+    dynamic GTP (at the start of year t, before that year's forcing acts) are
+    also exactly zero at year k.
     """
     e, k = ek
+    after_a_year = ("_integrated", "ch4_to_co2", "temperature.", "gtp.dynamic")
     for name, out in outputs(e, PARAMS[set_name], fossil_ch4=fossil_ch4, horizon=h).items():
-        zero_to = k + 1 if name.endswith(("_integrated", "ch4_to_co2")) else k
+        zero_to = k + 1 if any(tag in name for tag in after_a_year) else k
         assert np.all(out[..., :zero_to] == 0.0), name
+
+
+@st.composite
+def pulse(draw):
+    """One gas, n years, a pulse of m kg (either sign) in year k, zero elsewhere."""
+    n = draw(st.integers(1, MAX_YEARS))
+    k = draw(st.integers(0, n - 1))
+    m = draw(signed(1e-6, 1e6).filter(lambda v: v != 0.0))
+    return draw(st.sampled_from(GASES)), n, k, m
+
+
+@both_sets
+@SETTINGS
+@given(pkm=pulse())
+def test_temperature_of_pulse_in_any_year_equals_agtp(set_name, pkm):
+    """A pulse of m kg in year k gives temperature() == m * agtp(gas, t - k), all years.
+
+    The analytic test checks this for a 1 kg pulse in year 0 only. Here the
+    pulse can be in any year, of any size and sign, and the other two gases
+    must stay exactly zero. Before year k, agtp() is not defined (negative
+    horizon) and the temperature must be exactly zero; at year k,
+    ``agtp(gas, 0)`` and the temperature must both be exactly zero.
+    """
+    gas, n, k, m = pkm
+    p = PARAMS[set_name]
+    e = {gas: np.r_[np.zeros(k), m, np.zeros(n - k - 1)]}
+    t = temperature(burden(e, p), p)
+    expected = m * agtp(gas, np.arange(n - k, dtype=float), p)
+    assert agtp(gas, 0.0, p) == 0.0
+    assert np.all(getattr(t, gas)[: k + 1] == 0.0)
+    for other in set(GASES) - {gas}:
+        assert np.all(getattr(t, other) == 0.0), other
+    atol = RTOL * float(np.max(np.abs(expected)))
+    np.testing.assert_allclose(getattr(t, gas)[k:], expected, rtol=0, atol=atol)
