@@ -83,6 +83,14 @@ EMISSION_KEYS = ("co2", "ch4", "ch4_fossil", "n2o")
 CO2_PER_CH4_MASS_RATIO = 44.0 / 16.0
 
 
+def _arrays(data: Mapping, names: tuple[str, ...]) -> dict[str, NDArray[np.float64]]:
+    """Float arrays from the lists of a ``to_dict()`` output (for ``from_dict()``)."""
+    missing = [name for name in names if name not in data]
+    if missing:
+        raise ValueError(f"missing key(s) {missing}")
+    return {name: np.asarray(data[name], dtype=float) for name in names}
+
+
 @dataclass(frozen=True, eq=False)
 class Burden:
     """Mass of each gas in the atmosphere, in kg, one value per year.
@@ -114,6 +122,11 @@ class Burden:
             "n2o": self.n2o.tolist(),
             "ch4_to_co2": self.ch4_to_co2.tolist(),
         }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, list]) -> Burden:
+        """Inverse of ``to_dict()``."""
+        return cls(**_arrays(data, ("co2", "co2_pools", "ch4", "n2o", "ch4_to_co2")))
 
 
 def _decay(emissions: NDArray[np.float64], tau: float) -> NDArray[np.float64]:
@@ -300,6 +313,12 @@ class Forcing:
         names = ("co2", "ch4", "n2o", "co2_integrated", "ch4_integrated", "n2o_integrated")
         return {name: getattr(self, name).tolist() for name in names}
 
+    @classmethod
+    def from_dict(cls, data: Mapping[str, list]) -> Forcing:
+        """Inverse of ``to_dict()``."""
+        names = ("co2", "ch4", "n2o", "co2_integrated", "ch4_integrated", "n2o_integrated")
+        return cls(**_arrays(data, names))
+
 
 def _integrate(increments: NDArray[np.float64]) -> NDArray[np.float64]:
     """Integrated value at the start of each year: 0, then a running sum."""
@@ -420,6 +439,15 @@ class GWI:
             "agwp_co2": self.agwp_co2,
         }
 
+    @classmethod
+    def from_dict(cls, data: Mapping) -> GWI:
+        """Inverse of ``to_dict()``."""
+        return cls(
+            **_arrays(data, ("dynamic", "sliding", "static")),
+            horizon=float(data["horizon"]),
+            agwp_co2=float(data["agwp_co2"]),
+        )
+
 
 def gwi(
     emissions: Mapping[str, ArrayLike],
@@ -496,6 +524,15 @@ class StaticGWP:
         out["horizon"] = self.horizon
         out["gwp"] = dict(self.gwp)
         return out
+
+    @classmethod
+    def from_dict(cls, data: Mapping) -> StaticGWP:
+        """Inverse of ``to_dict()``."""
+        return cls(
+            **_arrays(data, EMISSION_KEYS),
+            horizon=float(data["horizon"]),
+            gwp={key: float(value) for key, value in data["gwp"].items()},
+        )
 
 
 def _static_factors(
@@ -600,6 +637,11 @@ class Temperature:
     def to_dict(self) -> dict[str, list]:
         """JSON-serialisable dict of plain lists (decision record 0005)."""
         return {name: getattr(self, name).tolist() for name in GASES}
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, list]) -> Temperature:
+        """Inverse of ``to_dict()``."""
+        return cls(**_arrays(data, GASES))
 
 
 def temperature(b: Burden, params: ClimateParameters) -> Temperature:
@@ -731,6 +773,15 @@ class GTP:
             "horizon": self.horizon,
             "agtp_co2": self.agtp_co2,
         }
+
+    @classmethod
+    def from_dict(cls, data: Mapping) -> GTP:
+        """Inverse of ``to_dict()``."""
+        return cls(
+            **_arrays(data, ("dynamic", "sliding", "static")),
+            horizon=float(data["horizon"]),
+            agtp_co2=float(data["agtp_co2"]),
+        )
 
 
 def gtp(

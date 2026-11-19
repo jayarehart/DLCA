@@ -1,5 +1,6 @@
 import numpy as np
 
+import dlca
 from dlca import engine as DLCA
 from dlca.models import (
     BldgDetails,
@@ -58,29 +59,31 @@ def test_create_flux_mat():
     np.testing.assert_allclose(flux_total.flux_df["CO2_flux"][0], 2, rtol=RTOL)
 
 
-def test_dlca_engine_calc_decay():
-    engine = DLCA.DLCAEngine()
-    engine.calc_decay(input_flux=make_flux(make_emissions(1)))
-
-    atm = engine.Results.mass_in_atm_df
-    np.testing.assert_allclose(sum(atm["CO2"]), 184.2837146985627, rtol=RTOL)
-    np.testing.assert_allclose(sum(atm["CH4"]), 0.5162687880706308, rtol=RTOL)
-    np.testing.assert_allclose(sum(atm["N2O"]), 0.40123157841290424, rtol=RTOL)
+def _assess_flux(flux, horizon=100):
+    """The inventory flux through dlca.assess() with AR5 (what DLCAEngine used)."""
+    emissions = {"co2": flux.CO2_flux, "ch4": flux.CH4_flux, "n2o": flux.N2O_flux}
+    return dlca.assess(emissions, parameters="AR5", horizon=horizon)
 
 
-def test_dlca_engine_calc_warming():
-    engine = DLCA.DLCAEngine()
-    engine.calc_decay(input_flux=make_flux(make_emissions(1)))
-    engine.calc_AGWP(time_horizon=100)
-    engine.calc_AGTP(time_horizon=100)
+# The expected values below were produced by the old DLCAEngine (removed in #31)
+# and are kept unchanged. They come from the code, not from outside it, so they
+# guard the port only; the independent checks are in tests/reference and
+# tests/analytic.
 
-    # N2O is not included in the AGTP or AGWP calculations.
-    np.testing.assert_allclose(
-        engine.Results.temp_change_df["temp_change"][100], 1.0700561631626676e-15, rtol=RTOL
-    )
-    np.testing.assert_allclose(
-        engine.Results.equiv_df["LCA_dyn"][100], 3.0267395007015145, rtol=RTOL
-    )
+
+def test_assess_burden():
+    """Was test_dlca_engine_calc_decay (DLCAEngine.calc_decay)."""
+    atm = _assess_flux(make_flux(make_emissions(1))).burden
+    np.testing.assert_allclose(sum(atm.co2), 184.2837146985627, rtol=RTOL)
+    np.testing.assert_allclose(sum(atm.ch4), 0.5162687880706308, rtol=RTOL)
+    np.testing.assert_allclose(sum(atm.n2o), 0.40123157841290424, rtol=RTOL)
+
+
+def test_assess_warming():
+    """Was test_dlca_engine_calc_warming (DLCAEngine.calc_AGWP and calc_AGTP)."""
+    result = _assess_flux(make_flux(make_emissions(1)), horizon=100)
+    np.testing.assert_allclose(result.temperature.total[100], 1.0700561631626676e-15, rtol=RTOL)
+    np.testing.assert_allclose(result.gwi.dynamic[100], 3.0267395007015145, rtol=RTOL)
 
 
 def test_load_eui_and_ef():
