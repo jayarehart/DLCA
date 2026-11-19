@@ -138,3 +138,18 @@ def test_result_from_dict_rejects_an_edited_component_fingerprint():
     d["forcing"]["parameter_fingerprint"] = AR6.fingerprint()
     with pytest.raises(ValueError, match="forcing was made with a different"):
         dlca.Result.from_dict(d)
+
+
+@pytest.mark.parametrize("cls", [Burden, Forcing, Temperature], ids=lambda c: c.__name__)
+@pytest.mark.parametrize("bad", [None, 123, b"bytes"], ids=["None", "int", "bytes"])
+def test_a_fingerprint_that_is_not_a_string_is_refused(cls, bad):
+    """Found by the fresh-session review: from_dict turned None into 'None', and a
+    non-string fingerprint made the mismatch message raise TypeError, not ValueError."""
+    b = burden(EMISSIONS, AR5)
+    obj = {Burden: b, Forcing: forcing(b, AR5), Temperature: temperature(b, AR5)}[cls]
+    d = obj.to_dict()
+    d["parameter_fingerprint"] = bad
+    with pytest.raises(ValueError, match="parameter_fingerprint must be a string"):
+        cls.from_dict(d)
+    with pytest.raises(TypeError, match="parameter_fingerprint must be a string"):
+        dataclasses.replace(obj, parameter_fingerprint=bad)
