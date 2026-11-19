@@ -29,6 +29,7 @@ dev = [
     "pytest-cov",
     "ruff",
     "pre-commit",
+    "hypothesis>=6.168.5",
 ]
 
 [tool.ruff]
