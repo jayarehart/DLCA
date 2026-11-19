@@ -111,6 +111,9 @@ def test_integrated_forcing_of_pulse_equals_agwp(name, gas):
 
 @pytest.mark.parametrize("name", ["AR5", "AR6"])
 def test_gwi_of_co2_pulse_is_one_at_horizon(name):
+    """Catches gwi() normalising by AGWP(CO2) at the wrong horizon or from another
+    set (dynamic), and an off-by-one in the sliding remaining horizon (H - k - 1
+    or H - k + 1 gives a ratio other than 1 at year 0)."""
     p = get_parameters(name)
     for horizon in (20, 100):
         result = gwi({"co2": np.r_[1.0, np.zeros(150)]}, p, horizon=horizon)

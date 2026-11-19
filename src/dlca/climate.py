@@ -316,8 +316,9 @@ class GWI:
             ``agwp_co2`` [kg CO2e]. Shape (N,). (The old ``equiv_df.LCA_dyn``.)
         sliding: Forcing integrated up to the fixed year ``horizon`` from the
             emissions of years 0..t, divided by ``agwp_co2`` [kg CO2e]. An
-            emission in year k gets horizon ``max(horizon - k, 0)``, so
-            ``sliding[t] == dynamic[horizon]`` for t >= horizon. CO2 formed from
+            emission in year k gets horizon ``max(horizon - k, 0)``. For a
+            whole-number horizon, ``sliding[t] == dynamic[horizon]`` for
+            t >= horizon. CO2 formed from
             fossil CH4 counts as CO2 emitted in the year it forms (decision D2,
             #28). Shape (N,). (The Cooper spreadsheet's ``GWP_sliding_CO2e``.)
         horizon: Time horizon [yr].
