@@ -21,7 +21,6 @@ from pathlib import Path
 import pytest
 
 import dlca
-from dlca.models import DLCAInputData
 from dlca.parameters import ClimateParameters, load_document
 
 REPO = Path(__file__).resolve().parents[2]
@@ -82,34 +81,6 @@ def matches_printed(value: float, printed: float, *, truncated_ok: bool = False)
 
 def checks(name: str) -> dict[str, float]:
     return {k: v["value"] for k, v in load_document(name)["checks"].items()}
-
-
-# --- AR5 reproduces DLCAInputData exactly (keeps the Cooper reference valid) ---
-
-
-def test_ar5_matches_dlcainputdata_field_by_field():
-    p, d = dlca.get_parameters("AR5"), DLCAInputData
-    assert p.co2_a == (d.p_0, d.p_1, d.p_2, d.p_3)
-    assert p.co2_tau == (d.life1_CO2, d.life2_CO2, d.life3_CO2)
-    assert p.ch4_lifetime == d.life_CH4
-    assert p.n2o_lifetime == d.life_N2O
-    assert p.co2_re == d.CO2_RE
-    assert p.ch4_re == d.CH4_RE
-    assert p.n2o_re == d.N2O_RE
-    assert p.co2_re_scale == d.adj_factor_CO2
-    assert p.climate_q == (d.clim_sens1, d.clim_sens2)
-    assert p.climate_d == (d.clim_time1, d.clim_time2)
-    assert p.molar_mass_co2 == d.mol_mass_CO2
-    assert p.molar_mass_ch4 == d.mol_mass_CH4
-    assert p.molar_mass_n2o == d.mol_mass_N2O
-    assert p.molar_mass_air == d.mol_mass_air
-    assert p.atm_mass == d.mass_atm
-    # Derived quantities the old engine multiplies together, bit for bit.
-    assert p.effective_radiative_efficiency("co2") == d.CO2_RE * d.adj_factor_CO2
-    assert p.effective_radiative_efficiency("ch4") == d.CH4_RE * d.adj_factor_CH4
-    assert p.effective_radiative_efficiency("n2o") == d.N2O_RE * d.adj_factor_N2O
-    # Fossil CH4: DLCAInputData stores the mass ratio with nominal masses 44/16.
-    assert p.fossil_ch4_co2_yield() * (12 + 16 * 2) / (12 + 1 * 4) == d.CH4_to_CO2
 
 
 # --- provenance: every value has a unit and a source; every source has a DOI ---

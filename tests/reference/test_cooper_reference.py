@@ -1,4 +1,4 @@
-"""Characterization tests: dlca.engine against the Cooper et al. (2020) spreadsheet.
+"""Characterization tests: dlca.assess() against the Cooper et al. (2020) spreadsheet.
 
 Each case in ``cases/`` holds the inflows (``inputs.csv``), the settings
 (``settings.csv``) and the spreadsheet's recalculated results
@@ -18,9 +18,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
+import dlca
 from dlca import engine as DLCA
-from dlca.climate import agwp, burden, forcing, gtp, gwi, temperature
-from dlca.models import EmissionsFluxTotal
+from dlca.climate import agwp
 from dlca.parameters import get_parameters
 
 CASES_DIR = Path(__file__).parent / "cases"
@@ -35,37 +35,43 @@ RTOL = 1e-9
 # atol=0, on every year where the expected value is not zero (Jay's decision on
 # PR #24, 2026-11-17).
 
-# expected.csv column -> (DLCAResults attribute, column in that DataFrame).
-ENGINE_COLUMNS = {
-    "CO2_mass": ("mass_in_atm_df", "CO2"),
-    "CH4_mass": ("mass_in_atm_df", "CH4"),
-    "N2O_mass": ("mass_in_atm_df", "N2O"),
-    "CO2_mass0": ("CO2_mass_df", "mass0"),
-    "CO2_mass1": ("CO2_mass_df", "mass1"),
-    "CO2_mass2": ("CO2_mass_df", "mass2"),
-    "CO2_mass3": ("CO2_mass_df", "mass3"),
-    "CH4_to_CO2": ("CO2_mass_df", "CH4_to_CO2"),
-    "CO2_radfor": ("irf_df", "CO2_radfor"),
-    "CH4_radfor": ("irf_df", "CH4_radfor"),
-    "N2O_radfor": ("irf_df", "N2O_radfor"),
-    "CO2_IRF": ("irf_df", "CO2_IRF"),
-    "CH4_IRF": ("irf_df", "CH4_IRF"),
-    "N2O_IRF": ("irf_df", "N2O_IRF"),
-    "IRF_all": ("irf_df", "IRF_all"),
-    "CO2_temp": ("temp_change_df", "CO2_temp"),
-    "CH4_temp": ("temp_change_df", "CH4_temp"),
-    "N2O_temp": ("temp_change_df", "N2O_temp"),
-    "temp_change": ("temp_change_df", "temp_change"),
-    "CO2_net": ("cum_net_emissions", "CO2_net"),
-    "CH4_net": ("cum_net_emissions", "CH4_net"),
-    "N2O_net": ("cum_net_emissions", "N2O_net"),
-    "IRF_over_AGWP_CO2": ("equiv_df", "LCA_dyn"),
-    "GWP_static_CO2e": ("equiv_df", "LCA_static"),
-    "GWP_sliding_CO2e": ("equiv_df", "GWP_sliding_CO2e"),
-    "GTP_static_CO2e": ("equiv_df", "GTP_static_CO2e"),
-    "temp_over_AGTP_CO2": ("equiv_df", "temp_over_AGTP_CO2"),
-    "GTP_sliding_CO2e": ("equiv_df", "GTP_sliding_CO2e"),
+# expected.csv column -> the same series in a dlca.Result (issue #31). The
+# cumulative net emissions are the running sums of the inputs the result holds;
+# CH4 counts both keys.
+COLUMNS = {
+    "CO2_mass": lambda r: r.burden.co2,
+    "CH4_mass": lambda r: r.burden.ch4,
+    "N2O_mass": lambda r: r.burden.n2o,
+    "CO2_mass0": lambda r: r.burden.co2_pools[0],
+    "CO2_mass1": lambda r: r.burden.co2_pools[1],
+    "CO2_mass2": lambda r: r.burden.co2_pools[2],
+    "CO2_mass3": lambda r: r.burden.co2_pools[3],
+    "CH4_to_CO2": lambda r: r.burden.ch4_to_co2,
+    "CO2_radfor": lambda r: r.forcing.co2,
+    "CH4_radfor": lambda r: r.forcing.ch4,
+    "N2O_radfor": lambda r: r.forcing.n2o,
+    "CO2_IRF": lambda r: r.forcing.co2_integrated,
+    "CH4_IRF": lambda r: r.forcing.ch4_integrated,
+    "N2O_IRF": lambda r: r.forcing.n2o_integrated,
+    "IRF_all": lambda r: r.forcing.total_integrated,
+    "CO2_temp": lambda r: r.temperature.co2,
+    "CH4_temp": lambda r: r.temperature.ch4,
+    "N2O_temp": lambda r: r.temperature.n2o,
+    "temp_change": lambda r: r.temperature.total,
+    "CO2_net": lambda r: np.cumsum(r.emissions["co2"]),
+    "CH4_net": lambda r: np.cumsum(r.emissions["ch4"] + r.emissions["ch4_fossil"]),
+    "N2O_net": lambda r: np.cumsum(r.emissions["n2o"]),
+    "IRF_over_AGWP_CO2": lambda r: r.gwi.dynamic,
+    "GWP_static_CO2e": lambda r: r.gwi.static,
+    "GWP_sliding_CO2e": lambda r: r.gwi.sliding,
+    "GTP_static_CO2e": lambda r: r.gtp.static,
+    "temp_over_AGTP_CO2": lambda r: r.gtp.dynamic,
+    "GTP_sliding_CO2e": lambda r: r.gtp.sliding,
 }
+
+# The spreadsheet holds AR5 values only (README "Parameter set"), so every case
+# must say AR5. Checked by test_every_case_is_ar5 (Jay, #31 comment of 2026-11-18).
+SPREADSHEET_PARAMETER_SET = "AR5"
 
 # (case, column) pairs where dlca.climate disagrees with the spreadsheet on purpose.
 KNOWN_DIFFERENCES = {
@@ -107,78 +113,30 @@ def load_case(case):
 
 
 @cache
-def run_engine(case):
+def run_case(case):
+    """The case through dlca.assess(), with the case's own parameter set and horizon."""
     inputs, _, settings = load_case(case)
-    engine = DLCA.DLCAEngine()
-    engine._inputdata.fossil_CH4 = {"TRUE": True, "FALSE": False}[settings["fossil_CH4"]]
-    flux = EmissionsFluxTotal(
-        time=inputs["year"].to_numpy(),
-        CO2_flux=inputs["CO2_flux"].to_numpy(),
-        CH4_flux=inputs["CH4_flux"].to_numpy(),
-        N2O_flux=inputs["N2O_flux"].to_numpy(),
-    )
-    time_horizon = int(settings["time_horizon"])
-    engine.calc_decay(input_flux=flux)
-    # The atmospheric masses come from dlca.climate.burden() (issue #27), which
-    # fixes calc_decay's fossil CH4 ordering bug. The old engine's forcing and
-    # temperature steps (replaced in #28, #29) then read these masses.
     # The fossil_CH4 setting puts the case's CH4 under the ch4_fossil key (#30, S4).
-    ch4_key = "ch4_fossil" if engine._inputdata.fossil_CH4 else "ch4"
-    emissions = {"co2": inputs["CO2_flux"], ch4_key: inputs["CH4_flux"], "n2o": inputs["N2O_flux"]}
-    b = burden(emissions, get_parameters("AR5"))
-    results = engine.Results
-    results.mass_in_atm_df = pd.DataFrame(
-        {"CO2": b.co2, "CH4": b.ch4, "N2O": b.n2o}, index=results.mass_in_atm_df.index
+    fossil = {"TRUE": True, "FALSE": False}[settings["fossil_CH4"]]
+    ch4_key = "ch4_fossil" if fossil else "ch4"
+    emissions = {
+        "co2": inputs["CO2_flux"].to_numpy(),
+        ch4_key: inputs["CH4_flux"].to_numpy(),
+        "n2o": inputs["N2O_flux"].to_numpy(),
+    }
+    # No default: a case without a parameter_set row raises KeyError.
+    result = dlca.assess(
+        emissions,
+        parameters=settings["parameter_set"],
+        horizon=int(settings["time_horizon"]),
     )
-    results.CO2_mass_df = pd.DataFrame(
-        {**{f"mass{i}": b.co2_pools[i] for i in range(4)}, "CH4_to_CO2": b.ch4_to_co2},
-        index=results.CO2_mass_df.index,
-    )
-    engine.calc_AGWP(time_horizon=time_horizon)
-    # Forcing, integrated forcing and the dynamic, sliding and static GWI come from
-    # dlca.climate.forcing() and gwi() (issues #28, #30); temperature and the
-    # dynamic, sliding and static GTP from temperature() and gtp() (#29, #30).
-    # calc_AGWP still runs only because it builds the result tables overwritten
-    # below; none of its values are checked. calc_AGTP no longer runs.
-    params = get_parameters("AR5")
-    f = forcing(b, params)
-    g = gwi(emissions, params, horizon=time_horizon)
-    temp = temperature(b, params)
-    p = gtp(emissions, params, horizon=time_horizon)
-    index = results.irf_df.index
-    results.irf_df = pd.DataFrame(
-        {
-            "CO2_radfor": f.co2,
-            "CH4_radfor": f.ch4,
-            "N2O_radfor": f.n2o,
-            "CO2_IRF": f.co2_integrated,
-            "CH4_IRF": f.ch4_integrated,
-            "N2O_IRF": f.n2o_integrated,
-            "IRF_all": f.total_integrated,
-        },
-        index=index,
-    )
-    results.temp_change_df = pd.DataFrame(
-        {
-            "CO2_temp": temp.co2,
-            "CH4_temp": temp.ch4,
-            "N2O_temp": temp.n2o,
-            "temp_change": temp.total,
-        },
-        index=index,
-    )
-    results.equiv_df["LCA_dyn"] = g.dynamic
-    results.equiv_df["LCA_static"] = g.static
-    results.equiv_df["GWP_sliding_CO2e"] = g.sliding
-    results.equiv_df["temp_over_AGTP_CO2"] = p.dynamic
-    results.equiv_df["GTP_sliding_CO2e"] = p.sliding
-    results.equiv_df["GTP_static_CO2e"] = p.static
-    return results
+    assert result.parameter_set == settings["parameter_set"]
+    return result
 
 
 def _params():
     for case in CASES:
-        for col in ENGINE_COLUMNS:
+        for col in COLUMNS:
             reason = KNOWN_DIFFERENCES.get((case, col))
             marks = [pytest.mark.xfail(strict=True, raises=AssertionError, reason=reason)]
             yield pytest.param(case, col, id=f"{case}-{col}", marks=marks if reason else [])
@@ -196,6 +154,13 @@ def test_cases_present():
             "negative_uptake",
         ]
     )
+
+
+@pytest.mark.parametrize("case", CASES)
+def test_every_case_is_ar5(case):
+    """Each case names its parameter set, and it is the spreadsheet's (AR5)."""
+    _, _, settings = load_case(case)
+    assert settings["parameter_set"] == SPREADSHEET_PARAMETER_SET
 
 
 def test_reference_uses_corrected_agtp():
@@ -250,8 +215,7 @@ def test_ch4_agwp_table_every_year():
 @pytest.mark.parametrize(("case", "column"), list(_params()))
 def test_engine_matches_spreadsheet(case, column):
     _, expected, _ = load_case(case)
-    frame, engine_col = ENGINE_COLUMNS[column]
-    got = getattr(run_engine(case), frame)[engine_col].to_numpy(dtype=float)
+    got = np.asarray(COLUMNS[column](run_case(case)), dtype=float)
     want = expected[column].to_numpy(dtype=float)
     atol = RTOL * np.max(np.abs(want))
     np.testing.assert_allclose(got, want, rtol=RTOL, atol=atol, err_msg=f"{case}: {column}")
@@ -268,8 +232,7 @@ def test_engine_matches_spreadsheet_where_nonzero(case, column):
     in full here too, so it must match exactly.
     """
     _, expected, _ = load_case(case)
-    frame, engine_col = ENGINE_COLUMNS[column]
-    got = getattr(run_engine(case), frame)[engine_col].to_numpy(dtype=float)
+    got = np.asarray(COLUMNS[column](run_case(case)), dtype=float)
     want = expected[column].to_numpy(dtype=float)
     keep = want != 0 if np.any(want) else np.ones_like(want, dtype=bool)
     np.testing.assert_allclose(
@@ -295,7 +258,7 @@ def test_engine_matches_spreadsheet_where_nonzero(case, column):
 )
 @pytest.mark.parametrize("gas", ["CO2", "CH4", "N2O"])
 def test_building_lifecycle_flux_builder(gas):
-    """The engine's own A/B/C flux builder should reproduce the case's inflows."""
+    """The inventory's A/B/C flux builder should reproduce the case's inflows."""
     inputs, _, _ = load_case("building_lifecycle")
     kwargs = {"material": DLCA.MaterialTypes.TEST}
     inv = DLCA.EmissionsInventoryAllGHG(
@@ -308,9 +271,11 @@ def test_building_lifecycle_flux_builder(gas):
         N2O=DLCA.EmissionsInventoryGHGi(
             ghg=DLCA.GHGTypes.N2O, emissions_A=0.1, emissions_B=0.002, emissions_C=0.02, **kwargs
         ),
-        # CO2bio is left at its default (material NA, no uptake). Passing TEST here
-        # trips the inverted material check in EmissionsInventoryAllGHG.__post_init__,
-        # which raises when the materials *match*.
+        # No biogenic uptake (rot_period 0 gives zero growth_biomass), for the same
+        # material: the material check is strict (decision A8 on #31).
+        CO2bio=DLCA.EmissionInventoryBio(
+            material=DLCA.MaterialTypes.TEST, CO2_bio=0.0, rot_period=0
+        ),
     )
     flux = DLCA.EmissionsFluxEngine.create_flux_mat(
         material=DLCA.MaterialTypes.TEST,

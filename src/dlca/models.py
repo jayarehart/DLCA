@@ -270,14 +270,10 @@ class EmissionsInventoryAllGHG:
 
     def __post_init__(self):
         self.material = self.CO2.material
-        # Check to see if materials match in each GHG inventory
-        if (
-            self.material
-            == self.CO2.material
-            == self.CH4.material
-            == self.N2O.material
-            == self.CO2bio.material
-        ):
+        # Every part of the inventory must be for the same material (strict; decision
+        # A8 on #31). CO2bio defaults to MaterialTypes.NA, so pass it explicitly.
+        parts = (self.CO2, self.CH4, self.N2O, self.CO2bio)
+        if len({part.material for part in parts}) != 1:
             raise ValueError(
                 "GHG inventory is created with mismatched materials. Check the emissions inventory"
             )
@@ -476,70 +472,3 @@ class BldgDetails:
         )
 
         return self
-
-
-@dataclass
-class DLCAInputData:
-    fossil_CH4 = False
-    CH4_to_CO2 = 0.5 * (12 + 16 * 2) / (12 + 1 * 4)
-    Other_forcing_efficacy = 1
-
-    # climate sensitivity [K (W m-2)-1]
-    clim_sens1 = 0.631
-    clim_sens2 = 0.429
-    # climate time response [years]
-    clim_time1 = 8.4
-    clim_time2 = 409.5
-
-    mol_mass_air = 28.97  # g/mol
-    earth_area = 5.10e14  # m2
-    mass_atm = 5135200000000000000  # kg
-
-    # Lifetime Parameters
-    life1_CO2 = 394.4
-    life2_CO2 = 36.54
-    life3_CO2 = 4.304
-    life_CH4 = 12.4
-    life_N2O = 121
-
-    # Proportion lifetime applies to
-    p_0 = 0.2173
-    p_1 = 0.224
-    p_2 = 0.2824
-    p_3 = 0.2763
-
-    # Radiative efficiency [W m-2 ppb-1]
-    CO2_RE = 1.37e-05
-    CH4_RE = 0.000363
-    N2O_RE = 3.000e-03
-
-    # molar mass of CO2
-    mol_mass_CO2 = 44.01
-    mol_mass_CH4 = 16.05
-    mol_mass_N2O = 44.02
-
-    # adjustment factor
-    adj_factor_CO2 = 0.99746898064295
-    adj_factor_CH4 = 1 + 0.15 + 0.5
-    adj_factor_N2O = 1 - 0.36 * CH4_RE * adj_factor_CH4 / N2O_RE
-
-    # Inputs based upon time horizon
-    time_horizon: float = None
-    A_CO2: float = None
-    A_CH4: float = None
-    A_N2O: float = None
-    AGWP_CO2: float = None
-    AGWP_CH4: float = None
-    AGWP_N2O: float = None
-    GWP_CH4: float = None
-    GWP_N2O: float = None
-
-
-@dataclass
-class DLCAResults:
-    mass_in_atm_df: pd.DataFrame = None
-    CO2_mass_df: pd.DataFrame = None
-    cum_net_emissions: pd.DataFrame = None
-    irf_df: pd.DataFrame = None
-    equiv_df: pd.DataFrame = None
-    temp_change_df: pd.DataFrame = None

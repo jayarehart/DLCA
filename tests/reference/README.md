@@ -1,14 +1,14 @@
 # Reference tests: the Cooper et al. (2020) spreadsheet
 
-These tests run `dlca.engine` on seven emission cases and compare the results,
+These tests run `dlca.assess()` on seven emission cases and compare the results,
 year by year, with the *temporal climate impacts* spreadsheet by Sam Cooper.
 The reference is **Cooper et al. (2020) v5 with two corrections by DLCA: AGTP
 p_1→p_3 (cell `intro!E50`), and the pasted CH₄ AGWP/AGTP tables rescaled to
 the workbook's CH₄ molar mass of 16.05 g/mol (`equivalency_metrics!O7:O507`
 and `T7:T507`)**; see "Modifications" below.
-`dlca.engine` is a Python port of that spreadsheet (the column names match),
+`dlca` began as a Python port of that spreadsheet (the column names match),
 so the spreadsheet is an independent check **of the port**, not of the
-physics. Checks against published IPCC values come in M1.
+physics. Checks against published IPCC values are in `tests/analytic/`.
 
 ## Source and attribution
 
@@ -122,9 +122,9 @@ forcing" column are set to 0 in every case.
 | `negative_uptake` | −25 CO₂ every year 1–40 (−1000 in total) | FALSE |
 | `late_pulse` | 1 CO₂ at year 250 | FALSE |
 
-The shipped spreadsheet has `fossil_CH4 = TRUE`; the package's
-`DLCAInputData.fossil_CH4` defaults to FALSE. Each case sets the flag
-explicitly, and the tests set the engine's flag to match. The flag has no effect
+The shipped spreadsheet has `fossil_CH4 = TRUE`. Each case sets the flag
+explicitly, and the tests put the case's CH₄ under the `ch4_fossil` emissions
+key when it is TRUE and under `ch4` when it is FALSE. The flag has no effect
 on cases without CH₄. `building_lifecycle` uses FALSE so that it tests
 multi-gas superposition apart from the fossil-CH₄ path, which
 `ch4_pulse_fossil` covers.
@@ -136,8 +136,10 @@ Each `cases/<case>/` folder holds:
 - `inputs.csv`: `year`, `CO2_flux`, `CH4_flux`, `N2O_flux` (kg per year, as a
   pulse at the start of the year). These are the values written into
   `inventory_and_effects` columns B, C and D (rows 7–507 = years 0–500).
-- `settings.csv`: `fossil_CH4` (written to `intro!C31`) and `time_horizon`
-  (`intro!H26`, unchanged at 100).
+- `settings.csv`: `fossil_CH4` (written to `intro!C31`), `time_horizon`
+  (`intro!H26`, unchanged at 100) and `parameter_set` (always `AR5`, the only
+  set the spreadsheet holds; issue #31). The tests pass `parameter_set` to
+  `assess()` with no default, and `test_every_case_is_ar5` checks it.
 - `expected.csv`: the recalculated spreadsheet results, one row per year 0–500.
 
 Numbers are written as the shortest text that round-trips the stored double.
@@ -233,9 +235,9 @@ uv run --no-project --with openpyxl python -I \
 
 ## Tests
 
-`test_cooper_reference.py` runs the engine (`calc_decay`, `calc_AGWP`,
-`calc_AGTP` with a time horizon of 100) on each case's `inputs.csv` and
-compares 24 result columns with `numpy.testing.assert_allclose`, twice:
+`test_cooper_reference.py` runs `dlca.assess()` (with the case's
+`parameter_set` and `time_horizon`) on each case's `inputs.csv` and
+compares 28 result columns with `numpy.testing.assert_allclose`, twice:
 
 1. `test_engine_matches_spreadsheet`: every year, `rtol = 1e-9` and
    `atol = 1e-9 × max |expected|` for that column.
@@ -255,6 +257,6 @@ Two tests check that the committed reference has the corrections:
   AGWP₁₀₀(CH₄) ÷ AGWP₁₀₀(CO₂) and AGTP₁₀₀(CH₄) ÷ AGTP₁₀₀(CO₂) (1.003125
   without the correction).
 
-Where the engine disagrees, the test is marked `xfail(strict=True)` with the
+Where `dlca` disagrees, the test is marked `xfail(strict=True)` with the
 suspected cause and the measured size. Those are fixed in M1. **Never edit the
 expected values or the tolerances to make a test pass.**

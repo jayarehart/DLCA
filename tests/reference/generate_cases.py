@@ -497,7 +497,12 @@ def main(argv=None) -> int:
             write_csv(
                 d / "settings.csv",
                 ["name", "value"],
-                [["fossil_CH4", bool(spec["fossil_CH4"])], ["time_horizon", 100]],
+                # The spreadsheet holds AR5 values only (README "Parameter set").
+                [
+                    ["fossil_CH4", bool(spec["fossil_CH4"])],
+                    ["time_horizon", 100],
+                    ["parameter_set", "AR5"],
+                ],
             )
             names = [c[0] for c in OUTPUT_COLS]
             write_csv(
