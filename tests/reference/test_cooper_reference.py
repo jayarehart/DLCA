@@ -308,9 +308,11 @@ def test_building_lifecycle_flux_builder(gas):
         N2O=DLCA.EmissionsInventoryGHGi(
             ghg=DLCA.GHGTypes.N2O, emissions_A=0.1, emissions_B=0.002, emissions_C=0.02, **kwargs
         ),
-        # CO2bio is left at its default (material NA, no uptake). Passing TEST here
-        # trips the inverted material check in EmissionsInventoryAllGHG.__post_init__,
-        # which raises when the materials *match*.
+        # No biogenic uptake (rot_period 0 gives zero growth_biomass), for the same
+        # material: the material check is strict (decision A8 on #31).
+        CO2bio=DLCA.EmissionInventoryBio(
+            material=DLCA.MaterialTypes.TEST, CO2_bio=0.0, rot_period=0
+        ),
     )
     flux = DLCA.EmissionsFluxEngine.create_flux_mat(
         material=DLCA.MaterialTypes.TEST,

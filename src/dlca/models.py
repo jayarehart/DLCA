@@ -270,14 +270,10 @@ class EmissionsInventoryAllGHG:
 
     def __post_init__(self):
         self.material = self.CO2.material
-        # Check to see if materials match in each GHG inventory
-        if (
-            self.material
-            == self.CO2.material
-            == self.CH4.material
-            == self.N2O.material
-            == self.CO2bio.material
-        ):
+        # Every part of the inventory must be for the same material (strict; decision
+        # A8 on #31). CO2bio defaults to MaterialTypes.NA, so pass it explicitly.
+        parts = (self.CO2, self.CH4, self.N2O, self.CO2bio)
+        if len({part.material for part in parts}) != 1:
             raise ValueError(
                 "GHG inventory is created with mismatched materials. Check the emissions inventory"
             )

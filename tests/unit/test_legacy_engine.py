@@ -28,7 +28,9 @@ def make_emissions(emissions_a, emissions_c=0):
         emissions_C=emissions_c / 298,
         **kwargs,
     )
-    return DLCA.EmissionsInventoryAllGHG(CO2=co2, CH4=ch4, N2O=n2o)
+    # No biogenic carbon, but for the same material (the material check is strict).
+    bio = DLCA.EmissionInventoryBio(material=DLCA.MaterialTypes.TEST, CO2_bio=0.0, rot_period=0)
+    return DLCA.EmissionsInventoryAllGHG(CO2=co2, CH4=ch4, N2O=n2o, CO2bio=bio)
 
 
 def make_flux(emissions_inv):
