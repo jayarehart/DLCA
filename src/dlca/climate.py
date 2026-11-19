@@ -473,8 +473,9 @@ class StaticGWP:
             CH4; ``ch4_fossil`` includes the CO2 its oxidation forms.
         horizon: Time horizon [yr].
         gwp: GWP_H used for each key, ``agwp(key, H) / agwp("co2", H)`` [kg CO2e
-            per kg]. ``ch4_fossil`` is left out when the set has no fossil CH4
-            yield and there are no fossil CH4 emissions.
+            per kg]. Without fossil CH4 emissions, ``ch4_fossil`` is left out when
+            the set cannot compute it (no fossil CH4 yield, or a CH4 lifetime equal
+            to a CO2 or climate response time).
     """
 
     co2: NDArray[np.float64]
@@ -500,12 +501,23 @@ class StaticGWP:
 def _static_factors(
     e: Mapping[str, NDArray[np.float64]], params: ClimateParameters, horizon: float, metric
 ) -> dict[str, float]:
-    """metric(key, H) / metric("co2", H) per key; ch4_fossil only when computable or needed."""
-    keys = list(EMISSION_KEYS)
-    if params.ch4_fossil_co2_yield is None and not np.any(e["ch4_fossil"] != 0):
-        keys.remove("ch4_fossil")
+    """metric(key, H) / metric("co2", H) per key.
+
+    The ch4_fossil factor is required (errors propagate) when there are fossil CH4
+    emissions. Without them it is included only if the set can compute it (it has
+    a yield, and the CH4 lifetime is not a CO2 or climate response time), so
+    non-fossil input never fails because of the fossil closed form.
+    """
     ref = metric("co2", horizon, params)
-    return {key: metric(key, horizon, params) / ref for key in keys}
+    factors = {key: metric(key, horizon, params) / ref for key in ("co2", "ch4", "n2o")}
+    if np.any(e["ch4_fossil"] != 0):
+        factors["ch4_fossil"] = metric("ch4_fossil", horizon, params) / ref
+    else:
+        try:
+            factors["ch4_fossil"] = metric("ch4_fossil", horizon, params) / ref
+        except ValueError:
+            pass
+    return {key: factors[key] for key in EMISSION_KEYS if key in factors}
 
 
 def static_gwp(

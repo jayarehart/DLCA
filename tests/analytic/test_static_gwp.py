@@ -199,6 +199,20 @@ def test_set_without_yield():
             call({"ch4_fossil": [1.0, 0.0]}, p)
 
 
+def test_non_fossil_input_ignores_fossil_closed_form_limits():
+    """A CH4 lifetime equal to a CO2 pool time breaks only the fossil closed form:
+    non-fossil input still works in gwi(), gtp() and static_gwp(); fossil input raises.
+    (Found in the fresh-session review of #30.)"""
+    p = get_parameters("AR5")
+    bad = dataclasses.replace(p, ch4_lifetime=p.co2_tau[2])
+    e = {"co2": [1.0, 0.0], "ch4": [1.0, 0.0]}
+    for call in (static_gwp, gwi, gtp):
+        call(e, bad)
+    assert "ch4_fossil" not in static_gwp(e, bad).gwp
+    with pytest.raises(ValueError, match="fossil CH4 closed form"):
+        static_gwp({"ch4_fossil": [1.0, 0.0]}, bad)
+
+
 @pytest.mark.parametrize(
     ("call", "match"),
     [
