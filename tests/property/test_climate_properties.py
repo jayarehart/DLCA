@@ -116,7 +116,12 @@ def outputs(e, params, *, fossil_ch4: bool, horizon: float) -> dict[str, np.ndar
     out |= {"gwi.dynamic": g.dynamic, "gwi.sliding": g.sliding}
     out |= {f"temperature.{k}": v for k, v in t.to_dict().items()}
     out |= {"gtp.dynamic": p.dynamic, "gtp.sliding": p.sliding, "gtp.static": p.static}
-    return {k: np.asarray(v, dtype=float) for k, v in out.items()}
+    # parameter_fingerprint is a string, not a series (#37).
+    return {
+        k: np.asarray(v, dtype=float)
+        for k, v in out.items()
+        if not k.endswith(".parameter_fingerprint")
+    }
 
 
 def absolute(e):

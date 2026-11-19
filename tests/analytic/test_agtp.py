@@ -178,7 +178,7 @@ def test_agtp_shape_and_scalar():
     assert agtp("n2o", h, p).shape == (2, 3)
     t = temperature(burden(pulse("co2", 5), p), p)
     assert isinstance(t, Temperature)
-    assert set(t.to_dict()) == {"co2", "ch4", "n2o"}
+    assert set(t.to_dict()) == {"co2", "ch4", "n2o", "parameter_fingerprint"}
     np.testing.assert_array_equal(t.total, t.co2 + t.ch4 + t.n2o)
 
 

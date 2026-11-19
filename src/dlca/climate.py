@@ -35,6 +35,14 @@ oxidised. Static GWP and GTP multiply cumulative emissions by GWP_H or GTP_H;
 for fossil CH4 the factor includes the oxidised CO2 by the closed form behind
 AR5 Table 8.A.1 (Boucher et al. 2009), from ``agwp("ch4_fossil", ...)`` and
 ``agtp("ch4_fossil", ...)``.
+
+Parameter-set guard (issue #37, decision record 0009, 2026-11-19). ``Burden``,
+``Forcing`` and ``Temperature`` record ``parameter_fingerprint``, the
+``fingerprint()`` of the set that made them. ``forcing()`` and ``temperature()``
+raise ``ValueError`` when the burden's fingerprint differs from that of the set
+they are given, so a burden made with one set cannot silently be used with
+another. The check compares values, not names: a variant made with
+``dataclasses.replace()`` keeps its name but is a different set.
 """
 
 from __future__ import annotations
@@ -91,6 +99,27 @@ def _arrays(data: Mapping, names: tuple[str, ...]) -> dict[str, NDArray[np.float
     return {name: np.asarray(data[name], dtype=float) for name in names}
 
 
+def _fingerprint_from(data: Mapping) -> str:
+    """The ``parameter_fingerprint`` of a ``to_dict()`` output (for ``from_dict()``)."""
+    if "parameter_fingerprint" not in data:
+        raise ValueError("missing key(s) ['parameter_fingerprint']")
+    return str(data["parameter_fingerprint"])
+
+
+def _check_same_set(b: Burden, params: ClimateParameters, function: str) -> str:
+    """``params.fingerprint()``, or ``ValueError`` if ``b`` was made with another set."""
+    fingerprint = params.fingerprint()
+    if b.parameter_fingerprint != fingerprint:
+        raise ValueError(
+            f"{function}() was given parameter set {params.name!r} ({fingerprint[:8]}), but "
+            f"the burden was made with a different set ({b.parameter_fingerprint[:8]}). "
+            f"Build the burden and the {function} with the same parameter set. A set "
+            "changed with dataclasses.replace() (for example carbon_cycle_feedback) keeps "
+            "its name but is a different set."
+        )
+    return fingerprint
+
+
 @dataclass(frozen=True, eq=False)
 class Burden:
     """Mass of each gas in the atmosphere, in kg, one value per year.
@@ -105,6 +134,10 @@ class Burden:
         n2o: N2O. Shape (N,).
         ch4_to_co2: CO2 formed from fossil CH4 removed in each year, added to that
             year's CO2 emissions. Zeros without ``ch4_fossil`` emissions. Shape (N,).
+        parameter_fingerprint: ``fingerprint()`` of the parameter set the burden
+            was made with. Required: ``forcing()`` and ``temperature()`` refuse a
+            burden whose fingerprint differs from their set's (#37). Kept as the
+            last field.
     """
 
     co2: NDArray[np.float64]
@@ -112,21 +145,26 @@ class Burden:
     ch4: NDArray[np.float64]
     n2o: NDArray[np.float64]
     ch4_to_co2: NDArray[np.float64]
+    parameter_fingerprint: str
 
-    def to_dict(self) -> dict[str, list]:
-        """JSON-serialisable dict of plain lists (decision record 0005)."""
+    def to_dict(self) -> dict[str, list | str]:
+        """JSON-serialisable dict of plain lists and the fingerprint (decision record 0005)."""
         return {
             "co2": self.co2.tolist(),
             "co2_pools": self.co2_pools.tolist(),
             "ch4": self.ch4.tolist(),
             "n2o": self.n2o.tolist(),
             "ch4_to_co2": self.ch4_to_co2.tolist(),
+            "parameter_fingerprint": self.parameter_fingerprint,
         }
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, list]) -> Burden:
-        """Inverse of ``to_dict()``."""
-        return cls(**_arrays(data, ("co2", "co2_pools", "ch4", "n2o", "ch4_to_co2")))
+    def from_dict(cls, data: Mapping[str, list | str]) -> Burden:
+        """Inverse of ``to_dict()``. A missing key raises ``ValueError``."""
+        return cls(
+            **_arrays(data, ("co2", "co2_pools", "ch4", "n2o", "ch4_to_co2")),
+            parameter_fingerprint=_fingerprint_from(data),
+        )
 
 
 def _decay(emissions: NDArray[np.float64], tau: float) -> NDArray[np.float64]:
@@ -178,7 +216,8 @@ def burden(emissions: Mapping[str, ArrayLike], params: ClimateParameters) -> Bur
         params: The climate parameter set.
 
     Returns:
-        A ``Burden`` with arrays in kg.
+        A ``Burden`` with arrays in kg, and ``parameter_fingerprint`` set to
+        ``params.fingerprint()``.
 
     Raises:
         ValueError: for an unknown key, arrays that are not 1-D, of unequal or zero
@@ -210,6 +249,7 @@ def burden(emissions: Mapping[str, ArrayLike], params: ClimateParameters) -> Bur
         ch4=ch4,
         n2o=n2o,
         ch4_to_co2=ch4_to_co2,
+        parameter_fingerprint=params.fingerprint(),
     )
 
 
@@ -289,6 +329,8 @@ class Forcing:
             pulse [W m-2]. Shape (N,).
         co2_integrated, ch4_integrated, n2o_integrated: Forcing integrated from
             year 0 to the start of year t [W yr m-2]; 0 at year 0. Shape (N,).
+        parameter_fingerprint: ``fingerprint()`` of the parameter set that made
+            it (#37). Kept as the last field.
     """
 
     co2: NDArray[np.float64]
@@ -297,6 +339,7 @@ class Forcing:
     co2_integrated: NDArray[np.float64]
     ch4_integrated: NDArray[np.float64]
     n2o_integrated: NDArray[np.float64]
+    parameter_fingerprint: str
 
     @property
     def total(self) -> NDArray[np.float64]:
@@ -308,16 +351,18 @@ class Forcing:
         """Sum of the gases' integrated forcing [W yr m-2]."""
         return self.co2_integrated + self.ch4_integrated + self.n2o_integrated
 
-    def to_dict(self) -> dict[str, list]:
-        """JSON-serialisable dict of plain lists (decision record 0005)."""
+    def to_dict(self) -> dict[str, list | str]:
+        """JSON-serialisable dict of plain lists and the fingerprint (decision record 0005)."""
         names = ("co2", "ch4", "n2o", "co2_integrated", "ch4_integrated", "n2o_integrated")
-        return {name: getattr(self, name).tolist() for name in names}
+        out: dict[str, list | str] = {name: getattr(self, name).tolist() for name in names}
+        out["parameter_fingerprint"] = self.parameter_fingerprint
+        return out
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, list]) -> Forcing:
-        """Inverse of ``to_dict()``."""
+    def from_dict(cls, data: Mapping[str, list | str]) -> Forcing:
+        """Inverse of ``to_dict()``. A missing key raises ``ValueError``."""
         names = ("co2", "ch4", "n2o", "co2_integrated", "ch4_integrated", "n2o_integrated")
-        return cls(**_arrays(data, names))
+        return cls(**_arrays(data, names), parameter_fingerprint=_fingerprint_from(data))
 
 
 def _integrate(increments: NDArray[np.float64]) -> NDArray[np.float64]:
@@ -332,11 +377,19 @@ def forcing(b: Burden, params: ClimateParameters) -> Forcing:
 
     Args:
         b: Atmospheric masses from ``burden()`` [kg].
-        params: The climate parameter set; it should be the one ``b`` was made with.
+        params: The climate parameter set ``b`` was made with.
 
     Returns:
-        A ``Forcing`` with arrays of the burden's length. Inputs are not changed.
+        A ``Forcing`` with arrays of the burden's length and the set's
+        ``parameter_fingerprint``. Inputs are not changed.
+
+    Raises:
+        ValueError: if ``b.parameter_fingerprint`` differs from
+            ``params.fingerprint()`` (``b`` was made with another set, or a
+            variant of this one; #37), or if ``b`` has the wrong number of CO2
+            pools.
     """
+    fingerprint = _check_same_set(b, params, "forcing")
     a_co2 = specific_forcing("co2", params)
     g = np.array([1.0] + [tau * (1.0 - np.exp(-1.0 / tau)) for tau in params.co2_tau])
     if b.co2_pools.shape[0] != g.shape[0]:
@@ -351,7 +404,7 @@ def forcing(b: Burden, params: ClimateParameters) -> Forcing:
         mass = getattr(b, gas)
         out[gas] = a * mass
         out[f"{gas}_integrated"] = _integrate(a * tau * (1.0 - np.exp(-1.0 / tau)) * mass)
-    return Forcing(**out)
+    return Forcing(**out, parameter_fingerprint=fingerprint)
 
 
 def agwp(gas: str, horizon: ArrayLike, params: ClimateParameters) -> NDArray[np.float64] | float:
@@ -623,25 +676,30 @@ class Temperature:
     Attributes:
         co2, ch4, n2o: Temperature change at the start of year t [K]; 0 at
             year 0. Shape (N,).
+        parameter_fingerprint: ``fingerprint()`` of the parameter set that made
+            it (#37). Kept as the last field.
     """
 
     co2: NDArray[np.float64]
     ch4: NDArray[np.float64]
     n2o: NDArray[np.float64]
+    parameter_fingerprint: str
 
     @property
     def total(self) -> NDArray[np.float64]:
         """Sum of the gases' temperature change [K]."""
         return self.co2 + self.ch4 + self.n2o
 
-    def to_dict(self) -> dict[str, list]:
-        """JSON-serialisable dict of plain lists (decision record 0005)."""
-        return {name: getattr(self, name).tolist() for name in GASES}
+    def to_dict(self) -> dict[str, list | str]:
+        """JSON-serialisable dict of plain lists and the fingerprint (decision record 0005)."""
+        out: dict[str, list | str] = {name: getattr(self, name).tolist() for name in GASES}
+        out["parameter_fingerprint"] = self.parameter_fingerprint
+        return out
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, list]) -> Temperature:
-        """Inverse of ``to_dict()``."""
-        return cls(**_arrays(data, GASES))
+    def from_dict(cls, data: Mapping[str, list | str]) -> Temperature:
+        """Inverse of ``to_dict()``. A missing key raises ``ValueError``."""
+        return cls(**_arrays(data, GASES), parameter_fingerprint=_fingerprint_from(data))
 
 
 def temperature(b: Burden, params: ClimateParameters) -> Temperature:
@@ -662,10 +720,31 @@ def temperature(b: Burden, params: ClimateParameters) -> Temperature:
 
     Args:
         b: Atmospheric masses from ``burden()`` [kg].
-        params: The climate parameter set; it should be the one ``b`` was made with.
+        params: The climate parameter set ``b`` was made with.
 
     Returns:
-        A ``Temperature`` with arrays of the burden's length. Inputs are not changed.
+        A ``Temperature`` with arrays of the burden's length and the set's
+        ``parameter_fingerprint``. Inputs are not changed.
+
+    Raises:
+        ValueError: if ``b.parameter_fingerprint`` differs from
+            ``params.fingerprint()`` (``b`` was made with another set, or a
+            variant of this one; #37), if ``b`` has the wrong number of CO2
+            pools, or if a lifetime equals a climate response time (T7 on #29).
+    """
+    fingerprint = _check_same_set(b, params, "temperature")
+    return Temperature(
+        **_temperature_series(b, params),
+        parameter_fingerprint=fingerprint,
+    )
+
+
+def _temperature_series(b: Burden, params: ClimateParameters) -> dict[str, NDArray[np.float64]]:
+    """The ``co2``, ``ch4`` and ``n2o`` series of ``temperature()``, with no set check.
+
+    For callers that hold arrays made with ``params`` but no finished ``Burden``
+    of that set, for example a step inside ``burden()`` (R5 on #37). Only
+    ``co2_pools``, ``ch4`` and ``n2o`` of ``b`` are read.
     """
     n_pools = len(params.co2_a)
     if b.co2_pools.shape[0] != n_pools:
@@ -683,7 +762,7 @@ def temperature(b: Burden, params: ClimateParameters) -> Temperature:
             kernel = np.exp(-np.arange(n, dtype=float) / d)
             t[1:] += np.convolve(step, kernel)[: n - 1]
         out[gas] = t
-    return Temperature(**out)
+    return out
 
 
 def agtp(gas: str, horizon: ArrayLike, params: ClimateParameters) -> NDArray[np.float64] | float:

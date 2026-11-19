@@ -95,7 +95,8 @@ def test_from_dict_rejects_edited_parameter_values():
     ("field", "value", "match"),
     [
         ("schema", "something.else", "not a DLCA result"),
-        ("schema_version", 2, "schema_version"),
+        ("schema_version", 1, "schema_version"),  # v1 predates the fingerprints (#37)
+        ("schema_version", 3, "schema_version"),
     ],
 )
 def test_from_dict_rejects_other_schemas(field, value, match):
