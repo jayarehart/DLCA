@@ -27,6 +27,14 @@ Temperature and GTP (issue #29, decisions T1-T7, 2026-11-19). Each box of the
 two-box climate response steps exactly between whole years on the same
 exponentially decaying forcing (see ``temperature()``), so for a pulse the
 temperature change equals the closed-form ``agtp()`` at whole years.
+
+Fossil CH4 and static metrics (issue #30, decisions S1-S7, 2026-11-19). Fossil
+CH4 is its own emissions key, ``ch4_fossil``: it adds to the CH4 burden like
+``ch4`` and is also oxidised to CO2 (``burden()``). Non-fossil ``ch4`` is not
+oxidised. Static GWP and GTP multiply cumulative emissions by GWP_H or GTP_H;
+for fossil CH4 the factor includes the oxidised CO2 by the closed form behind
+AR5 Table 8.A.1 (Boucher et al. 2009), from ``agwp("ch4_fossil", ...)`` and
+``agtp("ch4_fossil", ...)``.
 """
 
 from __future__ import annotations
@@ -43,8 +51,10 @@ __all__ = [
     "CO2_PER_CH4_MASS_RATIO",
     "GASES",
     "GTP",
+    "EMISSION_KEYS",
     "GWI",
     "Burden",
+    "StaticGWP",
     "Forcing",
     "Temperature",
     "agtp",
@@ -54,10 +64,17 @@ __all__ = [
     "gtp",
     "gwi",
     "specific_forcing",
+    "static_gwp",
     "temperature",
 ]
 
+# The physical gases: one burden, forcing and temperature series each.
 GASES = ("co2", "ch4", "n2o")
+
+# The keys an emissions mapping may hold (decision S4 on #30). ``ch4`` is
+# non-fossil (biogenic) CH4, which is not oxidised to CO2; ``ch4_fossil`` is
+# fossil CH4, which is. Both add to the CH4 burden.
+EMISSION_KEYS = ("co2", "ch4", "ch4_fossil", "n2o")
 
 # kg CO2 per kg CH4 for a 1 mol/mol conversion, from nominal integer molar masses
 # (12 + 2*16) / (12 + 4) = 44/16. Decision D1 on issue #27 (Jay, 2026-11-18): this
@@ -74,10 +91,12 @@ class Burden:
         co2: Total CO2, the sum of ``co2_pools``. Shape (N,).
         co2_pools: CO2 per impulse-response pool. Shape (4, N). Pool 0 is the
             permanent fraction a0; pools 1-3 decay with ``co2_tau[0..2]``.
-        ch4: CH4. Shape (N,).
+        ch4: CH4, fossil and non-fossil together (decision S5 on #30; ``burden()``
+            is linear, so ``burden({"ch4_fossil": ...})`` gives the fossil part).
+            Shape (N,).
         n2o: N2O. Shape (N,).
         ch4_to_co2: CO2 formed from fossil CH4 removed in each year, added to that
-            year's CO2 emissions. Zeros unless ``fossil_ch4=True``. Shape (N,).
+            year's CO2 emissions. Zeros without ``ch4_fossil`` emissions. Shape (N,).
     """
 
     co2: NDArray[np.float64]
@@ -105,9 +124,11 @@ def _decay(emissions: NDArray[np.float64], tau: float) -> NDArray[np.float64]:
 
 
 def _validate(emissions: Mapping[str, ArrayLike]) -> dict[str, NDArray[np.float64]]:
-    unknown = set(emissions) - set(GASES)
+    unknown = set(emissions) - set(EMISSION_KEYS)
     if unknown:
-        raise ValueError(f"unknown gas(es) {sorted(unknown)}; expected some of {list(GASES)}")
+        raise ValueError(
+            f"unknown emissions key(s) {sorted(unknown)}; expected some of {list(EMISSION_KEYS)}"
+        )
     if not emissions:
         raise ValueError("emissions is empty; give at least one gas")
     arrays = {}
@@ -124,50 +145,44 @@ def _validate(emissions: Mapping[str, ArrayLike]) -> dict[str, NDArray[np.float6
     n = next(iter(lengths.values()))
     if n == 0:
         raise ValueError("emissions arrays are empty")
-    return {gas: arrays.get(gas, np.zeros(n)) for gas in GASES}
+    return {key: arrays.get(key, np.zeros(n)) for key in EMISSION_KEYS}
 
 
-def burden(
-    emissions: Mapping[str, ArrayLike],
-    params: ClimateParameters,
-    *,
-    fossil_ch4: bool = False,
-) -> Burden:
+def burden(emissions: Mapping[str, ArrayLike], params: ClimateParameters) -> Burden:
     """Mass of CO2, CH4 and N2O in the atmosphere from annual emissions.
 
     Args:
-        emissions: ``{"co2": ..., "ch4": ..., "n2o": ...}``, emissions of each gas
-            in kg of that gas (not kg C) per year, index 0 = year 0, all the same
-            length. A missing gas counts as zeros. Negative values (uptake) are
-            allowed.
-        params: The climate parameter set.
-        fossil_ch4: If true, CH4 removed from the atmosphere is oxidised to CO2.
-            The CH4 removed during year k, ``ch4[k-1] * (1 - exp(-1/tau_CH4))``,
-            times ``params.fossil_ch4_co2_yield()`` [mol/mol] times
+        emissions: ``{"co2": ..., "ch4": ..., "ch4_fossil": ..., "n2o": ...}``,
+            emissions in kg of that gas (not kg C) per year, index 0 = year 0, all
+            the same length. A missing key counts as zeros. Negative values
+            (uptake) are allowed. ``ch4`` is non-fossil CH4; ``ch4_fossil`` is
+            fossil CH4, which is also oxidised to CO2: the fossil CH4 removed
+            during year k, ``m_fossil[k-1] * (1 - exp(-1/tau_CH4))``, times
+            ``params.fossil_ch4_co2_yield()`` [mol/mol] times
             ``CO2_PER_CH4_MASS_RATIO``, is added to the CO2 emissions of year k
-            before the CO2 pools are computed. The flag applies to all of the
-            CH4 in ``emissions``; for a mix of fossil and biogenic CH4, call
-            ``burden()`` once for each and add the results (it is linear).
-            Negative CH4 (net removal) then gives negative oxidised CO2.
+            before the CO2 pools are computed. Negative fossil CH4 (net removal)
+            gives negative oxidised CO2.
+        params: The climate parameter set.
 
     Returns:
         A ``Burden`` with arrays in kg.
 
     Raises:
-        ValueError: for an unknown gas, arrays that are not 1-D, of unequal or zero
-            length, or with non-finite values; or if ``fossil_ch4`` is true and the
-            set has no fossil CH4 yield.
+        ValueError: for an unknown key, arrays that are not 1-D, of unequal or zero
+            length, or with non-finite values; or if ``ch4_fossil`` has a non-zero
+            value and the set has no fossil CH4 yield.
     """
     e = _validate(emissions)
     n = e["co2"].shape[0]
 
-    ch4 = _decay(e["ch4"], params.ch4_lifetime)
+    ch4_fossil = _decay(e["ch4_fossil"], params.ch4_lifetime)
+    ch4 = _decay(e["ch4"], params.ch4_lifetime) + ch4_fossil
     n2o = _decay(e["n2o"], params.n2o_lifetime)
 
     ch4_to_co2 = np.zeros(n)
-    if fossil_ch4:
+    if np.any(e["ch4_fossil"] != 0):
         kg_per_kg = params.fossil_ch4_co2_yield() * CO2_PER_CH4_MASS_RATIO
-        removed = ch4[:-1] * (1.0 - np.exp(-1.0 / params.ch4_lifetime))
+        removed = ch4_fossil[:-1] * (1.0 - np.exp(-1.0 / params.ch4_lifetime))
         ch4_to_co2[1:] = kg_per_kg * removed
 
     co2_in = e["co2"] + ch4_to_co2
@@ -193,10 +208,47 @@ def _molar_mass(gas: str, params: ClimateParameters) -> float:
     }[gas]
 
 
-def _check_gas(gas: str) -> str:
-    if not isinstance(gas, str) or gas.lower() not in GASES:
-        raise ValueError(f"unknown gas {gas!r}; expected one of {list(GASES)}")
+def _check_gas(gas: str, allowed: tuple[str, ...] = GASES) -> str:
+    if not isinstance(gas, str) or gas.lower() not in allowed:
+        raise ValueError(f"unknown gas {gas!r}; expected one of {list(allowed)}")
     return gas.lower()
+
+
+def _check_horizon_array(horizon: ArrayLike) -> NDArray[np.float64]:
+    h = np.asarray(horizon, dtype=float)
+    if not np.all(np.isfinite(h)) or np.any(h < 0):
+        raise ValueError("horizon must be finite and >= 0")
+    return h
+
+
+def _check_horizon(horizon: float) -> float:
+    horizon = float(horizon)
+    if not np.isfinite(horizon) or horizon <= 0:
+        raise ValueError(f"horizon must be finite and > 0, got {horizon}")
+    return horizon
+
+
+def _after_ch4_decay(tau: float, c: float | None, h: NDArray[np.float64]) -> NDArray[np.float64]:
+    """Integral of (1/tau) exp(-u/tau) exp(-(H-u)/c) du from 0 to H; c=None means c=inf.
+
+    The fossil CH4 removed in [u, u+du] is (1/tau) exp(-u/tau) du per kg emitted at
+    0, so this convolves the CH4 removal rate with a response exp(-t/c) to the CO2
+    it forms. ``c / (c - tau) (exp(-H/c) - exp(-H/tau))``, or ``1 - exp(-H/tau)``
+    for c = inf. Raises ``ValueError`` if c is within 1e-6 c of tau.
+    """
+    if c is None:
+        return 1.0 - np.exp(-h / tau)
+    if abs(c - tau) < 1e-6 * c:
+        raise ValueError(
+            f"CH4 lifetime {tau} yr equals a CO2 or climate response time {c} yr; "
+            "the fossil CH4 closed form is not defined for this parameter set"
+        )
+    return c / (c - tau) * (np.exp(-h / c) - np.exp(-h / tau))
+
+
+def _oxidised_co2_per_kg_ch4(params: ClimateParameters) -> float:
+    """kg CO2 formed per kg fossil CH4 removed."""
+    return params.fossil_ch4_co2_yield() * CO2_PER_CH4_MASS_RATIO
 
 
 def _lifetime(gas: str, params: ClimateParameters) -> float:
@@ -287,23 +339,37 @@ def agwp(gas: str, horizon: ArrayLike, params: ClimateParameters) -> NDArray[np.
     """Absolute global warming potential of a 1 kg pulse [W m-2 yr kg-1], closed form.
 
     - CO2: ``A * (a0 H + sum_i a_i tau_i (1 - exp(-H / tau_i)))``.
-    - CH4, N2O: ``A * tau (1 - exp(-H / tau))``.
+    - CH4, N2O: ``A * tau (1 - exp(-H / tau))``. ``"ch4"`` is not oxidised.
+    - ``"ch4_fossil"`` (decision S1/S2-A on #30): the CH4 term plus the oxidised
+      CO2, ``Y * 44/16 * integral_0^H (1/tau) exp(-t/tau) AGWP_CO2(H - t) dt``,
+      with ``Y = params.fossil_ch4_co2_yield()`` (Boucher et al. 2009, the method
+      of AR5 Table 8.A.1). This is the continuous-time value. ``gwi().sliding``,
+      which adds the oxidised CO2 in whole years, differs from it by 0.02% to
+      0.05% for a fossil pulse (AR5 and AR6, H = 20 and 100; decision S2-A).
 
-    ``A`` is ``specific_forcing(gas, params)``. No carbon-cycle feedback (#33),
-    and CH4 is not oxidised to CO2 (see #30).
+    ``A`` is ``specific_forcing(gas, params)``. No carbon-cycle feedback (#33).
 
     Args:
-        gas: ``"co2"``, ``"ch4"`` or ``"n2o"``.
+        gas: ``"co2"``, ``"ch4"``, ``"ch4_fossil"`` or ``"n2o"``.
         horizon: Time horizon(s) H [yr], >= 0. Any shape.
         params: The climate parameter set.
 
     Returns:
         An array of ``horizon``'s shape, or a float for a scalar ``horizon``.
     """
-    gas = _check_gas(gas)
-    h = np.asarray(horizon, dtype=float)
-    if not np.all(np.isfinite(h)) or np.any(h < 0):
-        raise ValueError("horizon must be finite and >= 0")
+    gas = _check_gas(gas, EMISSION_KEYS)
+    h = _check_horizon_array(horizon)
+    if gas == "ch4_fossil":
+        tau = params.ch4_lifetime
+        a0, *a_decaying = params.co2_a
+        ox = a0 * (h - tau * (1.0 - np.exp(-h / tau)))
+        for ai, tau_i in zip(a_decaying, params.co2_tau, strict=True):
+            ox = ox + ai * tau_i * (
+                _after_ch4_decay(tau, None, h) - _after_ch4_decay(tau, tau_i, h)
+            )
+        co2 = specific_forcing("co2", params) * ox
+        out = agwp("ch4", h, params) + _oxidised_co2_per_kg_ch4(params) * co2
+        return float(out) if out.ndim == 0 else out
     a = specific_forcing(gas, params)
     if gas == "co2":
         a0, *a_decaying = params.co2_a
@@ -331,12 +397,16 @@ class GWI:
             t >= horizon. CO2 formed from
             fossil CH4 counts as CO2 emitted in the year it forms (decision D2,
             #28). Shape (N,). (The Cooper spreadsheet's ``GWP_sliding_CO2e``.)
+        static: ``static_gwp(...).total``: cumulative net emissions up to year t
+            times GWP_H, summed over the keys [kg CO2e]. Fossil CH4 includes its
+            oxidised CO2 (decision S3 on #30). Shape (N,). (``GWP_static_CO2e``.)
         horizon: Time horizon [yr].
         agwp_co2: ``agwp("co2", horizon, params)`` [W m-2 yr kg-1].
     """
 
     dynamic: NDArray[np.float64]
     sliding: NDArray[np.float64]
+    static: NDArray[np.float64]
     horizon: float
     agwp_co2: float
 
@@ -345,6 +415,7 @@ class GWI:
         return {
             "dynamic": self.dynamic.tolist(),
             "sliding": self.sliding.tolist(),
+            "static": self.static.tolist(),
             "horizon": self.horizon,
             "agwp_co2": self.agwp_co2,
         }
@@ -355,41 +426,123 @@ def gwi(
     params: ClimateParameters,
     *,
     horizon: float = 100,
-    fossil_ch4: bool = False,
 ) -> GWI:
-    """Cumulative dynamic GWI and sliding GWP from annual emissions.
+    """Cumulative dynamic GWI and sliding and static GWP from annual emissions.
 
     Args:
-        emissions: As for ``burden()``: kg of each gas per year, index 0 = year 0.
+        emissions: As for ``burden()``: kg per year of each key, index 0 = year 0.
         params: The climate parameter set.
         horizon: Time horizon H [yr] for the CO2 normalisation and the sliding
-            GWP; > 0.
-        fossil_ch4: As for ``burden()``.
+            and static GWP; > 0.
 
     Returns:
-        A ``GWI``. Both series are normalised by AGWP_H(CO2) from the same
+        A ``GWI``. All three series are normalised by AGWP_H(CO2) from the same
         ``params``.
     """
-    horizon = float(horizon)
-    if not np.isfinite(horizon) or horizon <= 0:
-        raise ValueError(f"horizon must be finite and > 0, got {horizon}")
+    horizon = _check_horizon(horizon)
     e = _validate(emissions)
-    b = burden(e, params, fossil_ch4=fossil_ch4)
+    b = burden(e, params)
     f = forcing(b, params)
     ref = agwp("co2", horizon, params)
 
     n = b.co2.shape[0]
     remaining = np.clip(horizon - np.arange(n, dtype=float), 0.0, None)
     contribution = (e["co2"] + b.ch4_to_co2) * agwp("co2", remaining, params)
-    for gas in ("ch4", "n2o"):
-        contribution = contribution + e[gas] * agwp(gas, remaining, params)
+    contribution = contribution + (e["ch4"] + e["ch4_fossil"]) * agwp("ch4", remaining, params)
+    contribution = contribution + e["n2o"] * agwp("n2o", remaining, params)
 
     return GWI(
         dynamic=f.total_integrated / ref,
         sliding=np.cumsum(contribution) / ref,
+        static=static_gwp(e, params, horizon=horizon).total,
         horizon=horizon,
         agwp_co2=ref,
     )
+
+
+@dataclass(frozen=True, eq=False)
+class StaticGWP:
+    """Static GWP by emissions key, in kg CO2-equivalent, one value per year.
+
+    Each series is the cumulative net emissions of that key up to year t times
+    its GWP_H, with no timing (decision S1 on #30). The totals over the whole
+    period are the last values.
+
+    Attributes:
+        co2, ch4, ch4_fossil, n2o: [kg CO2e]. Shape (N,). ``ch4`` is non-fossil
+            CH4; ``ch4_fossil`` includes the CO2 its oxidation forms.
+        horizon: Time horizon [yr].
+        gwp: GWP_H used for each key, ``agwp(key, H) / agwp("co2", H)`` [kg CO2e
+            per kg]. Without fossil CH4 emissions, ``ch4_fossil`` is left out when
+            the set cannot compute it (no fossil CH4 yield, or a CH4 lifetime equal
+            to a CO2 or climate response time).
+    """
+
+    co2: NDArray[np.float64]
+    ch4: NDArray[np.float64]
+    ch4_fossil: NDArray[np.float64]
+    n2o: NDArray[np.float64]
+    horizon: float
+    gwp: Mapping[str, float]
+
+    @property
+    def total(self) -> NDArray[np.float64]:
+        """Sum over the keys [kg CO2e]."""
+        return self.co2 + self.ch4 + self.ch4_fossil + self.n2o
+
+    def to_dict(self) -> dict:
+        """JSON-serialisable dict (decision record 0005)."""
+        out: dict = {key: getattr(self, key).tolist() for key in EMISSION_KEYS}
+        out["horizon"] = self.horizon
+        out["gwp"] = dict(self.gwp)
+        return out
+
+
+def _static_factors(
+    e: Mapping[str, NDArray[np.float64]], params: ClimateParameters, horizon: float, metric
+) -> dict[str, float]:
+    """metric(key, H) / metric("co2", H) per key.
+
+    The ch4_fossil factor is required (errors propagate) when there are fossil CH4
+    emissions. Without them it is included only if the set can compute it (it has
+    a yield, and the CH4 lifetime is not a CO2 or climate response time), so
+    non-fossil input never fails because of the fossil closed form.
+    """
+    ref = metric("co2", horizon, params)
+    factors = {key: metric(key, horizon, params) / ref for key in ("co2", "ch4", "n2o")}
+    if np.any(e["ch4_fossil"] != 0):
+        factors["ch4_fossil"] = metric("ch4_fossil", horizon, params) / ref
+    else:
+        try:
+            factors["ch4_fossil"] = metric("ch4_fossil", horizon, params) / ref
+        except ValueError:
+            pass
+    return {key: factors[key] for key in EMISSION_KEYS if key in factors}
+
+
+def static_gwp(
+    emissions: Mapping[str, ArrayLike],
+    params: ClimateParameters,
+    *,
+    horizon: float = 100,
+) -> StaticGWP:
+    """Static GWP from annual emissions: cumulative emissions times GWP_H, by key.
+
+    Args:
+        emissions: As for ``burden()``: kg per year of each key, index 0 = year 0.
+        params: The climate parameter set.
+        horizon: Time horizon H [yr]; > 0.
+
+    Returns:
+        A ``StaticGWP``. GWP_H is ``agwp(key, H) / agwp("co2", H)`` from the same
+        ``params``; for ``ch4_fossil`` it includes the oxidised CO2 (decision
+        S2-A on #30).
+    """
+    horizon = _check_horizon(horizon)
+    e = _validate(emissions)
+    factors = _static_factors(e, params, horizon, agwp)
+    series = {key: np.cumsum(e[key]) * factors.get(key, 0.0) for key in EMISSION_KEYS}
+    return StaticGWP(**series, horizon=horizon, gwp=factors)
 
 
 # --- Temperature and GTP (issue #29) -----------------------------------------
@@ -499,21 +652,40 @@ def agtp(gas: str, horizon: ArrayLike, params: ClimateParameters) -> NDArray[np.
     ``_box_response``. For CO2 the components are the permanent pool a0 and the
     three decaying pools a1..a3 with ``co2_tau`` (the third pool uses a3, not a1:
     the AGTP p1 -> p3 fix, issue #29). For CH4 and N2O there is one component
-    with the gas's lifetime. No carbon-cycle feedback (#33), and CH4 is not
-    oxidised to CO2 (see #30).
+    with the gas's lifetime; ``"ch4"`` is not oxidised. No carbon-cycle
+    feedback (#33).
+
+    ``"ch4_fossil"`` (decision S1/S2-A on #30) adds the oxidised CO2,
+    ``Y * 44/16 * integral_0^H (1/tau) exp(-t/tau) AGTP_CO2(H - t) dt``, in closed
+    form, as in ``agwp()``.
 
     Args:
-        gas: ``"co2"``, ``"ch4"`` or ``"n2o"``.
+        gas: ``"co2"``, ``"ch4"``, ``"ch4_fossil"`` or ``"n2o"``.
         horizon: Time horizon(s) H [yr], >= 0. Any shape.
         params: The climate parameter set.
 
     Returns:
         An array of ``horizon``'s shape, or a float for a scalar ``horizon``.
     """
-    gas = _check_gas(gas)
-    h = np.asarray(horizon, dtype=float)
-    if not np.all(np.isfinite(h)) or np.any(h < 0):
-        raise ValueError("horizon must be finite and >= 0")
+    gas = _check_gas(gas, EMISSION_KEYS)
+    h = _check_horizon_array(horizon)
+    if gas == "ch4_fossil":
+        tau = params.ch4_lifetime
+        ox = np.zeros_like(h)
+        for a_p, tau_p in _components("co2", params):
+            for q, d in zip(params.climate_q, params.climate_d, strict=True):
+                if tau_p is None:  # box response q (1 - exp(-t/d))
+                    ox = ox + a_p * q * (
+                        _after_ch4_decay(tau, None, h) - _after_ch4_decay(tau, d, h)
+                    )
+                else:  # q tau_p / (tau_p - d) (exp(-t/tau_p) - exp(-t/d))
+                    _box_response(tau_p, d, q, 0.0)  # refuses tau_p == d (T7)
+                    ox = ox + a_p * q * tau_p / (tau_p - d) * (
+                        _after_ch4_decay(tau, tau_p, h) - _after_ch4_decay(tau, d, h)
+                    )
+        co2 = specific_forcing("co2", params) * ox
+        out = agtp("ch4", h, params) + _oxidised_co2_per_kg_ch4(params) * co2
+        return float(out) if out.ndim == 0 else out
     shape = np.zeros_like(h)
     for a_p, tau in _components(gas, params):
         for q, d in zip(params.climate_q, params.climate_d, strict=True):
@@ -535,9 +707,10 @@ class GTP:
             whole-number horizon, ``sliding[t] == dynamic[horizon]`` for
             t >= horizon. CO2 formed from fossil CH4 counts as CO2 emitted in the
             year it forms (decision T2, #29). Shape (N,). (``GTP_sliding_CO2e``.)
-        static: Cumulative net emissions of each gas up to year t times its
-            GTP_H, summed over the gases [kg CO2e]. CH4 counts as CH4 only, even
-            with ``fossil_ch4=True`` (decision T3, #29; #30 revisits). Shape (N,).
+        static: Cumulative net emissions of each key up to year t times its
+            GTP_H, summed over the keys [kg CO2e]. Fossil CH4 includes its
+            oxidised CO2, by the closed form of ``agtp("ch4_fossil", ...)``
+            (decision S3 on #30, which replaces T3 on #29). Shape (N,).
             (``GTP_static_CO2e``.)
         horizon: Time horizon [yr].
         agtp_co2: ``agtp("co2", horizon, params)`` [K kg-1].
@@ -565,42 +738,36 @@ def gtp(
     params: ClimateParameters,
     *,
     horizon: float = 100,
-    fossil_ch4: bool = False,
 ) -> GTP:
     """Dynamic, sliding and static GTP from annual emissions.
 
     Args:
-        emissions: As for ``burden()``: kg of each gas per year, index 0 = year 0.
+        emissions: As for ``burden()``: kg per year of each key, index 0 = year 0.
         params: The climate parameter set.
         horizon: Time horizon H [yr] for the CO2 normalisation, the sliding GTP
             and the static GTP; > 0.
-        fossil_ch4: As for ``burden()``. It affects ``dynamic`` and ``sliding``,
-            not ``static`` (see ``GTP``).
 
     Returns:
         A ``GTP``. All three series are normalised by AGTP_H(CO2) from the same
         ``params``.
     """
-    horizon = float(horizon)
-    if not np.isfinite(horizon) or horizon <= 0:
-        raise ValueError(f"horizon must be finite and > 0, got {horizon}")
+    horizon = _check_horizon(horizon)
     e = _validate(emissions)
-    b = burden(e, params, fossil_ch4=fossil_ch4)
+    b = burden(e, params)
     ref = agtp("co2", horizon, params)
 
     n = b.co2.shape[0]
     remaining = np.clip(horizon - np.arange(n, dtype=float), 0.0, None)
     contribution = (e["co2"] + b.ch4_to_co2) * agtp("co2", remaining, params)
-    static = np.zeros(n)
-    for gas in GASES:
-        static = static + np.cumsum(e[gas]) * agtp(gas, horizon, params)
-        if gas != "co2":
-            contribution = contribution + e[gas] * agtp(gas, remaining, params)
+    contribution = contribution + (e["ch4"] + e["ch4_fossil"]) * agtp("ch4", remaining, params)
+    contribution = contribution + e["n2o"] * agtp("n2o", remaining, params)
+    factors = _static_factors(e, params, horizon, agtp)
+    static = sum(np.cumsum(e[key]) * factors.get(key, 0.0) for key in EMISSION_KEYS)
 
     return GTP(
         dynamic=temperature(b, params).total / ref,
         sliding=np.cumsum(contribution) / ref,
-        static=static / ref,
+        static=static,
         horizon=horizon,
         agtp_co2=ref,
     )
