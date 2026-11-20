@@ -16,6 +16,15 @@ from dlca.inventory import BuildingInventory, BuildingTotals, biogenic_balance, 
 
 NAMES = ("timber", "timber_biogenic", "steel", "concrete", "totals")
 
+# Concrete carbonation (#74), README hand totals, kg CO2 taken up by the 250 m3
+# slab: a = 0.75 x 320 x 0.65 x 44.01 / 56.077 kg per m3 carbonated; in use
+# 8 m2 x 6 x 0.7 x sqrt(60) / 1000 m3 per m3 carbonated by year 60; the rest is
+# crushed in year 61 into 10 mm spheres, share 1 - (1 - 1.5 / 10)^3 in 1 year.
+CONCRETE_A = 0.75 * 320 * 0.65 * 44.01 / 56.077
+CONCRETE_CARBONATED = 8 * 6 * 0.7 * 60**0.5 / 1000
+CONCRETE_USE = 250 * CONCRETE_A * CONCRETE_CARBONATED  # ~7,966.1
+CONCRETE_EOL = 250 * CONCRETE_A * (1 - CONCRETE_CARBONATED) * (1 - 0.85**3)  # ~8,736.8
+
 # Hand totals from tests/data/inventories/README.md, kg of each gas.
 A1_A3 = {
     "timber": {"co2": 32_200, "ch4": 0, "ch4_fossil": 52, "n2o": 2.4},
@@ -33,8 +42,13 @@ WHOLE_SERIES = {
         "ch4_fossil": 52,
         "n2o": 2.4,
     },
-    "steel": {"co2": 133_827, "ch4": 0, "ch4_fossil": 144, "n2o": 3.42},
-    "concrete": {"co2": 112_150, "ch4": 0, "ch4_fossil": 137.5, "n2o": 3.25},
+    "steel": {"co2": 135_267, "ch4": 0, "ch4_fossil": 144, "n2o": 3.42},
+    "concrete": {
+        "co2": 115_150 - CONCRETE_USE - CONCRETE_EOL,
+        "ch4": 0,
+        "ch4_fossil": 137.5,
+        "n2o": 3.25,
+    },
     "totals": {"co2": 350_000, "ch4": 50, "ch4_fossil": 320, "n2o": 8},
 }
 # co2 by module, kg over the whole series.
@@ -49,12 +63,12 @@ CO2_BY_MODULE = {
         "C1": 710, "C2": 470, "C3": 1_190, "C4": 8_052,
     },
     "steel": {
-        "A1-A3": 114_750, "A4": 3_015, "A5": 3_015, "B1": -1_440, "B4": 9_000,
+        "A1-A3": 114_750, "A4": 3_015, "A5": 3_015, "B4": 9_000,
         "C1": 1_620, "C2": 1_650, "C3": 1_440, "C4": 777,
     },
     "concrete": {
-        "A1-A3": 100_000, "A4": 2_500, "A5": 4_250, "B1": -3_000,
-        "C1": 2_750, "C2": 3_125, "C3": 1_750, "C4": 775,
+        "A1-A3": 100_000, "A4": 2_500, "A5": 4_250, "carbonation-uptake": -CONCRETE_USE,
+        "C1": 2_750, "C2": 3_125, "C3": 1_750, "C4": 775, "carbonation-eol": -CONCRETE_EOL,
     },
     "totals": {
         "A1-A3": 250_000, "A4": 10_000, "A5": 15_000, "B2": 25_000, "B4": 16_000,
@@ -73,8 +87,8 @@ EVENTS = {
 PER_YEAR = {
     "timber": {},
     "timber_biogenic": {},
-    "steel": {"B1": -24},
-    "concrete": {"B1": -50},
+    "steel": {},
+    "concrete": {},
     "totals": {"B2": 500},
 }
 STUDY_PERIOD = {"timber": 60, "timber_biogenic": 60, "steel": 60, "concrete": 60, "totals": 50}
