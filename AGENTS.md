@@ -15,13 +15,17 @@ speed. Jay Arehart is the maintainer and reviews and merges every PR.
 ## Repo map
 
 ```
-src/dlca/engine.py      climate engine: impulse responses, radiative forcing, temperature
-src/dlca/models.py      input data models
-src/dlca/data/          packaged data (AGWP/AGTP tables, eGRID factors) and loaders
+src/dlca/climate.py     climate engine: burden, forcing, temperature, GWI, GTP, static GWP
+src/dlca/parameters.py  AR5/AR6 climate parameter sets (ClimateParameters, get_parameters)
+src/dlca/result.py      assess() entry point and the Result object
+src/dlca/inventory/     building input schemas, timeline(), assess_building() roll-up
+src/dlca/models.py      old building and energy models, kept until M4 operational energy
+src/dlca/data/          packaged data (parameter sets, input JSON Schemas, eGRID factors)
 tests/unit/             fast tests of single functions
 tests/analytic/         results checked against closed-form solutions
 tests/reference/        results checked against the reference spreadsheet cases
 tests/property/         property-based tests (invariants, signs, conservation)
+tests/data/             shared test data (illustrative example inventories)
 legacy/                 retired research code kept for porting; not packaged or tested
 docs/decisions/         decision records (science and architecture choices)
 docs/roadmap.md         milestones M0–M5, planned work and its order
