@@ -7,12 +7,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-20
+
+Milestone M3, "Biogenic and carbonation": the inventory now models the CO₂
+that timber takes up as it regrows and that concrete takes up by carbonation,
+in use and after demolition. Inputs that use neither give the same numbers as
+in 0.3.0, bit for bit.
+
+### Added
+
+- Biogenic carbon (#73, decision record 0016). An optional `biogenic` field
+  (`dlca.inventory.Biogenic`: `co2`, `regrowth`, `rotation`, `released_co2`)
+  on `Material`, `BuildingTotals` and B4/B5 events. Regrowth is `"none"`,
+  `"instant"` or `"gaussian"` (Cherubini et al. 2011, μ = rotation/2,
+  σ = μ/2, integrated per year and rescaled over [0, ∞) so the full declared
+  carbon is taken up). The uptake is negative `co2` in a new timeline part,
+  `biogenic-uptake` (`UPTAKE_MODULE`), listed first in the breakdown. The
+  carbon released as non-fossil `ch4` is taken off the uptake so it is
+  counted once.
+- `dlca.inventory.biogenic_balance()` and `BuildingResult.biogenic` report
+  declared, taken-up, released and stored biogenic carbon per material
+  (`BiogenicBalance`).
+- Concrete carbonation (#74, decision record 0017), by Lagerblad (2005). An
+  optional `carbonation` field (`dlca.inventory.Carbonation`, with `Surface`
+  and `Stockpile`) on `Material` and its B4 events. Depth grows as k·√t, with
+  k from strength class, exposure and cover. Two new timeline parts:
+  `carbonation-uptake` (`CARBONATION_UPTAKE_MODULE`) for the yearly uptake in
+  use, and `carbonation-eol` (`CARBONATION_EOL_MODULE`) for the crushed
+  stockpile after demolition. A carbonating B4 event restarts the clock.
+- `BiogenicCarbonWarning` and `CarbonationWarning`, for carbon that does not
+  add up, uptake cut off by the series end, and a B4 event without
+  `carbonation` on a carbonating material.
+- Example inventory `timber_biogenic.json` for tests (illustrative numbers).
+
 ### Changed
 
+- Input `schema_version` 2 adds `biogenic`; version 3 adds `carbonation`.
+  Files of earlier versions still load but may not use the newer fields, and
+  files that use neither field dump as before. The committed JSON Schema
+  files are regenerated; they do not refuse a field under an older version
+  (only the models do).
+- `Timeline` and `BuildingResult` JSON go to schema version 3 and still read
+  versions 1 and 2. `Result` stays at schema version 4.
+- Example inventories: the hand-entered B1 uptake lines (−0.2 per year) are
+  removed from `concrete.json` and `steel.json`, and `concrete.json` gets a
+  `carbonation` field. Its hand totals in `tests/data/inventories/README.md`
+  are redone. These are test fixtures, not package outputs.
 - Decision records 0013 (inventory input schemas), 0014 (module timing) and
   0015 (building roll-up and breakdown) are now Accepted. Record 0003 is now
   "Superseded in part by 0013": module D, and service life and replacement
-  interval, no longer apply. No code or output changes.
+  interval, no longer apply. Records 0016 and 0017 are Accepted; 0016
+  supersedes 0013's "no biogenic field" rule, and 0017 extends 0014.
+
+### Removed
+
+- `legacy/carbonation/` (the retired carbonation research code), now replaced
+  by `dlca.inventory.carbonation`. It is at
+  `git show v0.3.0:legacy/carbonation/`.
 
 ## [0.3.0] - 2026-11-20
 
@@ -147,6 +198,7 @@ functions with cited AR5 and AR6 parameter sets.
   form (#31).
 - Empty `LICENSE.txt` and `CHANGES.txt` placeholders.
 
-[Unreleased]: https://github.com/jayarehart/DLCA/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/jayarehart/DLCA/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/jayarehart/DLCA/releases/tag/v0.4.0
 [0.3.0]: https://github.com/jayarehart/DLCA/releases/tag/v0.3.0
 [0.2.0]: https://github.com/jayarehart/DLCA/releases/tag/v0.2.0
