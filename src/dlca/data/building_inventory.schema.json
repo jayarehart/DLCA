@@ -167,6 +167,204 @@
       "title": "ConstantTrajectory",
       "type": "object"
     },
+    "EnergyUse": {
+      "additionalProperties": false,
+      "description": "One fuel's energy use per year, for B6 (#82, record 0019).\n\nB6 in year y (1..RSP) is `amount` x factor(y) x m(y), where m is the\n`trajectory` multiplier (constant when absent), applied to the fossil\ngases only.\n\nFactor source:\n\n- ``\"electricity\"``: exactly one of `egrid_subregion`, `egrid_state`\n  (packaged eGRID2023 Rev 2) or `factor`.\n- ``\"natural_gas\"``, ``\"fuel_oil_2\"``: `factor`, or none for the packaged\n  EPA Hub 2025 factor.\n\nPackaged factors cover combustion and generation only: no transmission\nand distribution losses and no upstream emissions.",
+      "properties": {
+        "fuel": {
+          "enum": [
+            "electricity",
+            "natural_gas",
+            "fuel_oil_2"
+          ],
+          "title": "Fuel",
+          "type": "string"
+        },
+        "amount": {
+          "description": "Energy used per year, in `unit`.",
+          "minimum": 0,
+          "title": "Amount",
+          "type": "number"
+        },
+        "unit": {
+          "enum": [
+            "kWh",
+            "MJ",
+            "GJ",
+            "MMBtu",
+            "kBtu",
+            "therm"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "egrid_subregion": {
+          "anyOf": [
+            {
+              "enum": [
+                "AKGD",
+                "AKMS",
+                "AZNM",
+                "CAMX",
+                "ERCT",
+                "FRCC",
+                "HIMS",
+                "HIOA",
+                "MROE",
+                "MROW",
+                "NEWE",
+                "NWPP",
+                "NYCW",
+                "NYLI",
+                "NYUP",
+                "PRMS",
+                "RFCE",
+                "RFCM",
+                "RFCW",
+                "RMPA",
+                "SPNO",
+                "SPSO",
+                "SRMV",
+                "SRMW",
+                "SRSO",
+                "SRTV",
+                "SRVC"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Egrid Subregion"
+        },
+        "egrid_state": {
+          "anyOf": [
+            {
+              "enum": [
+                "AK",
+                "AL",
+                "AR",
+                "AZ",
+                "CA",
+                "CO",
+                "CT",
+                "DC",
+                "DE",
+                "FL",
+                "GA",
+                "HI",
+                "IA",
+                "ID",
+                "IL",
+                "IN",
+                "KS",
+                "KY",
+                "LA",
+                "MA",
+                "MD",
+                "ME",
+                "MI",
+                "MN",
+                "MO",
+                "MS",
+                "MT",
+                "NC",
+                "ND",
+                "NE",
+                "NH",
+                "NJ",
+                "NM",
+                "NV",
+                "NY",
+                "OH",
+                "OK",
+                "OR",
+                "PA",
+                "PR",
+                "RI",
+                "SC",
+                "SD",
+                "TN",
+                "TX",
+                "UT",
+                "VA",
+                "VT",
+                "WA",
+                "WI",
+                "WV",
+                "WY"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Egrid State"
+        },
+        "factor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GasAmounts"
+            },
+            {
+              "items": {
+                "$ref": "#/$defs/GasAmounts"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "kg of each gas per one `unit` of energy. One `GasAmounts` (constant) or\na list indexed by study year (entry i is year i; B6 uses 1..RSP; a short\nlist holds its last value).",
+          "title": "Factor"
+        },
+        "trajectory": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "constant": "#/$defs/ConstantTrajectory",
+                  "linear": "#/$defs/LinearTrajectory",
+                  "series": "#/$defs/SeriesTrajectory"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/ConstantTrajectory"
+                },
+                {
+                  "$ref": "#/$defs/LinearTrajectory"
+                },
+                {
+                  "$ref": "#/$defs/SeriesTrajectory"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Multiplier m(y) on the fossil gases of this line (record 0018 kinds).\nAbsent means constant. Not with a series `factor`.",
+          "title": "Trajectory"
+        }
+      },
+      "required": [
+        "fuel",
+        "amount",
+        "unit"
+      ],
+      "title": "EnergyUse",
+      "type": "object"
+    },
     "Event": {
       "additionalProperties": false,
       "description": "A B4 (replacement) or B5 (refurbishment) event.\n\n`year` is a year of the study period, 1 to `study_period`. A B4 amount is\nthe whole replacement: the new item's A1-A5 plus the old item's C1-C4.\nEvents in the same year add together.",
@@ -475,8 +673,8 @@
       "type": "string"
     },
     "schema_version": {
-      "default": 4,
-      "maximum": 4,
+      "default": 5,
+      "maximum": 5,
       "minimum": 1,
       "title": "Schema Version",
       "type": "integer"
@@ -543,6 +741,14 @@
       "default": null,
       "description": "Multiplier on the fossil gases of every material's B4 events and C1-C4\n(schema version 4, record 0018). Absent means constant.",
       "title": "B4 C Trajectory"
+    },
+    "energy": {
+      "description": "Operational energy (B6) by fuel (schema version 5). Not with `per_year[\"B6\"]`.",
+      "items": {
+        "$ref": "#/$defs/EnergyUse"
+      },
+      "title": "Energy",
+      "type": "array"
     }
   },
   "required": [

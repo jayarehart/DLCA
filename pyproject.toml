@@ -40,13 +40,6 @@ extend-exclude = ["legacy", "analysis"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "NPY"]
 
-[tool.ruff.lint.per-file-ignores]
-# Engine code is carried over unchanged from the original research code. These findings
-# would need logic or API edits to fix, so they are ignored here rather than changed.
-# Remove entries as each file is cleaned up.
-"src/dlca/models.py" = ["E501", "F403", "F405", "F841", "B007", "E711", "E712"]
-"src/dlca/data/csv_loader.py" = ["E501", "F403", "F405", "F841", "B007", "E711", "E712"]
-
 [tool.ruff.format]
 quote-style = "double"
 
