@@ -51,6 +51,10 @@ as pure NumPy functions with cited AR5 and AR6 parameter sets.
   and `molar_mass_c`; the `Result` schema version is now 3. For the old
   behaviour use `dataclasses.replace(get_parameters("AR6"),
   carbon_cycle_feedback=False)`; AR5 refuses CCF.
+- `GWI`, `GTP` and `StaticGWP` also record `parameter_fingerprint`, in
+  `to_dict()` too, and `from_dict()` requires it. `Result` now refuses any of
+  its six components made with another parameter set, and its schema version is
+  now 4. No output value changes (#46, decision record 0009, Proposed).
 
 ### Fixed
 
