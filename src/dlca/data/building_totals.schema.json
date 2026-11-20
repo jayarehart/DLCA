@@ -1,0 +1,134 @@
+{
+  "$defs": {
+    "Event": {
+      "additionalProperties": false,
+      "description": "A B4 (replacement) or B5 (refurbishment) event.\n\n`year` is a year of the study period, 1 to `study_period`. A B4 amount is\nthe whole replacement: the new item's A1-A5 plus the old item's C1-C4.\nEvents in the same year add together.",
+      "properties": {
+        "year": {
+          "minimum": 1,
+          "title": "Year",
+          "type": "integer"
+        },
+        "amounts": {
+          "$ref": "#/$defs/GasAmounts"
+        }
+      },
+      "required": [
+        "year",
+        "amounts"
+      ],
+      "title": "Event",
+      "type": "object"
+    },
+    "GasAmounts": {
+      "additionalProperties": false,
+      "description": "Kilograms of each gas. The unit (kg, kg per year, per declared unit)\nis set by the field that holds it. Negative values are allowed (uptake).",
+      "properties": {
+        "co2": {
+          "default": 0.0,
+          "title": "Co2",
+          "type": "number"
+        },
+        "ch4": {
+          "default": 0.0,
+          "description": "Non-fossil CH4, with no carbon credit (record 0010, C8).",
+          "title": "Ch4",
+          "type": "number"
+        },
+        "ch4_fossil": {
+          "default": 0.0,
+          "title": "Ch4 Fossil",
+          "type": "number"
+        },
+        "n2o": {
+          "default": 0.0,
+          "title": "N2O",
+          "type": "number"
+        }
+      },
+      "title": "GasAmounts",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Whole-building amounts per module.\n\n- `modules`: kg, once.\n- `per_year`: kg per year, constant each year.\n- `b4`, `b5`: kg per event.",
+  "properties": {
+    "schema": {
+      "const": "dlca.building_totals",
+      "title": "Schema",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "name": {
+      "minLength": 1,
+      "title": "Name",
+      "type": "string"
+    },
+    "study_period": {
+      "description": "Reference study period, whole years.",
+      "minimum": 1,
+      "title": "Study Period",
+      "type": "integer"
+    },
+    "modules": {
+      "additionalProperties": {
+        "$ref": "#/$defs/GasAmounts"
+      },
+      "propertyNames": {
+        "enum": [
+          "A1-A3",
+          "A4",
+          "A5",
+          "C1",
+          "C2",
+          "C3",
+          "C4"
+        ]
+      },
+      "title": "Modules",
+      "type": "object"
+    },
+    "per_year": {
+      "additionalProperties": {
+        "$ref": "#/$defs/GasAmounts"
+      },
+      "propertyNames": {
+        "enum": [
+          "B1",
+          "B2",
+          "B3",
+          "B6",
+          "B7"
+        ]
+      },
+      "title": "Per Year",
+      "type": "object"
+    },
+    "b4": {
+      "items": {
+        "$ref": "#/$defs/Event"
+      },
+      "title": "B4",
+      "type": "array"
+    },
+    "b5": {
+      "items": {
+        "$ref": "#/$defs/Event"
+      },
+      "title": "B5",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema",
+    "name",
+    "study_period"
+  ],
+  "title": "BuildingTotals",
+  "type": "object"
+}
