@@ -1,0 +1,78 @@
+{
+  "schema": "dlca.building_inventory",
+  "schema_version": 1,
+  "name": "Illustrative steel floor (1,000 m2)",
+  "study_period": 60,
+  "assemblies": [
+    {
+      "name": "Frame",
+      "materials": [
+        {
+          "name": "Steel beams",
+          "quantity": 30,
+          "unit": "t",
+          "modules": {
+            "A1-A3": {"co2": 1500, "ch4_fossil": 2, "n2o": 0.05},
+            "A4": {"co2": 50},
+            "A5": {"co2": 20},
+            "C1": {"co2": 10},
+            "C2": {"co2": 5},
+            "C3": {"co2": 20},
+            "C4": {"co2": 1}
+          }
+        },
+        {
+          "name": "Intumescent coating",
+          "quantity": 750,
+          "unit": "m2",
+          "modules": {
+            "A1-A3": {"co2": 5},
+            "A4": {"co2": 0.1},
+            "A5": {"co2": 0.5},
+            "C4": {"co2": 0.5}
+          },
+          "b4": [
+            {"year": 25, "amounts": {"co2": 6}},
+            {"year": 50, "amounts": {"co2": 6}}
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Floor",
+      "materials": [
+        {
+          "name": "Steel deck",
+          "quantity": 12,
+          "unit": "t",
+          "modules": {
+            "A1-A3": {"co2": 2500, "ch4_fossil": 3, "n2o": 0.06},
+            "A4": {"co2": 50},
+            "A5": {"co2": 20},
+            "C1": {"co2": 10},
+            "C2": {"co2": 5},
+            "C3": {"co2": 20},
+            "C4": {"co2": 1}
+          }
+        },
+        {
+          "name": "Concrete topping",
+          "quantity": 120,
+          "unit": "m3",
+          "modules": {
+            "A1-A3": {"co2": 300, "ch4_fossil": 0.4, "n2o": 0.01},
+            "A4": {"co2": 7},
+            "A5": {"co2": 15},
+            "C1": {"co2": 10},
+            "C2": {"co2": 12},
+            "C3": {"co2": 5},
+            "C4": {"co2": 3}
+          },
+          "per_year": {
+            "B1": {"co2": -0.2}
+          }
+        }
+      ]
+    }
+  ]
+}

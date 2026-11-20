@@ -1,0 +1,44 @@
+{
+  "schema": "dlca.building_inventory",
+  "schema_version": 1,
+  "name": "Illustrative concrete floor (1,000 m2)",
+  "study_period": 60,
+  "assemblies": [
+    {
+      "name": "Slab",
+      "materials": [
+        {
+          "name": "Concrete C30/37",
+          "quantity": 250,
+          "unit": "m3",
+          "modules": {
+            "A1-A3": {"co2": 300, "ch4_fossil": 0.4, "n2o": 0.01},
+            "A4": {"co2": 7},
+            "A5": {"co2": 15},
+            "C1": {"co2": 10},
+            "C2": {"co2": 12},
+            "C3": {"co2": 5},
+            "C4": {"co2": 3}
+          },
+          "per_year": {
+            "B1": {"co2": -0.2}
+          }
+        },
+        {
+          "name": "Rebar",
+          "quantity": 25,
+          "unit": "t",
+          "modules": {
+            "A1-A3": {"co2": 1000, "ch4_fossil": 1.5, "n2o": 0.03},
+            "A4": {"co2": 30},
+            "A5": {"co2": 20},
+            "C1": {"co2": 10},
+            "C2": {"co2": 5},
+            "C3": {"co2": 20},
+            "C4": {"co2": 1}
+          }
+        }
+      ]
+    }
+  ]
+}
