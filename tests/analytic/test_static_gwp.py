@@ -189,7 +189,7 @@ def test_static_gwp_series_by_key():
     np.testing.assert_allclose(s.total, sum(getattr(s, k) for k in EMISSION_KEYS), rtol=1e-15)
     np.testing.assert_array_equal(gwi(e, p, horizon=100).static, s.total)
     d = json.loads(json.dumps(s.to_dict()))
-    assert set(d) == {*EMISSION_KEYS, "horizon", "gwp"}
+    assert set(d) == {*EMISSION_KEYS, "horizon", "gwp", "parameter_fingerprint"}  # #46
 
 
 def test_set_without_yield():
