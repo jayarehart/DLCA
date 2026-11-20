@@ -14,7 +14,7 @@ on #58) before the engine was written:
 Faults these catch that no other test does: a module placed in the wrong year
 (A after year 0, B starting in year 0 or stopping early, C in year RSP or over
 several years); two amounts in one year overwriting instead of adding (the
-`create_flux_mat` bug); C spread over 15 years (the `MatEmissionsTiming` bug);
+`create_flux_mat` bug); C spread over 15 years (the old timing class bug);
 a quantity not applied, or applied to B6/B7; a gas written under the wrong
 key; a series too short for the horizon; totals and inventory input giving
 different series; a breakdown that does not add up to the total.

@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- The old inventory code (#61): `dlca.engine` (`EmissionsFluxEngine` with
+  `create_flux_mat`, `flux_total` and `create_flux_operational`) and, from
+  `dlca.models`, `AnalysisPeriod`, `MatEmissionsTiming`,
+  `EmissionsInventoryGHGi`, `EmissionInventoryBio`, `EmissionsInventoryAllGHG`,
+  `EmissionsFluxMat`, `EmissionsFluxOperational`, `EmissionsFluxTotal`,
+  `MaterialTypes` and `GHGTypes`. None of them were in `dlca.__all__`.
+  Use `dlca.inventory.BuildingTotals` or `BuildingInventory` for the input and
+  `dlca.inventory.timeline(...).emissions()` for the yearly series that
+  `dlca.assess()` takes. The removed builder had two bugs that the new one does not have:
+  module amounts in the same year overwrote each other, and C was repeated over
+  15 years.
+- Biogenic regrowth uptake (the Cherubini Gaussian in `create_flux_mat`). DLCA
+  has no regrowth model until M3. Until then, pass uptake as negative `co2`.
+  The old code is at `git show v0.2.0:src/dlca/engine.py`.
+
 ## [0.2.0] - 2026-11-19
 
 Milestone M1, "Climate core": the climate engine is rebuilt as pure NumPy
