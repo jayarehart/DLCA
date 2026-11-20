@@ -76,6 +76,7 @@ __all__ = [
     "GTP",
     "EMISSION_KEYS",
     "GWI",
+    "MIN_HORIZON",
     "Burden",
     "StaticGWP",
     "Forcing",
@@ -98,6 +99,12 @@ GASES = ("co2", "ch4", "n2o")
 # non-fossil (biogenic) CH4, which is not oxidised to CO2; ``ch4_fossil`` is
 # fossil CH4, which is. Both add to the CH4 burden.
 EMISSION_KEYS = ("co2", "ch4", "ch4_fossil", "n2o")
+
+# Smallest horizon gwi(), gtp() and static_gwp() accept [yr] (decision H2 on
+# #47, decision record 0011). Below about 1e-9 yr the closed forms lose
+# precision (1 - exp(-H/tau) rounds to 0); at 1e-6 yr their relative error is
+# at most about 3e-9. agwp() and agtp() still accept any H >= 0.
+MIN_HORIZON = 1e-6
 
 # kg CO2 per kg CH4 for a 1 mol/mol conversion, from nominal integer molar masses
 # (12 + 2*16) / (12 + 4) = 44/16. Decision D1 on issue #27 (Jay, 2026-11-18): this
@@ -434,9 +441,12 @@ def _check_horizon_array(horizon: ArrayLike) -> NDArray[np.float64]:
 
 
 def _check_horizon(horizon: float) -> float:
+    """The horizon of gwi(), gtp() and static_gwp(): finite and >= MIN_HORIZON."""
     horizon = float(horizon)
-    if not np.isfinite(horizon) or horizon <= 0:
-        raise ValueError(f"horizon must be finite and > 0, got {horizon}")
+    if not np.isfinite(horizon) or horizon < MIN_HORIZON:
+        raise ValueError(
+            f"horizon must be finite and >= MIN_HORIZON = {MIN_HORIZON:g} yr, got {horizon}"
+        )
     return horizon
 
 
@@ -691,7 +701,7 @@ def gwi(
         emissions: As for ``burden()``: kg per year of each key, index 0 = year 0.
         params: The climate parameter set.
         horizon: Time horizon H [yr] for the CO2 normalisation and the sliding
-            and static GWP; > 0.
+            and static GWP; >= ``MIN_HORIZON`` (1e-6 yr).
 
     Returns:
         A ``GWI``. All three series are normalised by AGWP_H(CO2) from the same
@@ -802,7 +812,7 @@ def static_gwp(
     Args:
         emissions: As for ``burden()``: kg per year of each key, index 0 = year 0.
         params: The climate parameter set.
-        horizon: Time horizon H [yr]; > 0.
+        horizon: Time horizon H [yr]; >= ``MIN_HORIZON`` (1e-6 yr).
 
     Returns:
         A ``StaticGWP``. GWP_H is ``agwp(key, H) / agwp("co2", H)`` from the same
@@ -1070,7 +1080,7 @@ def gtp(
         emissions: As for ``burden()``: kg per year of each key, index 0 = year 0.
         params: The climate parameter set.
         horizon: Time horizon H [yr] for the CO2 normalisation, the sliding GTP
-            and the static GTP; > 0.
+            and the static GTP; >= ``MIN_HORIZON`` (1e-6 yr).
 
     Returns:
         A ``GTP``. All three series are normalised by AGTP_H(CO2) from the same

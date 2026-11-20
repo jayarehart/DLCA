@@ -8,7 +8,8 @@ returned values up to 300% off without an error. Jay set the minimum to 1e-6 yr
 
 Faults these catch that no other test does: a horizon below the minimum
 accepted (the ZeroDivisionError of #47, or a silently wrong result); the
-minimum itself refused; one of the three functions left without the check.
+minimum itself refused; one of the three functions, or assess(), left
+without the check.
 """
 
 import math
@@ -18,9 +19,10 @@ import pytest
 
 from dlca.climate import gtp, gwi, static_gwp
 from dlca.parameters import get_parameters
+from dlca.result import assess
 
 MIN_HORIZON = 1e-6  # yr, decision H2 on #47
-FUNCTIONS = [gwi, gtp, static_gwp]
+FUNCTIONS = [gwi, gtp, static_gwp]  # assess() is checked separately
 SETS = ["AR5", "AR6"]
 
 BELOW = [
@@ -57,3 +59,9 @@ def test_minimum_horizon_constant():
     from dlca.climate import MIN_HORIZON as value
 
     assert value == MIN_HORIZON
+
+
+def test_assess_uses_the_same_minimum():
+    with pytest.raises(ValueError, match="1e-06"):
+        assess(emissions(), parameters="AR5", horizon=BELOW[0])
+    assert assess(emissions(), parameters="AR5", horizon=MIN_HORIZON).horizon == MIN_HORIZON

@@ -250,7 +250,7 @@ def assess(
             ``"AR6"``, case-insensitive) or a ``ClimateParameters``, for example a
             variant made with ``dataclasses.replace()``.
         horizon: Time horizon H [yr] for the CO2 normalisation and the sliding
-            and static metrics; > 0.
+            and static metrics; >= ``MIN_HORIZON`` (1e-6 yr).
 
     Returns:
         A ``Result``. Every component comes from the same parameter set and H.

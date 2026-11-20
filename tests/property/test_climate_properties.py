@@ -41,6 +41,7 @@ environment to derandomise (fixed examples), as the CI workflow on GitHub does.
 from __future__ import annotations
 
 import dataclasses
+import math
 import os
 
 import numpy as np
@@ -49,7 +50,7 @@ from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 from hypothesis.extra.numpy import arrays
 
-from dlca.climate import GASES, agtp, burden, forcing, gtp, gwi, temperature
+from dlca.climate import GASES, MIN_HORIZON, agtp, burden, forcing, gtp, gwi, temperature
 from dlca.parameters import get_parameters
 
 PARAMS = {name: get_parameters(name) for name in ("AR5", "AR6")}
@@ -82,7 +83,11 @@ def signed(lo: float, hi: float) -> st.SearchStrategy[float]:
 
 value = signed(1e-6, 1e6)  # kg per year
 scale = signed(1e-3, 10.0)
-horizon = st.floats(1.0, 150.0)
+# The smallest allowed horizon (#47) in about one example in ten, so the
+# invariants are checked at the boundary as well as at ordinary horizons.
+horizon = st.integers(0, 9).flatmap(
+    lambda i: st.just(MIN_HORIZON) if i == 0 else st.floats(1.0, 150.0)
+)
 
 
 def profile(n: int) -> st.SearchStrategy[dict[str, np.ndarray]]:
@@ -224,11 +229,14 @@ def test_time_shift_sliding(set_name, fossil_ch4, es, h):
     """Sliding GWI and GTP: a delay of s years under H equals no delay under H - s.
 
     In absolute terms (times AGWP_H or AGTP_H of CO2), since the normalisation
-    differs.
+    differs. ``h`` is the undelayed horizon H - s, so H - s covers the minimum
+    horizon (#47). H is nudged up until H - s, as computed in floating point, is
+    at least ``MIN_HORIZON``.
     """
     e, s = es
-    if h - s <= 0:
-        h = s + 1.0
+    h = s + h
+    while h - s < MIN_HORIZON:
+        h = math.nextafter(h, math.inf)
     n = len(e["co2"])
     run = lambda x, horizon: absolute_sliding(  # noqa: E731
         x, PARAMS[set_name], fossil_ch4=fossil_ch4, horizon=horizon
