@@ -126,6 +126,22 @@
       "title": "Carbonation",
       "type": "object"
     },
+    "ConstantTrajectory": {
+      "additionalProperties": false,
+      "description": "m(y) = 1 in every year: amounts as entered (#81, record 0018).",
+      "properties": {
+        "kind": {
+          "const": "constant",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "ConstantTrajectory",
+      "type": "object"
+    },
     "Event": {
       "additionalProperties": false,
       "description": "A B4 (replacement) or B5 (refurbishment) event.\n\n`year` is a year of the study period, 1 to `study_period`. A B4 amount is\nthe whole replacement: the new item's A1-A5 plus the old item's C1-C4.\nEvents in the same year add together.",
@@ -197,6 +213,63 @@
         }
       },
       "title": "GasAmounts",
+      "type": "object"
+    },
+    "LinearTrajectory": {
+      "additionalProperties": false,
+      "description": "A straight line from m(0) = 1 to `target` in `target_year`, then held\nat `target` (#81, record 0018). A delayed start needs a `SeriesTrajectory`.",
+      "properties": {
+        "kind": {
+          "const": "linear",
+          "title": "Kind",
+          "type": "string"
+        },
+        "target": {
+          "description": "m in `target_year` and every year after it.",
+          "minimum": 0,
+          "title": "Target",
+          "type": "number"
+        },
+        "target_year": {
+          "description": "Study year (year 0 = construction) in which m reaches `target`.",
+          "minimum": 1,
+          "title": "Target Year",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "target",
+        "target_year"
+      ],
+      "title": "LinearTrajectory",
+      "type": "object"
+    },
+    "SeriesTrajectory": {
+      "additionalProperties": false,
+      "description": "m(y) given per study year: `values[y]` (#81, record 0018).\n\nYears past the last value use the last value; values past the series end\nare ignored.",
+      "properties": {
+        "kind": {
+          "const": "series",
+          "title": "Kind",
+          "type": "string"
+        },
+        "values": {
+          "description": "m(0), m(1), ...: each finite and >= 0, the first exactly 1.",
+          "items": {
+            "minimum": 0,
+            "type": "number"
+          },
+          "minItems": 1,
+          "title": "Values",
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind",
+        "values"
+      ],
+      "title": "SeriesTrajectory",
       "type": "object"
     },
     "Stockpile": {
@@ -272,8 +345,8 @@
       "type": "string"
     },
     "schema_version": {
-      "default": 3,
-      "maximum": 3,
+      "default": 4,
+      "maximum": 4,
       "minimum": 1,
       "title": "Schema Version",
       "type": "integer"
@@ -348,6 +421,37 @@
       ],
       "default": null,
       "description": "Biogenic carbon of the whole building, in kg CO2 (schema version 2)."
+    },
+    "b4_c_trajectory": {
+      "anyOf": [
+        {
+          "discriminator": {
+            "mapping": {
+              "constant": "#/$defs/ConstantTrajectory",
+              "linear": "#/$defs/LinearTrajectory",
+              "series": "#/$defs/SeriesTrajectory"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ConstantTrajectory"
+            },
+            {
+              "$ref": "#/$defs/LinearTrajectory"
+            },
+            {
+              "$ref": "#/$defs/SeriesTrajectory"
+            }
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Multiplier on the fossil gases of B4 events and C1-C4 (schema version 4,\nrecord 0018). Absent means constant.",
+      "title": "B4 C Trajectory"
     }
   },
   "required": [

@@ -20,6 +20,10 @@ building's `study_period`:
   The item in place at the end is crushed in RSP + 1 and its stockpile uptake goes in years
   RSP + 1 .. RSP + n, module ``"carbonation-eol"``. See
   `dlca.inventory.carbonation`.
+- Emission-factor trajectory (#81, record 0018): if the building has a
+  `b4_c_trajectory`, the fossil gases (`co2`, `ch4_fossil`, `n2o`) of each B4
+  event are multiplied by m(event year), and those of C1-C4 by m(RSP + 1).
+  Non-fossil `ch4` and every other module are left as entered.
 
 The series runs over years 0..RSP + 1 + H, so the end-of-life pulse gets a
 full horizon H. Pass the same H to `assess()`.
@@ -248,7 +252,9 @@ def timeline(
 
     warn_on_balance(building)
     factors = uptake_factors(building)
-    builder = _Builder(rsp, years)
+    trajectory = building.b4_c_trajectory
+    m = None if trajectory is None else trajectory.multipliers(rsp + 2)
+    builder = _Builder(rsp, years, m)
     if isinstance(building, BuildingTotals):
         builder.add(None, None, 1.0, building.modules, building.per_year, building.b4, building.b5)
         builder.add_biogenic(
@@ -270,9 +276,12 @@ def timeline(
 
 
 class _Builder:
-    def __init__(self, study_period: int, years: int) -> None:
+    def __init__(
+        self, study_period: int, years: int, multipliers: NDArray[np.float64] | None = None
+    ) -> None:
         self.rsp = study_period
         self.years = years
+        self.m = multipliers  # m(y) for years 0..RSP + 1; None = as entered
         self.parts: dict[PartKey, dict[str, NDArray[np.float64]]] = {}
 
     def _series(self, key: PartKey) -> dict[str, NDArray[np.float64]]:
@@ -284,6 +293,16 @@ class _Builder:
         series = self._series(key)
         for gas in EMISSION_KEYS:
             series[gas][where] += scale * getattr(amounts, gas)
+
+    def _place_scaled(self, key: PartKey, year: int, amounts: GasAmounts, scale: float) -> None:
+        """Place a B4 or C1-C4 amount, its fossil gases times m(year) (record 0018)."""
+        if self.m is None:
+            self._place(key, year, amounts, scale)
+            return
+        series = self._series(key)
+        for gas in EMISSION_KEYS:
+            factor = 1.0 if gas == "ch4" else self.m[year]  # non-fossil CH4 is never scaled
+            series[gas][year] += scale * getattr(amounts, gas) * factor
 
     def add(
         self,
@@ -299,7 +318,8 @@ class _Builder:
             if module in _YEAR_ZERO:
                 year = 0
             elif module in _END_OF_LIFE:
-                year = self.rsp + 1
+                self._place_scaled((assembly, material, module), self.rsp + 1, amounts, scale)
+                continue
             else:  # the schema allows no other one-off module
                 raise ValueError(f"no timing rule for module {module!r}")
             self._place((assembly, material, module), year, amounts, scale)
@@ -309,7 +329,8 @@ class _Builder:
             for event in events:
                 if not 1 <= event.year <= self.rsp:  # the schema checks this too
                     raise ValueError(f"{module} event year {event.year} is outside 1..{self.rsp}")
-                self._place((assembly, material, module), event.year, event.amounts, scale)
+                place = self._place_scaled if module == "B4" else self._place
+                place((assembly, material, module), event.year, event.amounts, scale)
 
     def add_biogenic(
         self,

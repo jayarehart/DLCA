@@ -1,5 +1,5 @@
 """Building inventory input (record 0013), its timing (record 0014), roll-up (record 0015)
-biogenic carbon (#73) and concrete carbonation (#74)."""
+biogenic carbon (#73), concrete carbonation (#74) and emission-factor trajectories (#81)."""
 
 from dlca.inventory.aggregate import (
     BUILDING_RESULT_SCHEMA,
@@ -26,11 +26,15 @@ from dlca.inventory.schema import (
     BuildingInventory,
     BuildingTotals,
     Carbonation,
+    ConstantTrajectory,
     Event,
     GasAmounts,
+    LinearTrajectory,
     Material,
+    SeriesTrajectory,
     Stockpile,
     Surface,
+    Trajectory,
 )
 from dlca.inventory.timing import TIMELINE_SCHEMA, TIMELINE_SCHEMA_VERSION, Timeline, timeline
 
@@ -54,13 +58,17 @@ __all__ = [
     "BuildingTotals",
     "Carbonation",
     "CarbonationWarning",
+    "ConstantTrajectory",
     "Event",
     "GasAmounts",
+    "LinearTrajectory",
     "Material",
     "Metrics",
+    "SeriesTrajectory",
     "Stockpile",
     "Surface",
     "Timeline",
+    "Trajectory",
     "assess_building",
     "biogenic_balance",
     "timeline",
