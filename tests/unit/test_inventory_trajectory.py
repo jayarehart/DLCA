@@ -5,9 +5,10 @@ length or shape (a short series not held, a long one not cut, linear not held
 after its target year); a bad trajectory accepted (empty or negative series, a
 first value other than 1, a negative target, a target year below 1 or not a
 whole number, an unknown kind); the field accepted in a schema version 1-3
-file; a non-constant trajectory accepted on a building with any `biogenic`
-field; an absent field written into the JSON (so old files would not
-round-trip unchanged); the trajectory lost in `BuildingResult` JSON.
+file; a non-constant trajectory refused on a building with a `biogenic`
+field (record 0020 lifted the record 0018 refusal); an absent field written
+into the JSON (so old files would not round-trip unchanged); the trajectory
+lost in `BuildingResult` JSON.
 """
 
 import json
@@ -151,16 +152,16 @@ def test_old_version_file_without_field_round_trips_unchanged():
     ],
     ids=["totals", "totals-b4", "totals-b5", "material", "material-b4", "material-b5"],
 )
-def test_non_constant_refused_with_any_biogenic_field(make):
-    for t in (LINEAR, {"kind": "series", "values": [1.0]}):
-        with pytest.raises(ValidationError, match="biogenic"):
-            make(t)
-    make({"kind": "constant"})  # accepted
+def test_non_constant_accepted_with_any_biogenic_field(make):
+    # Record 0020 (#86) replaces the record 0018 refusal with a per-material
+    # exemption; see tests/analytic/test_trajectory_biogenic.py.
+    for t in (LINEAR, {"kind": "series", "values": [1.0]}, {"kind": "constant"}):
+        assert make(t).b4_c_trajectory is not None
 
 
-def test_released_co2_zero_still_refused():
-    with pytest.raises(ValidationError, match="biogenic"):
-        inventory({"biogenic": {**BIOGENIC, "released_co2": 0.0}}, b4_c_trajectory=LINEAR)
+def test_released_co2_zero_accepted():
+    b = inventory({"biogenic": {**BIOGENIC, "released_co2": 0.0}}, b4_c_trajectory=LINEAR)
+    assert b.b4_c_trajectory.kind == "linear"
 
 
 def test_building_result_json_keeps_the_trajectory():
