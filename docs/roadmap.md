@@ -31,7 +31,7 @@ pure functions with JSON-serialisable inputs and outputs (record 0005).
 |---|---|---|---|
 | M0 · Foundation | v0.1.0 | Licence, `src/` layout, tooling, CI, agent guide, decision records, spreadsheet reference tests | [milestone 1](https://github.com/jayarehart/DLCA/milestone/1) (closed) |
 | M1 · Climate core | v0.2.0 | AR5 and AR6 parameter sets, atmospheric decay, forcing, GWI, temperature change, GTP, static GWP, carbon-cycle feedback, `assess()` and `Result` | [milestone 2](https://github.com/jayarehart/DLCA/milestone/2) (closed) |
-| M2 · Inventory and timing | v0.3.0 | EN 15978 inventory schema, replacement schedule, end-of-life timing, roll-up from material to building, retire the old inventory code | [milestone 3](https://github.com/jayarehart/DLCA/milestone/3) |
+| M2 · Inventory and timing | v0.3.0 | EN 15978 input schemas (building totals or a full inventory), dated B4/B5 events, end-of-life timing, roll-up from material to building, retire the old inventory code | [milestone 3](https://github.com/jayarehart/DLCA/milestone/3) |
 | M3 · Biogenic and carbonation | v0.4.0 | Biogenic carbon (uptake, storage, release) and concrete CO₂ uptake | not yet created |
 | M4 · Operational and scenarios | v0.5.0 | Time-varying emission factors for replacement and end-of-life emissions, operational energy (B6). Remove the fake DOE data | not yet created |
 | M5 · Docs and release | v1.0.0 | Settle the proposed API records, docs site, tutorials, PyPI, Zenodo DOI, JOSS paper, repository goes public, then branch protection | not yet created |
@@ -61,9 +61,18 @@ record that supersedes one.
   building (a module, a material) add up to the result for the whole.
 - **Result format** (record 0008). `Result.to_dict()` is versioned JSON, now
   schema version 4. Any change to that format must bump the version.
-- **Timing** (record 0003). EN 15978 modules A1–A3, A4–A5, B1–B7 and C1–C4,
-  with module D reported separately and not added to the A–C total. The timing
-  rule for each module is a `science` decision and needs its own record.
+- **Timing** (record 0003, partly superseded on #57). EN 15978 modules A1–A3,
+  A4–A5, B1–B7 and C1–C4. The timing rule for each module is a `science`
+  decision and needs its own record.
+- **Inventory input** (decisions S1–S15 on #57, 2026-11-20). Two input schemas:
+  `BuildingTotals` (whole-building kg per module) and `BuildingInventory`
+  (Building → Assembly → Material, quantity × per-unit factors). One building
+  uses one or the other, never a mix. Module D is out of scope and refused.
+  There is no service life or replacement interval: B4 (replacement) and B5
+  (refurbishment) are dated events the user enters, and a B4 amount is the
+  whole replacement (new item's A1–A5 plus old item's C1–C4). B1–B3, B6 and B7
+  are constant per year. These supersede record 0003 on module D and on service
+  life; the schema decision record will say so.
 - **Reference tests** (record 0001). Where DLCA disagrees with the Cooper et al.
   (2020) spreadsheet, the test is `xfail(strict=True)`. Expected values are
   never edited to match.
@@ -111,17 +120,16 @@ table and the release pipeline depend only on M0 and can start at any time.
 
 ### M2 · Inventory and timing (v0.3.0)
 
-1. **Inventory schema** (#57; `science`, **needs Jay**). Pydantic models for
-   Material, Assembly and Building, labelled with EN 15978 modules A1–A3,
-   A4–A5, B1–B7 and C1–C4, plus module D kept separate (record 0003). Each item
-   carries a service life and a replacement interval. Emissions are kg of each
-   gas, and each CH₄ amount says whether it is fossil, so that it maps onto
-   `ch4` or `ch4_fossil`. Leave room for biogenic carbon (M3) without
-   modelling it yet. Exports a JSON Schema. Adds pydantic as a dependency.
-2. **Timing engine** (#58; `science`). Turns an inventory into the yearly emissions
-   `assess()` takes. Places B4 replacements on the service-life schedule, puts
-   C emissions in the end-of-life year, and keeps module D out of the A–C
-   total. The timing rule for each module needs a decision record. It replaces
+1. **Inventory schemas** (#57; `science`, decided). Pydantic models
+   `BuildingTotals` and `BuildingInventory` with EN 15978 modules A1–A3,
+   A4–A5, B1–B7 and C1–C4, B4 and B5 as dated events, and kg of each gas under
+   the `assess()` keys (`ch4` and `ch4_fossil` are separate). No module D, no
+   service life, no biogenic field until M3. Exports a JSON Schema for each.
+   Adds pydantic as a dependency.
+2. **Timing engine** (#58; `science`). Turns either input schema into the yearly emissions
+   `assess()` takes. Places B4 and B5 events in the years given, spreads the
+   per-year modules over their years, and puts C emissions in the end-of-life
+   year (which also sets the last allowed B4 year). The timing rule for each module needs a decision record. It replaces
    `EmissionsFluxEngine`, whose known bugs must not carry over: module fluxes
    overwrite each other instead of adding, and C lands in years 60–74 instead
    of one year (the strict xfail `test_building_lifecycle_flux_builder`).
@@ -132,7 +140,8 @@ table and the release pipeline depend only on M0 and can start at any time.
    breakdown goes into `Result`, the JSON schema version goes up. Blocked by
    item 2.
 4. **Example inventories** (#60; `science`, **needs Jay**). Timber, steel and concrete
-   assemblies as shared test data. Only shareable data goes in the repo.
+   assemblies as shared test data, with B4 and B5 as dated events. Only
+   shareable data goes in the repo.
    Blocked by item 1.
 5. **Retire the old inventory code** (#61). Remove `EmissionsFluxEngine`
    (`src/dlca/engine.py`) and the old inventory models in `src/dlca/models.py`
