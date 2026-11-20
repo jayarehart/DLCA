@@ -283,6 +283,15 @@ def test_emission_in_year_before_horizon_is_not_flagged():
     assert r.by_module["C1"].gwi_sliding[-1] > 0
 
 
+def test_emission_exactly_in_year_horizon_is_flagged():
+    """Year H itself gets horizon 0, so the flag starts at H, not H + 1."""
+    b = totals(99, modules={"C1": {"co2": 1.0}})  # C1 in year 100 = H
+    with pytest.warns(UserWarning):
+        r = assess_building(b, horizon=100)
+    assert not np.any(r.by_module["C1"].gwi_sliding)
+    assert r.sliding_incomplete == {"module": ("C1",), "gas": ("co2",)}
+
+
 # --- Inputs --------------------------------------------------------------------
 
 

@@ -53,3 +53,4 @@ link is fine.
 | [0012](0012-minimum-horizon.md) | Minimum time horizon of 1e-6 yr | Accepted |
 | [0013](0013-inventory-schema.md) | Inventory input schemas: `BuildingTotals` and `BuildingInventory` | Proposed |
 | [0014](0014-module-timing.md) | Module timing: when each EN 15978 module's emissions happen | Proposed |
+| [0015](0015-building-roll-up-and-breakdown.md) | Building roll-up and breakdown: `assess_building()` and `BuildingResult` | Proposed |

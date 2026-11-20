@@ -129,7 +129,10 @@ def test_every_breakdown_adds_up_to_the_total(building, horizon, parameters):
     else:
         assert r.by_material == {} and r.by_assembly == {}
     for name, rows in breakdowns.items():
-        assert rows, name
+        if not rows:  # a building with no amounts has no module rows
+            for metric in METRICS:
+                assert not np.any(getattr(total, metric))
+            continue
         for metric in METRICS:
             series = [getattr(row, metric) for row in rows.values()]
             summed = np.sum(series, axis=0)
