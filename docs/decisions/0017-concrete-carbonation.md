@@ -105,6 +105,14 @@ with no `carbonation` give the same numbers as before, bit for bit.
   1.1 times the in-use uptake.
 - **Known under-count:** concrete replaced by a B4 event gets no crushed
   end-of-life uptake.
+- **Known under-count:** at each carbonating B4 event, neither item
+  carbonates in the event year. The old item stops at event year − 1, as the
+  building stops at RSP before its end of life in RSP + 1, and the new item
+  starts in event year + 1, as cast concrete does after year 0. In the
+  `test_b4_with_carbonation_restarts_the_clock` case (k = 6, 2.5 m²/m³, B4 in
+  year 20), one year of the old item's increment is about 2.7 % of its
+  19-year uptake. The alternative is to let the old item carbonate through
+  the event year.
 - The volume cap treats the surfaces' carbonated layers as additive. Edges
   and corners, where layers overlap, are not corrected (Andersson et al.
   note the same). Thin or compact elements can therefore reach the cap a

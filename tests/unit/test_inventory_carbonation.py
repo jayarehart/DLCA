@@ -312,8 +312,12 @@ def test_b4_without_carbonation_warns_and_keeps_the_clock():
 
 
 def test_no_carbonation_changes_nothing_and_positive_control():
-    """Without `carbonation` there are no carbonation parts and every other part
-    is identical; the same comparison sees the uptake once it is added."""
+    """Without `carbonation` there are no carbonation parts, and every part is
+    identical between a schema version 2 and a version 3 file. The same
+    comparison sees the uptake once it is added. Both runs use this code, so
+    this cannot show that nothing changed from before #74. That was checked
+    once against main by hashing the example files' timeline and result JSON
+    (recorded in the PR)."""
     fields = {"modules": {"A1-A3": {"co2": 300.0}, "C3": {"co2": 5.0}}}
     base = timeline(inventory(schema_version=2, **fields), horizon=20)
     v3 = timeline(inventory(**fields), horizon=20)
