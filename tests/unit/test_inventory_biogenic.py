@@ -12,12 +12,14 @@ Every expected value here was worked out by hand before the code was written:
   share_k = (Phi(k + 1 - 2) - Phi(k - 2)) / Phi(2).
 - Uptake is its own part, module ``"biogenic-uptake"`` (B7).
 - Storage = co2 - released_co2 - ch4 x 44.01 / 16.043 (B6 amended).
+- Net uptake = co2 - ch4 x 44.01 / 16.043 (B5, Option 1): the carbon released
+  as non-fossil CH4 is not taken up, because the engine's ch4 already nets it.
 
 Faults these catch that no other test does: uptake with the wrong sign, in the
 wrong year or the wrong part; the quantity not applied; the old sampled and
 cut Gaussian (97.9 % of the carbon, `test_gaussian_takes_up_exactly_the_declared_co2`);
-a B4 replacement with no uptake of its own; a credit for non-fossil CH4 added
-in the engine on top of the declared uptake (CH4 carbon counted twice); a
+a B4 replacement with no uptake of its own; CH4 carbon counted twice (declared as uptake
+while the engine's ch4 already nets it, the fault the #73 review found); a
 biogenic field accepted under schema version 1; a ``"none"`` option that still
 emits uptake.
 """
@@ -174,33 +176,75 @@ def test_totals_building_level_uptake():
     assert t.emissions()["co2"][0] == 9.0 - 5000.0
 
 
-# --- CH4 carbon counted once (record 0010, C8; B5) ---------------------------------
+# --- CH4 carbon counted once (record 0010, C8; B5 as fixed by Jay, Option 1) --------
+#
+# The engine does not oxidise non-fossil ch4 to CO2, so its ch4 already nets
+# the carbon's uptake against its return (the AR6 non-fossil convention). The
+# carbon released as ch4 is therefore taken off the declared uptake:
+# net uptake = co2 - ch4 x 44.01 / 16.043, per material, spread over its
+# uptake items in proportion to their co2.
 
 
-def test_biogenic_ch4_carbon_is_counted_once():
-    """All the carbon leaves as non-fossil CH4. The only uptake is the declared co2;
-    the engine adds no CH4 credit of its own, and nothing is left stored."""
-    b = inventory(
+def test_carbon_all_released_as_ch4_takes_up_nothing():
+    """Same emissions as no biogenic input at all: no lasting cooling (#73 review)."""
+    with_bio = inventory(
         quantity=1.0,
         modules={"C4": {"ch4": 1.0}},
         biogenic={"co2": CO2_PER_CH4, "regrowth": "instant"},
     )
+    without = inventory(quantity=1.0, modules={"C4": {"ch4": 1.0}})
     with warnings.catch_warnings():
         warnings.simplefilter("error", BiogenicCarbonWarning)
+        a = timeline(with_bio, horizon=5).emissions()
+        b = timeline(without, horizon=5).emissions()
+    assert abs(a["co2"]).max() <= 1e-15
+    for gas in ("ch4", "ch4_fossil", "n2o"):
+        assert np.array_equal(a[gas], b[gas])
+    balance = biogenic_balance(with_bio)[("Floor", "CLT")]
+    assert abs(balance.uptake) <= 1e-15
+    assert abs(balance.stored) <= 1e-15
+
+
+def test_ch4_carbon_comes_off_each_uptake_item_in_proportion():
+    """Own item 10 x 769 = 7690 in year 0, B4 item 10 x 100 = 1000 in year 5;
+    CH4 carbon 10 x (0.5 + 0.1) x 44.01 / 16.043 off the 8690 total."""
+    b = inventory(
+        modules={"C4": {"ch4": 0.5}},
+        biogenic={"co2": 769.0, "regrowth": "instant"},
+        b4=[
+            {
+                "year": 5,
+                "amounts": {"ch4": 0.1},
+                "biogenic": {"co2": 100.0, "regrowth": "instant"},
+            }
+        ],
+    )
+    co2 = uptake(timeline(b, horizon=5))["co2"]
+    f = (8690.0 - 6.0 * CO2_PER_CH4) / 8690.0
+    assert math.isclose(co2[0], -7690.0 * f, rel_tol=1e-14)
+    assert math.isclose(co2[5], -1000.0 * f, rel_tol=1e-14)
+    assert math.isclose(co2.sum(), -(8690.0 - 6.0 * CO2_PER_CH4), rel_tol=1e-14)
+    # Positive control: without the CH4 the same comparison sees the full uptake.
+    assert co2.sum() > -8690.0
+
+
+def test_non_fossil_ch4_without_biogenic_does_not_warn():
+    """That is the AR6 non-fossil convention, which the engine's ch4 already follows."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", BiogenicCarbonWarning)
+        timeline(inventory(modules={"C4": {"ch4": 2.0}}), horizon=5)
+
+
+def test_ch4_carbon_above_declared_gives_zero_uptake_and_warns():
+    b = inventory(
+        quantity=1.0,
+        modules={"C4": {"ch4": 1.0}},
+        biogenic={"co2": 1.0, "regrowth": "instant"},
+    )
+    with pytest.warns(BiogenicCarbonWarning, match="more"):
         t = timeline(b, horizon=5)
-    e = t.emissions()
-    assert e["co2"].sum() == -CO2_PER_CH4
-    assert e["ch4"].sum() == 1.0
-    balance = biogenic_balance(b)[("Floor", "CLT")]
-    assert balance.declared == CO2_PER_CH4
-    assert math.isclose(balance.released_ch4_as_co2, CO2_PER_CH4, rel_tol=1e-15)
-    assert abs(balance.stored) <= 1e-12
-
-
-def test_biogenic_ch4_with_no_declared_uptake_warns():
-    b = inventory(modules={"C4": {"ch4": 2.0}})
-    with pytest.warns(BiogenicCarbonWarning, match="Floor/CLT"):
-        timeline(b, horizon=5)
+    assert not np.any(uptake(t)["co2"] > 0)
+    assert t.emissions()["co2"].sum() == 0.0
 
 
 def test_release_above_declared_warns():
@@ -232,6 +276,7 @@ def test_storage_balance_per_material():
     assert math.isclose(bal.released_ch4_as_co2, q * 0.6 * CO2_PER_CH4, rel_tol=1e-14)
     want_stored = q * (869.0 - 29.0 - 0.6 * CO2_PER_CH4)
     assert math.isclose(bal.stored, want_stored, rel_tol=1e-14)
+    assert math.isclose(bal.uptake, q * (869.0 - 0.6 * CO2_PER_CH4), rel_tol=1e-14)
 
 
 def test_balance_for_totals_is_keyed_none():
