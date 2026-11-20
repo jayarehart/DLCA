@@ -52,7 +52,9 @@ A delayed decline (m = 1 for a while, then falling) needs a `series`.
   release while leaving `released_co2` at 0. B5 events were added during the
   work (not a separate decision by Jay; flagged in the PR): the release of
   a B5 item's biogenic carbon would usually be entered in the material's
-  C1–C4, which is scaled.
+  C1–C4, which is scaled. The refusal looks at `kind`, so a trajectory that is
+  constant in effect (`series` [1], or `linear` with `target` 1) is refused
+  too.
 - All of C1–C4 is scaled, including C4 (landfill and incineration). The
   trajectory is a scenario the user chooses, and the documentation says so.
 
@@ -149,6 +151,9 @@ trajectory, and the same comparison detects the `linear` case.
     plastics in C4). Choosing a trajectory that fits the materials is up to
     the user.
   - A wrong `series` length passes without an error.
+  - A biogenic release entered as `co2` in C1–C4 on a material with no
+    `biogenic` field is scaled without any warning. Only the documentation can
+    cover this.
 - **Commitments.**
   - Inventory schema 4 and `BuildingResult` schema 4.
   - `src/dlca/inventory/aggregate.py` changes for the version bump, which #81

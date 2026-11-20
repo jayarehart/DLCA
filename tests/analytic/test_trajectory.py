@@ -11,7 +11,8 @@ Every expected value here was written in #81 (decisions comment of
 - ``series`` [1, 0.5] holds 0.5: B4 in year 25 -> 50 kg, C -> 50 kg.
 
 Faults these catch that no other test does: the multiplier taken at the wrong
-year (event year - 1, or RSP instead of RSP + 1 for C); the multiplier applied
+year (event year - 1, or m(RSP) instead of m(RSP + 1) for C, which needs a
+trajectory still changing at RSP + 1); the multiplier applied
 to A1-A3, B1-B3 or B5, or to non-fossil CH4; a `linear` trajectory not held at
 its target after the target year; a short `series` not holding its last value;
 the material quantity and the multiplier not both applied.
@@ -140,3 +141,15 @@ def test_breakdown_rows_still_add_up_with_a_trajectory():
     scale = sum(np.abs(row.gwi_dynamic) for row in r.by_module.values())
     assert np.all(np.abs(rows - r.total.gwi.dynamic) <= 1e-9 * scale)
     assert r.by_module["C3"].gwi_dynamic[61] == 0.0
+
+
+def test_end_of_life_uses_the_multiplier_of_year_rsp_plus_one():
+    # linear to 0 in year 61 = RSP + 1: m(60) = 1/61, m(61) = 0. A B4 event in
+    # year 60 keeps 100/61 kg; C (year 61) is 0. m(RSP) for C would give 100/61.
+    b = totals(
+        {"kind": "linear", "target": 0.0, "target_year": 61},
+        b4=[{"year": 60, "amounts": {"co2": 100.0}}],
+    )
+    t = timeline(b, horizon=10)
+    assert part(t, "B4")["co2"][60] == pytest.approx(100.0 / 61.0, rel=1e-12)
+    assert part(t, "C3")["co2"][61] == 0.0
