@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-20
+
+Milestone M2, "Inventory and timing": a building inventory now goes from
+EN 15978 modules to yearly emissions, climate results, and a breakdown by
+part.
+
+### Added
+
+- `dlca.inventory.BuildingTotals` and `dlca.inventory.BuildingInventory`, two
+  pydantic input schemas (#57, decision record 0013, Proposed).
+  `BuildingTotals` holds whole-building kg per module. `BuildingInventory`
+  holds assemblies of materials, each a quantity in a declared unit times kg
+  per unit. Modules are A1-A3, A4, A5, B1–B3, B6, B7 and C1–C4, in kg of each
+  gas under the `assess()` keys. B4 (replacement) and B5 (refurbishment) are
+  dated events the user enters. There is no module D and no service life.
+  Each file carries a `schema` tag and `schema_version` 1, and the JSON Schema
+  for each ships in `dlca/data/`.
+- `dlca.inventory.timeline(building, *, horizon=100, years=None)` returns a
+  `Timeline` of yearly series per assembly, material and module (#58, record
+  0014, Proposed). A1–A5 fall in year 0, B1–B3, B6 and B7 in each of years 1
+  to the study period (RSP), B4 and B5 in their event years, and C1–C4 in
+  year RSP + 1. Amounts in the same year add. The series runs RSP + H + 2
+  years. `Timeline.emissions()` gives the input `dlca.assess()` takes.
+- `dlca.assess_building(building, *, parameters="AR6", horizon=100)` returns a
+  `BuildingResult`: the whole-building `Result` plus GWI and GTP (dynamic,
+  sliding and static) for each module, gas, material and assembly (#59, record
+  0015, Proposed). The rows of each breakdown add up to the total. Rows with
+  emissions in year H or later, which the sliding series cannot count, are
+  listed in `sliding_incomplete` and raise one `UserWarning`. `BuildingResult`
+  and `Timeline` round-trip through JSON (`dlca.building_result` and
+  `dlca.timeline`, schema version 1). `Result` stays at schema version 4.
+- Illustrative example inventories for tests (timber, steel and concrete
+  floors, and one `BuildingTotals` file) with pytest fixtures (#60). The
+  numbers are made up but plausible, and labelled as such.
+- `pydantic>=2.11` as a runtime dependency.
+
+### Changed
+
+- Record 0013 proposes to supersede accepted record 0003 on two points: module
+  D is no longer part of DLCA, and B4 and B5 are dated events instead of being
+  derived from a service life and replacement interval. Record 0003's status
+  changes when 0013 is accepted.
+
 ### Removed
 
 - The old inventory code (#61): `dlca.engine` (`EmissionsFluxEngine` with
@@ -97,5 +140,6 @@ functions with cited AR5 and AR6 parameter sets.
   form (#31).
 - Empty `LICENSE.txt` and `CHANGES.txt` placeholders.
 
-[Unreleased]: https://github.com/jayarehart/DLCA/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/jayarehart/DLCA/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/jayarehart/DLCA/releases/tag/v0.3.0
 [0.2.0]: https://github.com/jayarehart/DLCA/releases/tag/v0.2.0
