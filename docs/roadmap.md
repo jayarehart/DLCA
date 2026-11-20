@@ -33,7 +33,7 @@ pure functions with JSON-serialisable inputs and outputs (record 0005).
 | M1 · Climate core | v0.2.0 | AR5 and AR6 parameter sets, atmospheric decay, forcing, GWI, temperature change, GTP, static GWP, carbon-cycle feedback, `assess()` and `Result` | [milestone 2](https://github.com/jayarehart/DLCA/milestone/2) (closed) |
 | M2 · Inventory and timing | v0.3.0 | EN 15978 input schemas (building totals or a full inventory), dated B4/B5 events, end-of-life timing, roll-up from material to building, retire the old inventory code | [milestone 3](https://github.com/jayarehart/DLCA/milestone/3) |
 | M3 · Biogenic and carbonation | v0.4.0 | Biogenic carbon (uptake, storage, release) and concrete CO₂ uptake | [milestone 4](https://github.com/jayarehart/DLCA/milestone/4) |
-| M4 · Operational and scenarios | v0.5.0 | Time-varying emission factors for replacement and end-of-life emissions, operational energy (B6). Remove the fake DOE data | not yet created |
+| M4 · Operational and scenarios | v0.5.0 | Time-varying emission factors for replacement and end-of-life emissions, operational energy (B6). Remove the fake DOE data | [milestone 5](https://github.com/jayarehart/DLCA/milestone/5) |
 | M5 · Docs and release | v1.0.0 | Settle the proposed API records, docs site, tutorials, PyPI, Zenodo DOI, JOSS paper, repository goes public, then branch protection | not yet created |
 
 ## Decisions from M0 and M1 that shape later work
@@ -167,14 +167,14 @@ table and the release pipeline depend only on M0 and can start at any time.
 
 ### M4 · Operational and scenarios (v0.5.0)
 
-1. **Emission-factor trajectories**. Constant, linear to a target year, or a
+1. **Emission-factor trajectories** (#81; `science`, **needs Jay**). Constant, linear to a target year, or a
    user-supplied series, applied to B4 replacement and C emissions.
-2. **Operational energy, B6** (`science`, **needs Jay**). Energy by fuel times
+2. **Operational energy, B6** (#82; `science`, **needs Jay**). Energy by fuel times
    an emission factor (the packaged eGRID 2020 subregion and state factors,
    plus fuels) on a trajectory. Users supply their own energy use. Removes the
    fake DOE data (`DOE_energyuse_fake.csv`) and the building models that read
    it. Blocked by items 1 and 3.
-3. **Energy unit table**. A small internal table (kWh, GJ, MMBtu, kBtu), with
+3. **Energy unit table** (#80). A small internal table (kWh, GJ, MMBtu, kBtu), with
    tests. Internally the package uses kg and years.
 
 ### M5 · Docs and release (v1.0.0)
