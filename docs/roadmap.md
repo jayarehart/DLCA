@@ -98,6 +98,8 @@ flowchart TB
   subgraph M4["M4 · Operational and scenarios"]
     E["Emission-factor trajectories"] --> O["Operational B6"]
     U["Energy unit table"] --> O
+    O --> CB["Cambium projections"]
+    E --> BT["Trajectories for biogenic items"]
   end
   subgraph M5["M5 · Docs and release"]
     AR["Settle proposed records"] --> D["Docs site"]
@@ -167,15 +169,22 @@ table and the release pipeline depend only on M0 and can start at any time.
 
 ### M4 · Operational and scenarios (v0.5.0)
 
-1. **Emission-factor trajectories** (#81; `science`, **needs Jay**). Constant, linear to a target year, or a
-   user-supplied series, applied to B4 replacement and C emissions.
-2. **Operational energy, B6** (#82; `science`, **needs Jay**). Energy by fuel times
-   an emission factor (the packaged eGRID 2020 subregion and state factors,
-   plus fuels) on a trajectory. Users supply their own energy use. Removes the
-   fake DOE data (`DOE_energyuse_fake.csv`) and the building models that read
-   it. Blocked by items 1 and 3.
-3. **Energy unit table** (#80). A small internal table (kWh, GJ, MMBtu, kBtu), with
-   tests. Internally the package uses kg and years.
+1. **Emission-factor trajectories** (#81; `science`, decided; PR #87, record
+   0018). Constant, linear to a target year, or a user-supplied series,
+   applied to the fossil gases of B4 replacement and C emissions. Refused for
+   now on buildings with biogenic items (item 5).
+2. **Operational energy, B6** (#82; `science`, decided; PR #88, record 0019).
+   Energy by fuel times an emission factor (eGRID2023 Rev 2 subregion and
+   state factors, EPA 2025 Hub fuel factors, or the user's own) on a
+   trajectory. Users supply their own energy use. Removed the fake DOE data
+   (`DOE_energyuse_fake.csv`) and the building models that read it.
+3. **Energy unit table** (#80; PR #83). A small internal table (kWh, MJ, GJ,
+   MMBtu, kBtu, therm), with tests. Internally the package uses kg and years.
+4. **NREL Cambium grid projections** (#85; `science`, **needs Jay**). Decide
+   whether and how to package Cambium projections as B6 factor series.
+5. **Trajectories for biogenic items** (#86; `science`, **needs Jay**). Lift the #81 refusal
+   so buildings with biogenic items can use a B4/C trajectory without
+   scaling the biogenic release.
 
 ### M5 · Docs and release (v1.0.0)
 
