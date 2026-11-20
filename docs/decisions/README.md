@@ -51,3 +51,4 @@ link is fine.
 | [0010](0010-carbon-cycle-feedback.md) | Carbon-cycle feedback for CH₄ and N₂O (AR6 on, exact) | Proposed |
 | [0011](0011-fossil-ch4-oxidation-residual.md) | Fossil CH₄ oxidation keeps the perturbation lifetime; the AR6 gap is documented | Accepted |
 | [0012](0012-minimum-horizon.md) | Minimum time horizon of 1e-6 yr | Accepted |
+| [0013](0013-inventory-schema.md) | Inventory input schemas: `BuildingTotals` and `BuildingInventory` | Proposed |
