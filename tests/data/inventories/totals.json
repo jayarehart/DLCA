@@ -1,0 +1,25 @@
+{
+  "schema": "dlca.building_totals",
+  "schema_version": 1,
+  "name": "Illustrative whole-building totals",
+  "study_period": 50,
+  "modules": {
+    "A1-A3": {"co2": 250000, "ch4_fossil": 300, "n2o": 8},
+    "A4": {"co2": 10000},
+    "A5": {"co2": 15000},
+    "C1": {"co2": 5000},
+    "C2": {"co2": 4000},
+    "C3": {"co2": 3000},
+    "C4": {"co2": 2000, "ch4": 50}
+  },
+  "per_year": {
+    "B2": {"co2": 500}
+  },
+  "b4": [
+    {"year": 20, "amounts": {"co2": 8000}},
+    {"year": 40, "amounts": {"co2": 8000}}
+  ],
+  "b5": [
+    {"year": 25, "amounts": {"co2": 20000, "ch4_fossil": 20}}
+  ]
+}
