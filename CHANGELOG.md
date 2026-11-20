@@ -7,8 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Planned as v0.2.0 (milestone M1, "Climate core"): the climate engine is rebuilt
-as pure NumPy functions with cited AR5 and AR6 parameter sets.
+## [0.2.0] - 2026-11-19
+
+Milestone M1, "Climate core": the climate engine is rebuilt as pure NumPy
+functions with cited AR5 and AR6 parameter sets.
 
 ### Added
 
@@ -77,3 +79,6 @@ as pure NumPy functions with cited AR5 and AR6 parameter sets.
   `csv_loader` functions. `agwp()` and `agtp()` compute these values in closed
   form (#31).
 - Empty `LICENSE.txt` and `CHANGES.txt` placeholders.
+
+[Unreleased]: https://github.com/jayarehart/DLCA/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/jayarehart/DLCA/releases/tag/v0.2.0
