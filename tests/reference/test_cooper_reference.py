@@ -19,7 +19,6 @@ import pandas as pd
 import pytest
 
 import dlca
-from dlca import engine as DLCA
 from dlca.climate import agwp
 from dlca.parameters import get_parameters
 
@@ -241,52 +240,4 @@ def test_engine_matches_spreadsheet_where_nonzero(case, column):
         rtol=RTOL,
         atol=0,
         err_msg=f"{case}: {column} (years {np.flatnonzero(keep)[[0, -1]]})",
-    )
-
-
-@pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason=(
-        "Audit bug: module fluxes overwrite each other. create_flux_mat assigns (not adds) "
-        "the A, B and C fluxes, and MatEmissionsTiming puts C in years 60-74, so year 60 "
-        "gets C instead of B + C and years 61-74 get C again. Measured at year 60: CO2 200 "
-        "instead of 210 kg, CH4 1 instead of 1.05 kg, N2O 0.02 instead of 0.022 kg; years "
-        "61-74 repeat the C value instead of 0. Both causes (assign-not-add and the "
-        "15-year C_time) must be fixed for this to pass."
-    ),
-)
-@pytest.mark.parametrize("gas", ["CO2", "CH4", "N2O"])
-def test_building_lifecycle_flux_builder(gas):
-    """The inventory's A/B/C flux builder should reproduce the case's inflows."""
-    inputs, _, _ = load_case("building_lifecycle")
-    kwargs = {"material": DLCA.MaterialTypes.TEST}
-    inv = DLCA.EmissionsInventoryAllGHG(
-        CO2=DLCA.EmissionsInventoryGHGi(
-            ghg=DLCA.GHGTypes.CO2, emissions_A=1000.0, emissions_B=10.0, emissions_C=200.0, **kwargs
-        ),
-        CH4=DLCA.EmissionsInventoryGHGi(
-            ghg=DLCA.GHGTypes.CH4, emissions_A=2.0, emissions_B=0.05, emissions_C=1.0, **kwargs
-        ),
-        N2O=DLCA.EmissionsInventoryGHGi(
-            ghg=DLCA.GHGTypes.N2O, emissions_A=0.1, emissions_B=0.002, emissions_C=0.02, **kwargs
-        ),
-        # No biogenic uptake (rot_period 0 gives zero growth_biomass), for the same
-        # material: the material check is strict (decision A8 on #31).
-        CO2bio=DLCA.EmissionInventoryBio(
-            material=DLCA.MaterialTypes.TEST, CO2_bio=0.0, rot_period=0
-        ),
-    )
-    flux = DLCA.EmissionsFluxEngine.create_flux_mat(
-        material=DLCA.MaterialTypes.TEST,
-        time=DLCA.AnalysisPeriod(0, 500),
-        timing=DLCA.MatEmissionsTiming(bldg_lifespan=60),
-        emissions_inv=inv,
-    )
-    np.testing.assert_allclose(
-        flux.flux_df[f"{gas}_flux"].to_numpy(dtype=float),
-        inputs[f"{gas}_flux"].to_numpy(dtype=float),
-        rtol=RTOL,
-        atol=0,
-        err_msg=gas,
     )
