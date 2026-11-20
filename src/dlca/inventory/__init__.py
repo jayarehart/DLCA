@@ -1,4 +1,4 @@
-"""Building inventory input (record 0013)."""
+"""Building inventory input (record 0013) and its timing (record 0014)."""
 
 from dlca.inventory.schema import (
     INVENTORY_TAG,
@@ -11,6 +11,7 @@ from dlca.inventory.schema import (
     GasAmounts,
     Material,
 )
+from dlca.inventory.timing import Timeline, timeline
 
 __all__ = [
     "INVENTORY_TAG",
@@ -22,4 +23,6 @@ __all__ = [
     "Event",
     "GasAmounts",
     "Material",
+    "Timeline",
+    "timeline",
 ]

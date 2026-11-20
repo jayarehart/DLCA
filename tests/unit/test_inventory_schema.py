@@ -361,16 +361,20 @@ def test_event_year_must_be_whole_number(year):
         Event.model_validate_json(json.dumps({"year": year, "amounts": {}}))
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="B4 may not fall in the end-of-life year (#57 S11), but that year "
-    "(RSP or RSP+1) is #58's decision; add the check with #58.",
-)
-def test_b4_in_end_of_life_year_refused():
+@pytest.mark.parametrize("field", ["b4", "b5"])
+def test_event_in_end_of_life_year_refused(field):
+    # End of life is year study_period + 1 (T1 on #58, record 0014), so the
+    # 1..study_period event range already keeps B4 (S11) and B5 (T2) out of it.
+    d = totals_dict()
+    d[field] = [{"year": d["study_period"] + 1, "amounts": gas()}]
+    with pytest.raises(ValidationError, match="after the study period"):
+        BuildingTotals.model_validate(d)
+
+
+def test_b4_in_last_study_period_year_allowed():
     d = totals_dict()
     d["b4"] = [{"year": d["study_period"], "amounts": gas()}]
-    with pytest.raises(ValidationError):
-        BuildingTotals.model_validate(d)
+    assert BuildingTotals.model_validate(d).b4[0].year == d["study_period"]
 
 
 # --- study period, names, quantities, units (S6, S9) ---------------------------------
