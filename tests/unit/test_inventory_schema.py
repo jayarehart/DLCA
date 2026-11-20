@@ -177,7 +177,7 @@ def test_wrong_tag_alone_refused():
         BuildingInventory.model_validate(d)
 
 
-@pytest.mark.parametrize("version", [0, 4, "1", 1.0, True])
+@pytest.mark.parametrize("version", [0, 5, "1", 1.0, True])
 def test_unknown_schema_version_refused(version):
     d = totals_dict()
     d["schema_version"] = version

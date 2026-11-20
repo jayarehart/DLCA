@@ -20,6 +20,11 @@ Schema version 3 (#74) adds an optional `carbonation` field to `Material` and
 to its B4 events: concrete carbonation by Lagerblad (2005). Version 1 and 2
 files still load and may not use it.
 
+Schema version 4 (#81, record 0018) adds an optional `b4_c_trajectory` to
+`BuildingTotals` and `BuildingInventory`: a multiplier m(y) on study years for
+the fossil gases of B4 events and of C1-C4. Absent means constant. Version 1-3
+files still load and may not use it.
+
 This module only checks the input. Turning it into yearly emissions is the
 timing engine's job (#58).
 """
@@ -30,11 +35,14 @@ import json
 from pathlib import Path
 from typing import Annotated, Literal
 
+import numpy as np
+from numpy.typing import NDArray
 from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 FIRST_BIOGENIC_VERSION = 2
 FIRST_CARBONATION_VERSION = 3
+FIRST_TRAJECTORY_VERSION = 4
 TOTALS_TAG = "dlca.building_totals"
 INVENTORY_TAG = "dlca.building_inventory"
 
@@ -88,7 +96,7 @@ _Positive = Annotated[float, Field(gt=0, allow_inf_nan=False)]
 _Share = Annotated[float, Field(gt=0, le=1, allow_inf_nan=False)]
 
 
-_OMIT_IF_NONE = ("biogenic", "rotation", "carbonation", "volume")
+_OMIT_IF_NONE = ("biogenic", "rotation", "carbonation", "volume", "b4_c_trajectory")
 
 
 class _Strict(BaseModel):
@@ -104,8 +112,9 @@ class _Strict(BaseModel):
 
     @model_serializer(mode="wrap")
     def _drop_unset_optional(self, handler):
-        # An unset `biogenic`, `rotation`, `carbonation` or `volume` is left
-        # out, so a file without them dumps exactly as under schema version 1.
+        # An unset `biogenic`, `rotation`, `carbonation`, `volume` or
+        # `b4_c_trajectory` is left out, so a file without them dumps exactly as
+        # under schema version 1.
         data = handler(self)
         if isinstance(data, dict):
             for key in _OMIT_IF_NONE:
@@ -231,6 +240,86 @@ class Event(_Strict):
     `BuildingTotals`."""
 
 
+def _check_count(n: int) -> int:
+    if isinstance(n, bool) or not isinstance(n, int) or n < 1:
+        raise ValueError(f"n must be a whole number >= 1, got {n!r}")
+    return n
+
+
+class ConstantTrajectory(_Strict):
+    """m(y) = 1 in every year: amounts as entered (#81, record 0018)."""
+
+    kind: Literal["constant"]
+
+    def multipliers(self, n: int) -> NDArray[np.float64]:
+        """m(y) for study years 0..n - 1."""
+        return np.ones(_check_count(n))
+
+
+class LinearTrajectory(_Strict):
+    """A straight line from m(0) = 1 to `target` in `target_year`, then held
+    at `target` (#81, record 0018). A delayed start needs a `SeriesTrajectory`."""
+
+    kind: Literal["linear"]
+    target: _NonNegative
+    """m in `target_year` and every year after it."""
+    target_year: _Year
+    """Study year (year 0 = construction) in which m reaches `target`."""
+
+    def multipliers(self, n: int) -> NDArray[np.float64]:
+        """m(y) for study years 0..n - 1."""
+        y = np.arange(_check_count(n), dtype=float)
+        return 1.0 + (self.target - 1.0) * np.minimum(y, self.target_year) / self.target_year
+
+
+class SeriesTrajectory(_Strict):
+    """m(y) given per study year: `values[y]` (#81, record 0018).
+
+    Years past the last value use the last value; values past the series end
+    are ignored.
+    """
+
+    kind: Literal["series"]
+    values: Annotated[list[_NonNegative], Field(min_length=1)]
+    """m(0), m(1), ...: each finite and >= 0, the first exactly 1."""
+
+    @model_validator(mode="after")
+    def _starts_at_one(self) -> SeriesTrajectory:
+        if self.values[0] != 1.0:
+            raise ValueError(f"a series trajectory must start at 1, got {self.values[0]!r}")
+        return self
+
+    def multipliers(self, n: int) -> NDArray[np.float64]:
+        """m(y) for study years 0..n - 1."""
+        n = _check_count(n)
+        values = np.asarray(self.values[:n], dtype=float)
+        return np.concatenate([values, np.full(n - values.size, values[-1])])
+
+
+Trajectory = Annotated[
+    ConstantTrajectory | LinearTrajectory | SeriesTrajectory, Field(discriminator="kind")
+]
+"""A multiplier m(y) on study years, chosen by ``kind`` (#81, record 0018).
+Each kind has ``multipliers(n)``, m(y) for years 0..n - 1, with m(0) = 1."""
+
+
+def _check_trajectory(
+    version: int, trajectory: Trajectory | None, biogenic: list[Biogenic | None]
+) -> None:
+    if trajectory is None:
+        return
+    if version < FIRST_TRAJECTORY_VERSION:
+        raise ValueError(
+            f"b4_c_trajectory needs schema_version {FIRST_TRAJECTORY_VERSION}, got {version}"
+        )
+    if trajectory.kind != "constant" and any(item is not None for item in biogenic):
+        raise ValueError(
+            "b4_c_trajectory: a non-constant trajectory is refused on a building with a "
+            "biogenic field, because biogenic release is entered inside C1-C4 and B4 "
+            "amounts and would be scaled too (record 0018)"
+        )
+
+
 def _check_event_years(events: list[Event], study_period: int, where: str) -> None:
     for event in events:
         if event.year > study_period:
@@ -284,6 +373,9 @@ class BuildingTotals(_Strict):
     b5: list[Event] = Field(default_factory=list)
     biogenic: Biogenic | None = None
     """Biogenic carbon of the whole building, in kg CO2 (schema version 2)."""
+    b4_c_trajectory: Trajectory | None = None
+    """Multiplier on the fossil gases of B4 events and C1-C4 (schema version 4,
+    record 0018). Absent means constant."""
 
     @model_validator(mode="after")
     def _events_in_study_period(self) -> BuildingTotals:
@@ -299,6 +391,11 @@ class BuildingTotals(_Strict):
                 "building: carbonation is for materials of a BuildingInventory, "
                 "not BuildingTotals events"
             )
+        _check_trajectory(
+            self.schema_version,
+            self.b4_c_trajectory,
+            [self.biogenic, *_event_biogenic(self.b4, self.b5)],
+        )
         return self
 
 
@@ -369,6 +466,9 @@ class BuildingInventory(_Strict):
     """Reference study period, whole years."""
     assemblies: Annotated[list[Assembly], Field(min_length=1)]
     per_year: dict[OperationalModule, GasAmounts] = Field(default_factory=dict)
+    b4_c_trajectory: Trajectory | None = None
+    """Multiplier on the fossil gases of every material's B4 events and C1-C4
+    (schema version 4, record 0018). Absent means constant."""
 
     @model_validator(mode="after")
     def _check_tree(self) -> BuildingInventory:
@@ -388,6 +488,16 @@ class BuildingInventory(_Strict):
                     [material.carbonation, *(e.carbonation for e in material.b4)],
                     where,
                 )
+        _check_trajectory(
+            self.schema_version,
+            self.b4_c_trajectory,
+            [
+                item
+                for assembly in self.assemblies
+                for m in assembly.materials
+                for item in (m.biogenic, *_event_biogenic(m.b4, m.b5))
+            ],
+        )
         return self
 
 

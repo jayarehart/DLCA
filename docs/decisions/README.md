@@ -56,3 +56,4 @@ link is fine.
 | [0015](0015-building-roll-up-and-breakdown.md) | Building roll-up and breakdown: `assess_building()` and `BuildingResult` | Accepted |
 | [0016](0016-biogenic-carbon.md) | Biogenic carbon: declared uptake, regrowth options, storage report | Accepted |
 | [0017](0017-concrete-carbonation.md) | Concrete carbonation: Lagerblad (2005), √t uptake in use, crushed stockpile at end of life | Accepted |
+| [0018](0018-emission-factor-trajectories.md) | Emission-factor trajectories for B4 and end-of-life emissions | Proposed |
