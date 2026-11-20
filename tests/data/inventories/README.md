@@ -103,11 +103,14 @@ stand.
 
 **Hand totals:**
 
-- Uptake: (200 + 30) × 769 = **176,870 kg CO₂**, in its own module
-  `biogenic-uptake`.
+- Declared: (200 + 30) × 769 = 176,870 kg CO₂.
+- Uptake, in its own module `biogenic-uptake`, leaves out the carbon released
+  as non-fossil CH₄, because the engine's `ch4` already nets it (Option 1 on
+  #73): 230 × (769 − 2.0 × 44.01/16.043) = 230 × 763.5135 =
+  **175,608.1 kg CO₂**.
 - C4 co2: 200 × 35 + 30 × 35 + 2000 × 0.001 = **8,052 kg**.
-- Whole series co2: 42,472 (`timber.json`) − 460 + 8,050 − 176,870 =
-  **−126,808 kg**. ch4, ch4_fossil and n2o are as in `timber.json`.
+- Whole series co2: 42,472 (`timber.json`) − 460 + 8,050 − 175,608.1 =
+  **−125,546.1 kg**. ch4, ch4_fossil and n2o are as in `timber.json`.
 - Stored at the end: 769 − 33 − 5.486 = **730.51 kg CO₂ per m³**, 95 % of the
   declared carbon.
 

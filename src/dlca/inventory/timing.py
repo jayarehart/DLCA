@@ -10,8 +10,8 @@ building's `study_period`:
 - B4, B5: in the year each event gives (1..RSP, checked by the schema).
 - Amounts in the same year add.
 - Biogenic uptake (#73): negative `co2` from the product's year (0, or the
-  B4/B5 event's year), in its own part, module ``"biogenic-uptake"``. See
-  `dlca.inventory.biogenic`.
+  B4/B5 event's year), in its own part, module ``"biogenic-uptake"``, net of
+  the carbon released as non-fossil CH4. See `dlca.inventory.biogenic`.
 
 The series runs over years 0..RSP + 1 + H, so the end-of-life pulse gets a
 full horizon H. Pass the same H to `assess()`.
@@ -33,6 +33,7 @@ from dlca.inventory.biogenic import (
     CUT_WARN,
     UPTAKE_MODULE,
     BiogenicCarbonWarning,
+    uptake_factors,
     uptake_shares,
     warn_on_balance,
     years_for_full_uptake,
@@ -221,15 +222,19 @@ def timeline(
         )
 
     warn_on_balance(building)
+    factors = uptake_factors(building)
     builder = _Builder(rsp, years)
     if isinstance(building, BuildingTotals):
         builder.add(None, None, 1.0, building.modules, building.per_year, building.b4, building.b5)
-        builder.add_biogenic(None, None, 1.0, building.biogenic, building.b4, building.b5)
+        builder.add_biogenic(
+            None, None, factors.get(None, 0.0), building.biogenic, building.b4, building.b5
+        )
     else:
         for assembly in building.assemblies:
             for m in assembly.materials:
                 builder.add(assembly.name, m.name, m.quantity, m.modules, m.per_year, m.b4, m.b5)
-                builder.add_biogenic(assembly.name, m.name, m.quantity, m.biogenic, m.b4, m.b5)
+                f = factors.get((assembly.name, m.name), 0.0)
+                builder.add_biogenic(assembly.name, m.name, m.quantity * f, m.biogenic, m.b4, m.b5)
         builder.add(None, None, 1.0, {}, building.per_year, [], [])
 
     parts = MappingProxyType({key: _freeze(series) for key, series in builder.parts.items()})
@@ -282,7 +287,7 @@ class _Builder:
         self,
         assembly: str | None,
         material: str | None,
-        scale: float,
+        scale: float,  # quantity x the CH4-carbon factor from `uptake_factors`
         own: Biogenic | None,
         b4: Iterable[Event],
         b5: Iterable[Event],
