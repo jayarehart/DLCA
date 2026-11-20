@@ -42,6 +42,8 @@ from numpy.typing import NDArray
 
 from dlca.climate import EMISSION_KEYS
 from dlca.inventory.biogenic import UPTAKE_MODULE, BiogenicBalance, biogenic_balance
+from dlca.inventory.carbonation import EOL_MODULE as CARBONATION_EOL_MODULE
+from dlca.inventory.carbonation import UPTAKE_MODULE as CARBONATION_UPTAKE_MODULE
 from dlca.inventory.schema import INVENTORY_TAG, TOTALS_TAG, BuildingInventory, BuildingTotals
 from dlca.inventory.timing import Timeline, _check_int, timeline
 from dlca.parameters import ClimateParameters, get_parameters
@@ -58,17 +60,19 @@ __all__ = [
 BUILDING_RESULT_SCHEMA = "dlca.building_result"
 # Bump whenever the form of BuildingResult.to_dict() changes. Version 2 (#73):
 # the building may hold `biogenic` fields and a "biogenic-uptake" module row;
-# version 1 data still loads.
-BUILDING_RESULT_SCHEMA_VERSION = 2
-_READABLE_BUILDING_RESULT_VERSIONS = (1, 2)
+# version 1 data still loads. Version 3 (#74): `carbonation` fields and the
+# "carbonation-uptake" and "carbonation-eol" module rows.
+BUILDING_RESULT_SCHEMA_VERSION = 3
+_READABLE_BUILDING_RESULT_VERSIONS = (1, 2, 3)
 
 MODULE_ORDER = (
     UPTAKE_MODULE,
     "A1-A3", "A4", "A5",
-    "B1", "B2", "B3", "B4", "B5", "B6", "B7",
-    "C1", "C2", "C3", "C4",
+    "B1", CARBONATION_UPTAKE_MODULE, "B2", "B3", "B4", "B5", "B6", "B7",
+    "C1", "C2", "C3", "C4", CARBONATION_EOL_MODULE,
 )  # fmt: skip
-"""EN 15978 order of the module rows, with biogenic uptake first (#73)."""
+"""EN 15978 order of the module rows, with biogenic uptake first (#73),
+in-use carbonation after B1 and stockpile carbonation after C4 (#74)."""
 
 BREAKDOWNS = ("module", "gas", "material", "assembly")
 """Breakdown names, as used in `sliding_incomplete` and the JSON form."""

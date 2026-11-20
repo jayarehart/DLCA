@@ -363,11 +363,11 @@ def test_building_result_json_round_trip_is_exact(building):
 def test_building_result_from_dict_refuses_other_schema_or_version():
     d = assess_building(two_materials(), horizon=100).to_dict()
     assert d["schema"] == "dlca.building_result"
-    assert d["schema_version"] == 2
+    assert d["schema_version"] == 3
     with pytest.raises(ValueError, match="schema"):
         BuildingResult.from_dict({**d, "schema": "dlca.result"})
     with pytest.raises(ValueError, match="schema_version"):
-        BuildingResult.from_dict({**d, "schema_version": 3})
+        BuildingResult.from_dict({**d, "schema_version": 4})
 
 
 def test_building_result_from_dict_refuses_a_horizon_that_differs_from_total():
@@ -385,7 +385,7 @@ def test_timeline_json_round_trip_is_exact():
     t = timeline(b, horizon=7, years=20)
     d = t.to_dict()
     assert d["schema"] == "dlca.timeline"
-    assert d["schema_version"] == 2
+    assert d["schema_version"] == 3
     back = roundtrip(t, Timeline)
     assert (back.study_period, back.horizon, back.years) == (6, 7, 20)
     assert list(back.parts) == list(t.parts) == [("A", "m", "C2"), (None, None, "B6")]
@@ -400,7 +400,7 @@ def test_timeline_json_round_trip_is_exact():
     "change",
     [
         {"schema": "dlca.result"},
-        {"schema_version": 3},
+        {"schema_version": 4},
         {"years": 19},  # arrays are 20 long
     ],
 )

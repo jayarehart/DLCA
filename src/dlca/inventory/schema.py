@@ -16,6 +16,10 @@ Schema version 2 (#73) adds an optional `biogenic` field to `Material`,
 it is taken up from the air. Version 1 files still load; a version 1 file may
 not use `biogenic`.
 
+Schema version 3 (#74) adds an optional `carbonation` field to `Material` and
+to its B4 events: concrete carbonation by Lagerblad (2005). Version 1 and 2
+files still load and may not use it.
+
 This module only checks the input. Turning it into yearly emissions is the
 timing engine's job (#58).
 """
@@ -28,8 +32,9 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 FIRST_BIOGENIC_VERSION = 2
+FIRST_CARBONATION_VERSION = 3
 TOTALS_TAG = "dlca.building_totals"
 INVENTORY_TAG = "dlca.building_inventory"
 
@@ -57,15 +62,33 @@ Regrowth = Literal["none", "instant", "gaussian"]
 """
 
 
+Exposure = Literal["indoors", "sheltered", "exposed", "wet", "buried"]
+"""Environment of a concrete surface: the rows of Lagerblad (2005) Table 2
+(#74, K2). ``"wet"`` is his "wet/submerged"; ``"buried"`` is concrete in the
+ground, not in direct contact with the air."""
+
+Cover = Literal["none", "indoor_house", "outdoor_house"]
+"""Surface cover of a concrete surface, Lagerblad (2005) Table 3: ``"none"``
+(x 1.0, bare concrete or painted infrastructure), ``"indoor_house"`` (x 0.7)
+and ``"outdoor_house"`` (x 0.9)."""
+
+StrengthClass = Literal["<15", "15-25", "25-35", ">35"]
+"""Cylinder strength band [MPa] for Lagerblad (2005) Table 2. The bands are
+those of his appendix A2.3; Table 2 labels its second column 15-20 MPa (#74,
+K2)."""
+
+
 _Amount = Annotated[float, Field(allow_inf_nan=False)]
 _Name = Annotated[str, Field(pattern=r"^\S(.*\S)?$")]
 """Non-empty, with no leading or trailing whitespace."""
 _Year = Annotated[int, Field(ge=1)]
 _Version = Annotated[int, Field(ge=1, le=SCHEMA_VERSION)]
 _NonNegative = Annotated[float, Field(ge=0, allow_inf_nan=False)]
+_Positive = Annotated[float, Field(gt=0, allow_inf_nan=False)]
+_Share = Annotated[float, Field(gt=0, le=1, allow_inf_nan=False)]
 
 
-_OMIT_IF_NONE = ("biogenic", "rotation")
+_OMIT_IF_NONE = ("biogenic", "rotation", "carbonation", "volume")
 
 
 class _Strict(BaseModel):
@@ -81,8 +104,8 @@ class _Strict(BaseModel):
 
     @model_serializer(mode="wrap")
     def _drop_unset_optional(self, handler):
-        # An unset `biogenic` or `rotation` is left out, so a file without
-        # biogenic carbon dumps exactly as under schema version 1.
+        # An unset `biogenic`, `rotation`, `carbonation` or `volume` is left
+        # out, so a file without them dumps exactly as under schema version 1.
         data = handler(self)
         if isinstance(data, dict):
             for key in _OMIT_IF_NONE:
@@ -135,6 +158,59 @@ class Biogenic(_Strict):
         return self
 
 
+class Surface(_Strict):
+    """One kind of exposed concrete surface (#74, K2; Andersson et al. 2013, eq. 2)."""
+
+    area: _Positive
+    """m2 per declared unit."""
+    exposure: Exposure
+    cover: Cover
+
+
+class Stockpile(_Strict):
+    """End of life: crushed and stockpiled in the open (#74, K4).
+
+    In the end-of-life year the concrete still uncarbonated is crushed into
+    spheres of `radius`. They carbonate as ``"exposed"`` concrete of the same
+    strength class and binder, with no cover factor, for `years` years.
+    """
+
+    radius: _Positive
+    """Radius of the crushed pieces [mm]. Required, no default."""
+    years: Annotated[int, Field(ge=1)] = 1
+    """Years in the stockpile, from the end-of-life year on."""
+
+
+class Carbonation(_Strict):
+    """Concrete carbonation by Lagerblad (2005), CBI report 2:2005 (#74).
+
+    Depth d = k sqrt(t) [mm], t in years from casting, with k from Table 2
+    (strength class x exposure) times the cover factor (Table 3) times
+    `binder_factor`. Uptake per m3 carbonated = `degree_of_carbonation` x
+    `cement` x `cao_share` x 44.01 / 56.077 kg CO2. The carbonated volume is
+    the sum over `surfaces` of area x d, capped at the volume per declared
+    unit. See `dlca.inventory.carbonation`.
+    """
+
+    strength_class: StrengthClass
+    cement: _Positive
+    """Portland cement (clinker) content [kg per m3 of concrete]. For a
+    blended cement, the Portland part only (Lagerblad §5.3.2)."""
+    surfaces: Annotated[list[Surface], Field(min_length=1)]
+    end_of_life: Stockpile
+    cao_share: _Share = 0.65
+    """Mass share of CaO in the Portland cement (Lagerblad's example value)."""
+    binder_factor: Annotated[float, Field(ge=1, allow_inf_nan=False)] = 1.0
+    """Factor on k for the binder; Lagerblad Table 4 is guidance (it and his
+    appendix A2.4 disagree, so neither is encoded)."""
+    degree_of_carbonation: _Share = 0.75
+    """Share of the CaO that carbonates in the carbonated layer (Lagerblad
+    §5.1.5; Andersson et al. 2013 use 0.8-0.9)."""
+    volume: _Positive | None = None
+    """m3 of concrete per declared unit. Required unless the material's unit
+    is ``"m3"`` (then it is 1 and may not be given)."""
+
+
 class Event(_Strict):
     """A B4 (replacement) or B5 (refurbishment) event.
 
@@ -148,6 +224,11 @@ class Event(_Strict):
     biogenic: Biogenic | None = None
     """Biogenic carbon of the item the event puts in; its uptake starts in the
     event year (#73, B4)."""
+    carbonation: Carbonation | None = None
+    """Carbonation of the concrete a B4 event puts in, per declared unit of its
+    material: the clock restarts in the event year and the replaced item's
+    uptake stops (#74, K5; schema version 3). Not allowed on B5 events or on
+    `BuildingTotals`."""
 
 
 def _check_event_years(events: list[Event], study_period: int, where: str) -> None:
@@ -162,6 +243,13 @@ def _check_biogenic_version(version: int, items: list[Biogenic | None], where: s
     if version < FIRST_BIOGENIC_VERSION and any(item is not None for item in items):
         raise ValueError(
             f"{where}: biogenic needs schema_version {FIRST_BIOGENIC_VERSION}, got {version}"
+        )
+
+
+def _check_carbonation_version(version: int, items: list[Carbonation | None], where: str) -> None:
+    if version < FIRST_CARBONATION_VERSION and any(item is not None for item in items):
+        raise ValueError(
+            f"{where}: carbonation needs schema_version {FIRST_CARBONATION_VERSION}, got {version}"
         )
 
 
@@ -206,6 +294,11 @@ class BuildingTotals(_Strict):
             [self.biogenic, *_event_biogenic(self.b4, self.b5)],
             "building",
         )
+        if any(event.carbonation is not None for event in (*self.b4, *self.b5)):
+            raise ValueError(
+                "building: carbonation is for materials of a BuildingInventory, "
+                "not BuildingTotals events"
+            )
         return self
 
 
@@ -228,6 +321,26 @@ class Material(_Strict):
     b5: list[Event] = Field(default_factory=list)
     biogenic: Biogenic | None = None
     """Biogenic carbon per declared unit, in kg CO2 (schema version 2)."""
+    carbonation: Carbonation | None = None
+    """Concrete carbonation per declared unit (schema version 3, #74)."""
+
+    @model_validator(mode="after")
+    def _check_carbonation(self) -> Material:
+        if any(event.carbonation is not None for event in self.b5):
+            raise ValueError(f"{self.name}: carbonation is for B4 events only, not B5")
+        years = [event.year for event in self.b4 if event.carbonation is not None]
+        if len(years) != len(set(years)):
+            raise ValueError(f"{self.name}: more than one B4 event with carbonation in one year")
+        for item in (self.carbonation, *(event.carbonation for event in self.b4)):
+            if item is None:
+                continue
+            if self.unit == "m3" and item.volume is not None:
+                raise ValueError(
+                    f"{self.name}: carbonation volume is 1 m3 for unit 'm3' and may not be given"
+                )
+            if self.unit != "m3" and item.volume is None:
+                raise ValueError(f"{self.name}: carbonation needs a volume (m3 per {self.unit!r})")
+        return self
 
 
 class Assembly(_Strict):
@@ -268,6 +381,11 @@ class BuildingInventory(_Strict):
                 _check_biogenic_version(
                     self.schema_version,
                     [material.biogenic, *_event_biogenic(material.b4, material.b5)],
+                    where,
+                )
+                _check_carbonation_version(
+                    self.schema_version,
+                    [material.carbonation, *(e.carbonation for e in material.b4)],
                     where,
                 )
         return self
