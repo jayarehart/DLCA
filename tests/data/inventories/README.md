@@ -76,6 +76,10 @@ About 34 kg CO₂e per m² of floor (range 20–60 for fossil only).
 - ch4: (200 + 30) × 2.0 = **460 kg**. ch4_fossil **52 kg**, n2o **2.4 kg**
   (A1–A3 only).
 
+**Hand total by module, co2 (kg):** A1–A3 32,200; A4 200 × 25 + 30 × 25 +
+2000 × 0.05 = 5,850; A5 1,190; C1 710; C2 470; C3 1,190; C4 462; B5 400
+(all in year 30). Sum 42,472.
+
 ## `steel.json` (illustrative)
 
 | Assembly / material | Qty | Unit | A1–A3 | A4 | A5 | C1 | C2 | C3 | C4 | Events |
@@ -112,6 +116,11 @@ About 120 kg CO₂e per m² of floor (range 80–200).
   **133,827 kg**.
 - ch4 **0 kg**, ch4_fossil **144 kg**, n2o **3.42 kg**.
 
+**Hand total by module, co2 (kg):** A1–A3 114,750; A4 30 × 50 + 750 × 0.1 +
+12 × 50 + 120 × 7 = 3,015; A5 3,015; C1 1,620; C2 1,650; C3 1,440; C4 777;
+B1 120 × −0.2 = −24 per year, −1,440 over 60 years; B4 750 × 6 = 4,500 in
+each of years 25 and 50, 9,000 in all. Sum 133,827.
+
 ## `concrete.json` (illustrative)
 
 | Assembly / material | Qty | Unit | A1–A3 | A4 | A5 | C1 | C2 | C3 | C4 | Events |
@@ -141,6 +150,10 @@ About 105 kg CO₂e per m² of floor (range 60–150).
 - co2: concrete 250 × (352 − 12) = 85,000; rebar 25 × 1086 = 27,150. Total
   **112,150 kg**.
 - ch4 **0 kg**, ch4_fossil **137.5 kg**, n2o **3.25 kg**.
+
+**Hand total by module, co2 (kg):** A1–A3 100,000; A4 250 × 7 + 25 × 30 =
+2,500; A5 4,250; C1 2,750; C2 3,125; C3 1,750; C4 775; B1 250 × −0.2 = −50
+per year, −3,000 over 60 years. Sum 112,150.
 
 ## `totals.json` (illustrative)
 

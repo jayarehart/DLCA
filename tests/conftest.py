@@ -25,6 +25,12 @@ def load_example_totals() -> BuildingTotals:
 
 
 @pytest.fixture(scope="session")
+def example_inventory_dir() -> Path:
+    """The folder holding the example JSON files."""
+    return INVENTORY_DIR
+
+
+@pytest.fixture(scope="session")
 def example_inventories() -> dict[str, BuildingInventory]:
     """The three illustrative inventories, by name: timber, steel, concrete."""
     return {name: load_example_inventory(name) for name in EXAMPLE_INVENTORY_NAMES}
