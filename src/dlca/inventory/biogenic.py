@@ -119,18 +119,21 @@ class BiogenicBalance:
     Attributes:
         declared: Declared carbon, the material's own plus its events', times
             its quantity.
-        uptake: Uptake the timeline holds: the declared carbon of items whose
-            regrowth is not ``"none"``, less `released_ch4_as_co2`, never
-            below zero (before any cut at the series end).
+        regrowing: Declared carbon of items whose regrowth is not ``"none"``.
+        uptake: Uptake the timeline holds: `regrowing` less
+            `released_ch4_as_co2`, never below zero (before any cut at the
+            series end).
         released_co2: Sum of `Biogenic.released_co2`, times quantity.
         released_ch4_as_co2: Non-fossil CH4 in C1-C4 and in B4/B5 events,
-            times quantity, times 44.01 / 16.043.
+            times quantity, times 44.01 / 16.043; a negative CH4 total counts
+            as 0, so it never raises the uptake.
         stored: declared - released_co2 - released_ch4_as_co2: carbon still
             held when the timeline ends. Negative means more is released than
             declared.
     """
 
     declared: float
+    regrowing: float
     uptake: float
     released_co2: float
     released_ch4_as_co2: float
@@ -172,9 +175,10 @@ def biogenic_balance(
         released = sum(b.released_co2 for b in items)
         ch4 = sum(modules[m].ch4 for m in _END_OF_LIFE if m in modules)
         ch4 += sum(e.amounts.ch4 for e in events)
-        ch4_carbon = ch4 * CO2_PER_CH4_CARBON
+        ch4_carbon = max(ch4, 0.0) * CO2_PER_CH4_CARBON
         out[key] = BiogenicBalance(
             declared=scale * declared,
+            regrowing=scale * taken,
             uptake=scale * max(taken - ch4_carbon, 0.0),
             released_co2=scale * released,
             released_ch4_as_co2=scale * ch4_carbon,
@@ -202,6 +206,14 @@ def warn_on_balance(building: BuildingTotals | BuildingInventory) -> None:
     """Warn for each item whose releases exceed its declared carbon (B5)."""
     for key, bal in biogenic_balance(building).items():
         where = "building" if key is None else "/".join(key)
+        if bal.released_ch4_as_co2 > bal.regrowing * (1 + BALANCE_RTOL):
+            warnings.warn(
+                f"{where}: CH4 carbon {bal.released_ch4_as_co2:.6g} kg CO2 is more than "
+                f"the {bal.regrowing:.6g} that can be taken up (items with regrowth other "
+                "than 'none'); the uptake is set to 0.",
+                BiogenicCarbonWarning,
+                stacklevel=3,
+            )
         released = bal.released_co2 + bal.released_ch4_as_co2
         if released <= bal.declared * (1 + BALANCE_RTOL):
             continue

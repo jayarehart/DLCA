@@ -369,3 +369,42 @@ def test_uptake_is_its_own_row_in_the_building_result():
     assert r.by_module[UPTAKE].gwi_dynamic[20] < 0
     assert r.by_module["A1-A3"].gwi_dynamic[20] > 0
     assert r.biogenic[("Floor", "CLT")].declared == 8000.0
+
+
+# --- Edge cases from the second fresh review -------------------------------------
+
+
+def test_negative_ch4_never_raises_uptake_above_declared():
+    b = inventory(
+        quantity=1.0,
+        modules={"C4": {"ch4": -1.0}},
+        biogenic={"co2": 1.0, "regrowth": "instant"},
+    )
+    t = timeline(b, horizon=5)
+    assert uptake(t)["co2"].sum() == -1.0
+    assert biogenic_balance(b)[("Floor", "CLT")].uptake == 1.0
+
+
+def test_ch4_carbon_above_what_can_be_taken_up_warns():
+    """A "none" item declares 10, an instant B4 item 1; CH4 carbon 3 x 2.743 = 8.23
+    is below the 11 declared but above the 1 that can be taken up."""
+    b = inventory(
+        quantity=1.0,
+        modules={"C4": {"ch4": 3.0}},
+        biogenic={"co2": 10.0, "regrowth": "none"},
+        b4=[{"year": 5, "amounts": {}, "biogenic": {"co2": 1.0, "regrowth": "instant"}}],
+    )
+    with pytest.warns(BiogenicCarbonWarning, match="taken up"):
+        t = timeline(b, horizon=5)
+    assert uptake(t)["co2"].sum() == 0.0
+
+
+def test_no_cut_warning_when_net_uptake_is_zero():
+    b = inventory(
+        quantity=1.0,
+        modules={"C4": {"ch4": 1.0}},
+        biogenic={"co2": CO2_PER_CH4, "regrowth": "gaussian", "rotation": 80},
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", BiogenicCarbonWarning)
+        timeline(b, horizon=5)

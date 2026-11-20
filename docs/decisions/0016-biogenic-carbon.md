@@ -53,8 +53,10 @@ on each B4/B5 `Event`:
   `ch4` × 44.01/16.043 comes off the declared carbon of its items whose
   regrowth is not `"none"`, spread over those items in proportion to their
   `co2`, never below zero. Non-fossil `ch4` with no `biogenic` needs nothing
-  and does not warn. `timeline()` warns when `released_co2` plus that CH₄
-  carbon is more than the declared `co2`.
+  and does not warn. A negative CH₄ total counts as zero, so it never raises
+  the uptake. `timeline()` warns when the CH₄ carbon is more than the carbon
+  that can be taken up (items with regrowth other than `"none"`), and when
+  `released_co2` plus the CH₄ carbon is more than the declared `co2`.
 - **Storage** (B6, amended). `biogenic_balance()` and `BuildingResult.biogenic`
   report, per material, the declared carbon, the net uptake, and declared −
   `released_co2` − `ch4` × 44.01/16.043 as stored. Nothing is emitted for it.

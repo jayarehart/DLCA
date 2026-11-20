@@ -300,7 +300,7 @@ class _Builder:
             shares, cut = uptake_shares(item.regrowth, item.rotation, self.years - start)
             series = self._series((assembly, material, UPTAKE_MODULE))
             series["co2"][start:] -= scale * item.co2 * shares
-            if cut > CUT_WARN and item.co2 != 0.0:
+            if cut > CUT_WARN and scale * item.co2 != 0.0:
                 needed = years_for_full_uptake(item.rotation, start)
                 warnings.warn(
                     f"{where}: {cut:.3g} of the biogenic uptake starting in year {start} "
