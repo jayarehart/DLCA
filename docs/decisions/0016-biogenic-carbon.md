@@ -1,8 +1,8 @@
 # 0016. Biogenic carbon: declared uptake, regrowth options, storage report
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-20
-- **Decided by:**
+- **Decided by:** Jay Arehart, 2026-11-20
 - **Supersedes:** 0013, in part: its "no biogenic field" rule (S7). Schema
   version 2 adds one.
 
