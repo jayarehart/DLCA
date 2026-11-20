@@ -43,7 +43,8 @@ RESULT_SCHEMA = "dlca.result"
 # Bump whenever the form of Result.to_dict() changes.
 # 2: burden, forcing and temperature carry parameter_fingerprint (#37, G6).
 # 3: burden carries ccf_co2 and the parameter values carry the CCF fields (#33, C7).
-RESULT_SCHEMA_VERSION = 3
+# 4: gwi, gtp and static_gwp carry parameter_fingerprint (#46, F3).
+RESULT_SCHEMA_VERSION = 4
 
 
 def _package_version() -> str:
@@ -125,12 +126,12 @@ class Result:
             )
         if self.carbon_cycle_feedback != self.parameters.carbon_cycle_feedback:
             raise ValueError("carbon_cycle_feedback does not match the stored parameter set")
-        for name in ("burden", "forcing", "temperature"):
+        for name in _COMPONENTS:
             own = getattr(self, name).parameter_fingerprint
             if own != self.parameter_fingerprint:
                 raise ValueError(
                     f"{name} was made with a different parameter set ({own[:8]}) than "
-                    f"the result's ({self.parameter_fingerprint[:8]}) (#37)"
+                    f"the result's ({self.parameter_fingerprint[:8]}) (#37, #46)"
                 )
         self._check_consistent()
         # Read-only arrays and immutable mappings however the result was built.
@@ -203,7 +204,7 @@ class Result:
             ValueError: for another schema or schema version, if the stored
                 name, fingerprint or CCF flag does not match the stored values,
                 or if a component's ``parameter_fingerprint`` differs from the
-                result's (#37).
+                result's (#37, #46).
         """
         if data.get("schema") != RESULT_SCHEMA:
             raise ValueError(f"not a DLCA result: schema {data.get('schema')!r}")
