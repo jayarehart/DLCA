@@ -1,7 +1,7 @@
 # 0013. Inventory input schemas: `BuildingTotals` and `BuildingInventory`
 
 - **Status:** Proposed
-- **Date:** 2026-11-20
+- **Date:** 2026-11-19
 - **Decided by:**
 - **Supersedes:** 0003, in part: its module D and its service-life and
   replacement-interval sentences. The rest of 0003 stands.
@@ -12,7 +12,7 @@ M2 needs an input that says what a building emits, by EN 15978 module, so the
 timing engine (#58) can turn it into the yearly series `assess()` takes (kg
 per year under `co2`, `ch4`, `ch4_fossil`, `n2o`; record 0008). Inputs must be
 JSON-serialisable (record 0005). Issue #57 holds the proposal and Jay's
-decisions S1–S15 (2026-11-20). Jay changed the proposal in three ways that
+decisions S1–S15 (2026-11-19). Jay changed the proposal in three ways that
 depart from accepted record 0003. The tool drops module D. Replacements are
 entered as dated events instead of derived from service life. There are two
 schemas, for whole-building totals and for a detailed inventory.
@@ -28,8 +28,8 @@ types, so `"60"` or `60.5` is not a year.
 | Field | Type | Unit |
 |---|---|---|
 | `schema` | `"dlca.building_totals"` or `"dlca.building_inventory"`, required | - |
-| `schema_version` | `1` | - |
-| `name` | non-empty string | - |
+| `schema_version` | the integer `1` | - |
+| `name` | non-empty string, no leading or trailing whitespace | - |
 | `study_period` | whole number ≥ 1 | years |
 | `GasAmounts` | `co2`, `ch4` (non-fossil), `ch4_fossil`, `n2o`; finite floats, default 0, negative allowed | kg of each gas (see the unit of the field that holds it) |
 | `Event` | `year` (whole number, 1 ≤ year ≤ `study_period`), `amounts: GasAmounts` | year of the study period |
@@ -109,6 +109,12 @@ record per module stand.
 - The JSON Schemas are committed as `src/dlca/data/building_totals.schema.json`
   and `src/dlca/data/building_inventory.schema.json`, and a test keeps each in
   sync with its model. Any change to either schema bumps `schema_version`.
+- The JSON Schema files are weaker than the models: they cannot say "event
+  year ≤ `study_period`" or "names unique among siblings". An outside
+  validator that passes a file is not enough; load it with the models.
+- JSON text with a repeated key (for example `"A4"` twice) is read with the
+  last value winning, as Python's `json` does. Refusing it needs a loader
+  around the models, which is not part of this record.
 - Adds pydantic (≥ 2.11) as a runtime dependency.
 
 ## References

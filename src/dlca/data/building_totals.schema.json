@@ -59,13 +59,14 @@
       "type": "string"
     },
     "schema_version": {
-      "const": 1,
       "default": 1,
+      "maximum": 1,
+      "minimum": 1,
       "title": "Schema Version",
       "type": "integer"
     },
     "name": {
-      "minLength": 1,
+      "pattern": "^\\S(.*\\S)?$",
       "title": "Name",
       "type": "string"
     },

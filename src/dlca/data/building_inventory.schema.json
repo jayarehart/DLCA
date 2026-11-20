@@ -5,7 +5,7 @@
       "description": "A named group of materials (for example a floor or a wall).",
       "properties": {
         "name": {
-          "minLength": 1,
+          "pattern": "^\\S(.*\\S)?$",
           "title": "Name",
           "type": "string"
         },
@@ -79,7 +79,7 @@
       "description": "A quantity of one product with amounts per declared unit.\n\nThe emitted amount is `quantity` times the per-unit amount.\n\n- `modules`: kg per declared unit, once.\n- `per_year`: kg per declared unit per year, constant each year.\n- `b4`, `b5`: kg per declared unit per event.",
       "properties": {
         "name": {
-          "minLength": 1,
+          "pattern": "^\\S(.*\\S)?$",
           "title": "Name",
           "type": "string"
         },
@@ -165,13 +165,14 @@
       "type": "string"
     },
     "schema_version": {
-      "const": 1,
       "default": 1,
+      "maximum": 1,
+      "minimum": 1,
       "title": "Schema Version",
       "type": "integer"
     },
     "name": {
-      "minLength": 1,
+      "pattern": "^\\S(.*\\S)?$",
       "title": "Name",
       "type": "string"
     },

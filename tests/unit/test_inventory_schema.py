@@ -135,9 +135,16 @@ def test_round_trip_every_module(model, make):
     assert json.loads(b.model_dump_json()) == make()
 
 
-def test_python_construction_by_field_name():
-    t = BuildingTotals(schema_="dlca.building_totals", name="x", study_period=1)
+def test_python_construction_with_schema_keyword():
+    t = BuildingTotals(schema="dlca.building_totals", name="x", study_period=1)
     assert json.loads(t.model_dump_json())["schema"] == "dlca.building_totals"
+
+
+def test_python_field_name_not_accepted_as_json_key():
+    d = totals_dict()
+    d["schema_"] = d.pop("schema")
+    with pytest.raises(ValidationError):
+        BuildingTotals.model_validate(d)
 
 
 # --- schema tag and mixing (S1, S13) -------------------------------------------------
@@ -170,7 +177,7 @@ def test_wrong_tag_alone_refused():
         BuildingInventory.model_validate(d)
 
 
-@pytest.mark.parametrize("version", [0, 2, "1"])
+@pytest.mark.parametrize("version", [0, 2, "1", 1.0, True])
 def test_unknown_schema_version_refused(version):
     d = totals_dict()
     d["schema_version"] = version
@@ -422,11 +429,12 @@ def test_empty_building_and_assembly_refused():
         BuildingInventory.model_validate(d)
 
 
+@pytest.mark.parametrize("name", ["", " ", "Floor ", " Floor", "\t"])
 @pytest.mark.parametrize("where", ["building", "assembly", "material"])
-def test_empty_name_refused(where):
+def test_blank_or_padded_name_refused(where, name):
     d = inventory_dict()
     target = {"building": d, "assembly": d["assemblies"][0], "material": first_material(d)}
-    target[where]["name"] = ""
+    target[where]["name"] = name
     with pytest.raises(ValidationError):
         BuildingInventory.model_validate(d)
 

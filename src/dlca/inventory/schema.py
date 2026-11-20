@@ -43,8 +43,10 @@ Unit = Literal["m3", "m2", "m", "kg", "t", "item"]
 """Declared units. There is no conversion between them."""
 
 _Amount = Annotated[float, Field(allow_inf_nan=False)]
-_Name = Annotated[str, Field(min_length=1)]
+_Name = Annotated[str, Field(pattern=r"^\S(.*\S)?$")]
+"""Non-empty, with no leading or trailing whitespace."""
 _Year = Annotated[int, Field(ge=1)]
+_Version = Annotated[int, Field(ge=SCHEMA_VERSION, le=SCHEMA_VERSION)]
 
 
 class _Strict(BaseModel):
@@ -52,7 +54,7 @@ class _Strict(BaseModel):
         extra="forbid",
         strict=True,
         frozen=True,
-        validate_by_name=True,
+        validate_by_name=False,
         validate_by_alias=True,
         serialize_by_alias=True,
         use_attribute_docstrings=True,
@@ -107,7 +109,7 @@ class BuildingTotals(_Strict):
     """
 
     schema_: Literal["dlca.building_totals"] = Field(alias="schema")
-    schema_version: Literal[1] = SCHEMA_VERSION
+    schema_version: _Version = SCHEMA_VERSION
     name: _Name
     study_period: _Year
     """Reference study period, whole years."""
@@ -162,7 +164,7 @@ class BuildingInventory(_Strict):
     """
 
     schema_: Literal["dlca.building_inventory"] = Field(alias="schema")
-    schema_version: Literal[1] = SCHEMA_VERSION
+    schema_version: _Version = SCHEMA_VERSION
     name: _Name
     study_period: _Year
     """Reference study period, whole years."""
