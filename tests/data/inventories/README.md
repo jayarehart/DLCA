@@ -14,6 +14,7 @@ plausible. They are not citations.
 | File | Schema | What it is |
 |---|---|---|
 | `timber.json` | `BuildingInventory` | CLT floor on glulam beams |
+| `timber_biogenic.json` | `BuildingInventory` | The same floor with biogenic carbon (schema version 2, #73) |
 | `steel.json` | `BuildingInventory` | Steel beams with a composite deck |
 | `concrete.json` | `BuildingInventory` | 250 mm reinforced flat slab |
 | `totals.json` | `BuildingTotals` | Whole-building totals with their own numbers (not a roll-up of the other three) |
@@ -36,9 +37,10 @@ Load them with the pytest fixtures `example_inventories` (name to
 - A4, A5 and C1–C3 are fuel use, so CO₂ only. At this rounding, the CH₄ and
   N₂O from fuel use are negligible.
 - A4 uses about 0.1 kg CO₂ per t·km by truck (range 0.06–0.15).
-- **The timber inventory has no biogenic carbon** (no uptake, no biogenic
-  CO₂ at end of life) until M3. Its A1–A3 is fossil only. Until then it is
-  not a fair comparison with steel or concrete.
+- **`timber.json` has no biogenic carbon** (no uptake, no biogenic CO₂ at
+  end of life), so it is not a fair comparison with steel or concrete. Use
+  `timber_biogenic.json` for that (#73). Its A1–A3 is fossil only in both
+  files.
 
 Columns below: A1–A3 as co2 / ch4_fossil / n2o, the other modules co2 only
 unless marked.
@@ -79,6 +81,35 @@ About 34 kg CO₂e per m² of floor (range 20–60 for fossil only).
 **Hand total by module, co2 (kg):** A1–A3 32,200; A4 200 × 25 + 30 × 25 +
 2000 × 0.05 = 5,850; A5 1,190; C1 710; C2 470; C3 1,190; C4 462; B5 400
 (all in year 30). Sum 42,472.
+
+## `timber_biogenic.json` (illustrative)
+
+The `timber.json` floor with its biogenic carbon (#73). Everything else is the
+same, except C4 of the CLT and the glulam, which now holds biogenic CO₂ from
+decay in landfill. `timber.json` itself is unchanged, so its hand totals still
+stand.
+
+- `biogenic.co2` = 769 kg CO₂ per m³ for CLT and glulam: EN 16449-style
+  44.01/12.011 × 0.5 (carbon fraction) × 470 kg/m³ ÷ 1.12 (12 % moisture)
+  ≈ 768.9, rounded. Range 650–850.
+- `regrowth` Gaussian, `rotation` 60 years (spruce plantation, range 60–120).
+  At this rotation and H = 100, less than 1e-15 of the uptake falls after the
+  series end, so the uptake equals the declared amount.
+- C4 becomes `co2` 35 per m³ = 2 (fossil, machinery, as in `timber.json`)
+  + 33 biogenic. The made-up story: about 5 % of the carbon (38.5 kg CO₂) decays
+  in landfill. 33 kg leaves as CO₂ (including flared gas), and 2.0 kg of CH₄
+  escapes (2.0 × 44.01/16.043 = 5.49 kg CO₂ of carbon). So
+  `released_co2` = 33. Decay in landfill is very uncertain (range 0–20 %).
+
+**Hand totals:**
+
+- Uptake: (200 + 30) × 769 = **176,870 kg CO₂**, in its own module
+  `biogenic-uptake`.
+- C4 co2: 200 × 35 + 30 × 35 + 2000 × 0.001 = **8,052 kg**.
+- Whole series co2: 42,472 (`timber.json`) − 460 + 8,050 − 176,870 =
+  **−126,808 kg**. ch4, ch4_fossil and n2o are as in `timber.json`.
+- Stored at the end: 769 − 33 − 5.486 = **730.51 kg CO₂ per m³**, 95 % of the
+  declared carbon.
 
 ## `steel.json` (illustrative)
 

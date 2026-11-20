@@ -41,6 +41,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from dlca.climate import EMISSION_KEYS
+from dlca.inventory.biogenic import UPTAKE_MODULE, BiogenicBalance, biogenic_balance
 from dlca.inventory.schema import INVENTORY_TAG, TOTALS_TAG, BuildingInventory, BuildingTotals
 from dlca.inventory.timing import Timeline, _check_int, timeline
 from dlca.parameters import ClimateParameters, get_parameters
@@ -55,15 +56,19 @@ __all__ = [
 ]
 
 BUILDING_RESULT_SCHEMA = "dlca.building_result"
-# Bump whenever the form of BuildingResult.to_dict() changes.
-BUILDING_RESULT_SCHEMA_VERSION = 1
+# Bump whenever the form of BuildingResult.to_dict() changes. Version 2 (#73):
+# the building may hold `biogenic` fields and a "biogenic-uptake" module row;
+# version 1 data still loads.
+BUILDING_RESULT_SCHEMA_VERSION = 2
+_READABLE_BUILDING_RESULT_VERSIONS = (1, 2)
 
 MODULE_ORDER = (
+    UPTAKE_MODULE,
     "A1-A3", "A4", "A5",
     "B1", "B2", "B3", "B4", "B5", "B6", "B7",
     "C1", "C2", "C3", "C4",
 )  # fmt: skip
-"""EN 15978 order of the module rows."""
+"""EN 15978 order of the module rows, with biogenic uptake first (#73)."""
 
 BREAKDOWNS = ("module", "gas", "material", "assembly")
 """Breakdown names, as used in `sliding_incomplete` and the JSON form."""
@@ -211,6 +216,12 @@ class BuildingResult:
                 raise ValueError(f"the total result's {gas} emissions are not the building's")
 
     @property
+    def biogenic(self) -> dict[tuple[str, str] | None, BiogenicBalance]:
+        """Declared, released and stored biogenic carbon per material, kg CO2
+        (`dlca.inventory.biogenic_balance`, #73)."""
+        return biogenic_balance(self.building)
+
+    @property
     def total_metrics(self) -> Metrics:
         """The six GWI and GTP series of `total`, as a `Metrics`."""
         return Metrics.from_result(self.total)
@@ -267,7 +278,7 @@ class BuildingResult:
     def _from_dict(cls, data: Mapping[str, Any]) -> BuildingResult:
         if data.get("schema") != BUILDING_RESULT_SCHEMA:
             raise ValueError(f"not a DLCA building result: schema {data.get('schema')!r}")
-        if data.get("schema_version") != BUILDING_RESULT_SCHEMA_VERSION:
+        if data.get("schema_version") not in _READABLE_BUILDING_RESULT_VERSIONS:
             raise ValueError(
                 f"unsupported building result schema_version {data.get('schema_version')!r}"
             )

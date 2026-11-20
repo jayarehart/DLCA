@@ -140,7 +140,9 @@ def test_regrowth_none_emits_nothing_and_matches_no_biogenic_input():
 def test_b4_replacement_gets_its_own_uptake_in_the_event_year():
     b = inventory(
         biogenic={"co2": 800.0, "regrowth": "instant"},
-        b4=[{"year": 7, "amounts": {"co2": 50.0}, "biogenic": {"co2": 800.0, "regrowth": "instant"}}],
+        b4=[
+            {"year": 7, "amounts": {"co2": 50.0}, "biogenic": {"co2": 800.0, "regrowth": "instant"}}
+        ],
     )
     co2 = uptake(timeline(b, horizon=5))["co2"]
     assert co2[0] == -8000.0
@@ -243,9 +245,7 @@ def test_balance_for_totals_is_keyed_none():
 
 def test_gaussian_cut_by_series_end_warns_and_says_how_much():
     """Jay's window choice: what falls after the series end is cut, and reported."""
-    b = inventory(
-        quantity=1.0, biogenic={"co2": 1.0, "regrowth": "gaussian", "rotation": 200}
-    )
+    b = inventory(quantity=1.0, biogenic={"co2": 1.0, "regrowth": "gaussian", "rotation": 200})
     with pytest.warns(BiogenicCarbonWarning, match="years"):
         t = timeline(b, horizon=5)
     taken = -uptake(t)["co2"].sum()
@@ -317,9 +317,7 @@ def test_timeline_json_round_trip_keeps_uptake_part():
 
 
 def test_uptake_is_its_own_row_in_the_building_result():
-    b = inventory(
-        modules={"A1-A3": {"co2": 100.0}}, biogenic={"co2": 800.0, "regrowth": "instant"}
-    )
+    b = inventory(modules={"A1-A3": {"co2": 100.0}}, biogenic={"co2": 800.0, "regrowth": "instant"})
     r = assess_building(b, horizon=20)
     assert UPTAKE in r.by_module
     assert list(r.by_module)[0] == UPTAKE

@@ -9,6 +9,9 @@ building's `study_period`:
 - C1-C4: once, in the end-of-life year RSP + 1.
 - B4, B5: in the year each event gives (1..RSP, checked by the schema).
 - Amounts in the same year add.
+- Biogenic uptake (#73): negative `co2` from the product's year (0, or the
+  B4/B5 event's year), in its own part, module ``"biogenic-uptake"``. See
+  `dlca.inventory.biogenic`.
 
 The series runs over years 0..RSP + 1 + H, so the end-of-life pulse gets a
 full horizon H. Pass the same H to `assess()`.
@@ -16,6 +19,7 @@ full horizon H. Pass the same H to `assess()`.
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
@@ -25,7 +29,15 @@ import numpy as np
 from numpy.typing import NDArray
 
 from dlca.climate import EMISSION_KEYS
-from dlca.inventory.schema import BuildingInventory, BuildingTotals, Event, GasAmounts
+from dlca.inventory.biogenic import (
+    CUT_WARN,
+    UPTAKE_MODULE,
+    BiogenicCarbonWarning,
+    uptake_shares,
+    warn_on_balance,
+    years_for_full_uptake,
+)
+from dlca.inventory.schema import Biogenic, BuildingInventory, BuildingTotals, Event, GasAmounts
 
 PartKey = tuple[str | None, str | None, str]
 """(assembly, material, module). Assembly and material are None for
@@ -35,12 +47,16 @@ Series = Mapping[str, NDArray[np.float64]]
 """Gas key to kg per year, index 0 = year 0."""
 
 TIMELINE_SCHEMA = "dlca.timeline"
-# Bump whenever the form of Timeline.to_dict() changes.
-TIMELINE_SCHEMA_VERSION = 1
+# Bump whenever the form of Timeline.to_dict() changes. Version 2 (#73) adds
+# the module "biogenic-uptake"; version 1 data still loads.
+TIMELINE_SCHEMA_VERSION = 2
+_READABLE_TIMELINE_VERSIONS = (1, 2)
 
 _YEAR_ZERO = ("A1-A3", "A4", "A5")
 _END_OF_LIFE = ("C1", "C2", "C3", "C4")
-_MODULES = (*_YEAR_ZERO, "B1", "B2", "B3", "B4", "B5", "B6", "B7", *_END_OF_LIFE)
+_MODULES = (
+    UPTAKE_MODULE, *_YEAR_ZERO, "B1", "B2", "B3", "B4", "B5", "B6", "B7", *_END_OF_LIFE,
+)  # fmt: skip
 
 
 @dataclass(frozen=True, eq=False)
@@ -128,7 +144,7 @@ class Timeline:
         """
         if data.get("schema") != TIMELINE_SCHEMA:
             raise ValueError(f"not a DLCA timeline: schema {data.get('schema')!r}")
-        if data.get("schema_version") != TIMELINE_SCHEMA_VERSION:
+        if data.get("schema_version") not in _READABLE_TIMELINE_VERSIONS:
             raise ValueError(f"unsupported timeline schema_version {data.get('schema_version')!r}")
         study_period = _check_int("study_period", data["study_period"])
         horizon = _check_int("horizon", data["horizon"])
@@ -204,13 +220,16 @@ def timeline(
             f"year {rsp + 1} gets the full horizon, got {years}"
         )
 
+    warn_on_balance(building)
     builder = _Builder(rsp, years)
     if isinstance(building, BuildingTotals):
         builder.add(None, None, 1.0, building.modules, building.per_year, building.b4, building.b5)
+        builder.add_biogenic(None, None, 1.0, building.biogenic, building.b4, building.b5)
     else:
         for assembly in building.assemblies:
             for m in assembly.materials:
                 builder.add(assembly.name, m.name, m.quantity, m.modules, m.per_year, m.b4, m.b5)
+                builder.add_biogenic(assembly.name, m.name, m.quantity, m.biogenic, m.b4, m.b5)
         builder.add(None, None, 1.0, {}, building.per_year, [], [])
 
     parts = MappingProxyType({key: _freeze(series) for key, series in builder.parts.items()})
@@ -258,6 +277,33 @@ class _Builder:
                 if not 1 <= event.year <= self.rsp:  # the schema checks this too
                     raise ValueError(f"{module} event year {event.year} is outside 1..{self.rsp}")
                 self._place((assembly, material, module), event.year, event.amounts, scale)
+
+    def add_biogenic(
+        self,
+        assembly: str | None,
+        material: str | None,
+        scale: float,
+        own: Biogenic | None,
+        b4: Iterable[Event],
+        b5: Iterable[Event],
+    ) -> None:
+        items = [(0, own), *((e.year, e.biogenic) for e in (*b4, *b5))]
+        where = "building" if assembly is None else f"{assembly}/{material}"
+        for start, item in items:
+            if item is None or item.regrowth == "none":
+                continue
+            shares, cut = uptake_shares(item.regrowth, item.rotation, self.years - start)
+            series = self._series((assembly, material, UPTAKE_MODULE))
+            series["co2"][start:] -= scale * item.co2 * shares
+            if cut > CUT_WARN and item.co2 != 0.0:
+                needed = years_for_full_uptake(item.rotation, start)
+                warnings.warn(
+                    f"{where}: {cut:.3g} of the biogenic uptake starting in year {start} "
+                    f"({scale * item.co2 * cut:.6g} kg CO2) falls after the series end and "
+                    f"is left out; pass years >= {needed} to keep it.",
+                    BiogenicCarbonWarning,
+                    stacklevel=3,
+                )
 
 
 def _check_int(name: str, value: object) -> int:
