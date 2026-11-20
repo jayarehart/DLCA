@@ -32,7 +32,7 @@ pure functions with JSON-serialisable inputs and outputs (record 0005).
 | M0 · Foundation | v0.1.0 | Licence, `src/` layout, tooling, CI, agent guide, decision records, spreadsheet reference tests | [milestone 1](https://github.com/jayarehart/DLCA/milestone/1) (closed) |
 | M1 · Climate core | v0.2.0 | AR5 and AR6 parameter sets, atmospheric decay, forcing, GWI, temperature change, GTP, static GWP, carbon-cycle feedback, `assess()` and `Result` | [milestone 2](https://github.com/jayarehart/DLCA/milestone/2) (closed) |
 | M2 · Inventory and timing | v0.3.0 | EN 15978 input schemas (building totals or a full inventory), dated B4/B5 events, end-of-life timing, roll-up from material to building, retire the old inventory code | [milestone 3](https://github.com/jayarehart/DLCA/milestone/3) |
-| M3 · Biogenic and carbonation | v0.4.0 | Biogenic carbon (uptake, storage, release) and concrete CO₂ uptake | not yet created |
+| M3 · Biogenic and carbonation | v0.4.0 | Biogenic carbon (uptake, storage, release) and concrete CO₂ uptake | [milestone 4](https://github.com/jayarehart/DLCA/milestone/4) |
 | M4 · Operational and scenarios | v0.5.0 | Time-varying emission factors for replacement and end-of-life emissions, operational energy (B6). Remove the fake DOE data | not yet created |
 | M5 · Docs and release | v1.0.0 | Settle the proposed API records, docs site, tutorials, PyPI, Zenodo DOI, JOSS paper, repository goes public, then branch protection | not yet created |
 
@@ -153,13 +153,13 @@ table and the release pipeline depend only on M0 and can start at any time.
 
 ### M3 · Biogenic and carbonation (v0.4.0)
 
-1. **Biogenic carbon** (`science`, **needs Jay**). Regrowth model options
+1. **Biogenic carbon** (#73; `science`, decided). Regrowth model options
    (Cherubini Gaussian, instant, none), storage, and release at end of life,
    passed to the engine as `co2` (uptake negative). This is also where the
    biogenic-carbon credit for non-fossil CH₄ lives (record 0010, C8): decide
    how the inventory counts the carbon that a biogenic CH₄ source took from the
    air, and test that it is counted once.
-2. **Concrete carbonation** (`science`). Port the model in `legacy/` as CO₂
+2. **Concrete carbonation** (#74; `science`, **needs Jay**). Port the model in `legacy/` as CO₂
    uptake in the B and C modules (negative `co2`), tested against the legacy
    results.
 
