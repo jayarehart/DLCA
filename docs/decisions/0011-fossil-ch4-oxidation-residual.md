@@ -1,8 +1,8 @@
 # 0011. Fossil CH₄ oxidation keeps the perturbation lifetime; the AR6 gap is documented
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-19
-- **Decided by:**
+- **Decided by:** Jay Arehart, 2026-11-19 (option B on #44)
 
 ## Context
 
