@@ -1,0 +1,65 @@
+{
+  "schema": "dlca.building_inventory",
+  "schema_version": 2,
+  "name": "Illustrative timber floor with biogenic carbon (1,000 m2)",
+  "study_period": 60,
+  "assemblies": [
+    {
+      "name": "Floor",
+      "materials": [
+        {
+          "name": "CLT panels",
+          "quantity": 200,
+          "unit": "m3",
+          "modules": {
+            "A1-A3": {"co2": 120, "ch4_fossil": 0.2, "n2o": 0.01},
+            "A4": {"co2": 25},
+            "A5": {"co2": 5},
+            "C1": {"co2": 3},
+            "C2": {"co2": 2},
+            "C3": {"co2": 5},
+            "C4": {"co2": 35, "ch4": 2.0}
+          },
+          "biogenic": {"co2": 769, "regrowth": "gaussian", "rotation": 60, "released_co2": 33},
+          "b5": [
+            {"year": 30, "amounts": {"co2": 2}}
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Frame",
+      "materials": [
+        {
+          "name": "Glulam beams",
+          "quantity": 30,
+          "unit": "m3",
+          "modules": {
+            "A1-A3": {"co2": 140, "ch4_fossil": 0.2, "n2o": 0.01},
+            "A4": {"co2": 25},
+            "A5": {"co2": 5},
+            "C1": {"co2": 3},
+            "C2": {"co2": 2},
+            "C3": {"co2": 5},
+            "C4": {"co2": 35, "ch4": 2.0}
+          },
+          "biogenic": {"co2": 769, "regrowth": "gaussian", "rotation": 60, "released_co2": 33}
+        },
+        {
+          "name": "Steel connectors",
+          "quantity": 2000,
+          "unit": "kg",
+          "modules": {
+            "A1-A3": {"co2": 2.0, "ch4_fossil": 0.003, "n2o": 0.00005},
+            "A4": {"co2": 0.05},
+            "A5": {"co2": 0.02},
+            "C1": {"co2": 0.01},
+            "C2": {"co2": 0.005},
+            "C3": {"co2": 0.02},
+            "C4": {"co2": 0.001}
+          }
+        }
+      ]
+    }
+  ]
+}

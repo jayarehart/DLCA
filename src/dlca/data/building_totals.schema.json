@@ -1,5 +1,53 @@
 {
   "$defs": {
+    "Biogenic": {
+      "additionalProperties": false,
+      "description": "Biogenic carbon held in a product, and its uptake from the air (#73).\n\nThe unit is set by the field that holds it: kg CO2 per declared unit on a\n`Material` or its events, kg CO2 on `BuildingTotals` or its events.\n\nUptake goes into the timeline as negative `co2`, in its own part\n``\"biogenic-uptake\"``. Release is not written by the tool: the user enters\nit in C1-C4 (or in a B4 event) as `co2` and non-fossil `ch4`, as for any\nother emission. `released_co2` says how much of the declared carbon those\nentries release as CO2; it is used only for the storage report and the\nover-release warning, and adds nothing to the emissions.",
+      "properties": {
+        "co2": {
+          "description": "Biogenic carbon in the product, as kg CO2 (carbon x 44.01 / 12.011).",
+          "minimum": 0,
+          "title": "Co2",
+          "type": "number"
+        },
+        "regrowth": {
+          "enum": [
+            "none",
+            "instant",
+            "gaussian"
+          ],
+          "title": "Regrowth",
+          "type": "string"
+        },
+        "rotation": {
+          "anyOf": [
+            {
+              "minimum": 2,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Rotation period [yr] for ``\"gaussian\"`` regrowth; required there and\nrefused for the other options.",
+          "title": "Rotation"
+        },
+        "released_co2": {
+          "default": 0.0,
+          "description": "Part of `co2` that the user's own C1-C4 (or event) entries release as\nCO2. Reporting only.",
+          "minimum": 0,
+          "title": "Released Co2",
+          "type": "number"
+        }
+      },
+      "required": [
+        "co2",
+        "regrowth"
+      ],
+      "title": "Biogenic",
+      "type": "object"
+    },
     "Event": {
       "additionalProperties": false,
       "description": "A B4 (replacement) or B5 (refurbishment) event.\n\n`year` is a year of the study period, 1 to `study_period`. A B4 amount is\nthe whole replacement: the new item's A1-A5 plus the old item's C1-C4.\nEvents in the same year add together.",
@@ -11,6 +59,18 @@
         },
         "amounts": {
           "$ref": "#/$defs/GasAmounts"
+        },
+        "biogenic": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Biogenic"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Biogenic carbon of the item the event puts in; its uptake starts in the\nevent year (#73, B4)."
         }
       },
       "required": [
@@ -59,8 +119,8 @@
       "type": "string"
     },
     "schema_version": {
-      "default": 1,
-      "maximum": 1,
+      "default": 2,
+      "maximum": 2,
       "minimum": 1,
       "title": "Schema Version",
       "type": "integer"
@@ -123,6 +183,18 @@
       },
       "title": "B5",
       "type": "array"
+    },
+    "biogenic": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Biogenic"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Biogenic carbon of the whole building, in kg CO2 (schema version 2)."
     }
   },
   "required": [

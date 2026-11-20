@@ -9,7 +9,7 @@ from dlca.inventory import BuildingInventory, BuildingTotals
 INVENTORY_DIR = Path(__file__).resolve().parent / "data" / "inventories"
 """Illustrative example inventories (#60); see the README there."""
 
-EXAMPLE_INVENTORY_NAMES = ("timber", "steel", "concrete")
+EXAMPLE_INVENTORY_NAMES = ("timber", "timber_biogenic", "steel", "concrete")
 
 
 def load_example_inventory(name: str) -> BuildingInventory:
@@ -32,7 +32,7 @@ def example_inventory_dir() -> Path:
 
 @pytest.fixture(scope="session")
 def example_inventories() -> dict[str, BuildingInventory]:
-    """The three illustrative inventories, by name: timber, steel, concrete."""
+    """The illustrative inventories, by name: timber, timber_biogenic, steel, concrete."""
     return {name: load_example_inventory(name) for name in EXAMPLE_INVENTORY_NAMES}
 
 

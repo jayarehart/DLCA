@@ -12,19 +12,27 @@ import numpy as np
 import pytest
 
 from dlca.climate import EMISSION_KEYS
-from dlca.inventory import BuildingInventory, BuildingTotals, timeline
+from dlca.inventory import BuildingInventory, BuildingTotals, biogenic_balance, timeline
 
-NAMES = ("timber", "steel", "concrete", "totals")
+NAMES = ("timber", "timber_biogenic", "steel", "concrete", "totals")
 
 # Hand totals from tests/data/inventories/README.md, kg of each gas.
 A1_A3 = {
     "timber": {"co2": 32_200, "ch4": 0, "ch4_fossil": 52, "n2o": 2.4},
+    "timber_biogenic": {"co2": 32_200, "ch4": 0, "ch4_fossil": 52, "n2o": 2.4},
     "steel": {"co2": 114_750, "ch4": 0, "ch4_fossil": 144, "n2o": 3.42},
     "concrete": {"co2": 100_000, "ch4": 0, "ch4_fossil": 137.5, "n2o": 3.25},
     "totals": {"co2": 250_000, "ch4": 0, "ch4_fossil": 300, "n2o": 8},
 }
 WHOLE_SERIES = {
     "timber": {"co2": 42_472, "ch4": 460, "ch4_fossil": 52, "n2o": 2.4},
+    # 42,472 - 460 + 8,050 - 230 x (769 - 2.0 x 44.01 / 16.043), README.
+    "timber_biogenic": {
+        "co2": 50_062 - 230 * (769 - 2.0 * 44.01 / 16.043),
+        "ch4": 460,
+        "ch4_fossil": 52,
+        "n2o": 2.4,
+    },
     "steel": {"co2": 133_827, "ch4": 0, "ch4_fossil": 144, "n2o": 3.42},
     "concrete": {"co2": 112_150, "ch4": 0, "ch4_fossil": 137.5, "n2o": 3.25},
     "totals": {"co2": 350_000, "ch4": 50, "ch4_fossil": 320, "n2o": 8},
@@ -34,6 +42,11 @@ CO2_BY_MODULE = {
     "timber": {
         "A1-A3": 32_200, "A4": 5_850, "A5": 1_190, "B5": 400,
         "C1": 710, "C2": 470, "C3": 1_190, "C4": 462,
+    },
+    "timber_biogenic": {
+        "biogenic-uptake": -230 * (769 - 2.0 * 44.01 / 16.043),
+        "A1-A3": 32_200, "A4": 5_850, "A5": 1_190, "B5": 400,
+        "C1": 710, "C2": 470, "C3": 1_190, "C4": 8_052,
     },
     "steel": {
         "A1-A3": 114_750, "A4": 3_015, "A5": 3_015, "B1": -1_440, "B4": 9_000,
@@ -51,6 +64,7 @@ CO2_BY_MODULE = {
 # Years with a nonzero B4/B5 amount (co2, kg in that year).
 EVENTS = {
     "timber": {"B5": {30: 400}},
+    "timber_biogenic": {"B5": {30: 400}},
     "steel": {"B4": {25: 4_500, 50: 4_500}},
     "concrete": {},
     "totals": {"B4": {20: 8_000, 40: 8_000}, "B5": {25: 20_000}},
@@ -58,11 +72,12 @@ EVENTS = {
 # Per-year modules (co2, kg in each of years 1..study_period).
 PER_YEAR = {
     "timber": {},
+    "timber_biogenic": {},
     "steel": {"B1": -24},
     "concrete": {"B1": -50},
     "totals": {"B2": 500},
 }
-STUDY_PERIOD = {"timber": 60, "steel": 60, "concrete": 60, "totals": 50}
+STUDY_PERIOD = {"timber": 60, "timber_biogenic": 60, "steel": 60, "concrete": 60, "totals": 50}
 
 
 def close(value, expected):
@@ -79,7 +94,7 @@ def test_every_file_in_the_folder_is_loaded(example_inventory_dir):
 
 
 def test_files_validate_as_their_schema(example_inventories, example_totals):
-    assert set(example_inventories) == {"timber", "steel", "concrete"}
+    assert set(example_inventories) == {"timber", "timber_biogenic", "steel", "concrete"}
     for building in example_inventories.values():
         assert isinstance(building, BuildingInventory)
     assert isinstance(example_totals, BuildingTotals)
@@ -111,6 +126,17 @@ def test_co2_by_module_matches_hand_total(buildings, name):
     assert set(by_module) == set(CO2_BY_MODULE[name])
     for module, expected in CO2_BY_MODULE[name].items():
         assert close(by_module[module]["co2"].sum(), expected), module
+
+
+def test_timber_biogenic_storage_matches_hand_total(example_inventories):
+    """README hand total: 769 declared - 33 released as CO2 - 2.0 x 44.01 / 16.043
+    as CH4 = 730.513 kg CO2 per m3 stored, times 200 m3 (CLT) and 30 m3 (glulam)."""
+    balance = biogenic_balance(example_inventories["timber_biogenic"])
+    per_m3 = 769 - 33 - 2.0 * 44.01 / 16.043
+    for key, m3 in ((("Floor", "CLT panels"), 200), (("Frame", "Glulam beams"), 30)):
+        assert close(balance[key].declared, 769 * m3)
+        assert close(balance[key].stored, per_m3 * m3)
+    assert set(balance) == {("Floor", "CLT panels"), ("Frame", "Glulam beams")}
 
 
 @pytest.mark.parametrize("name", NAMES)
