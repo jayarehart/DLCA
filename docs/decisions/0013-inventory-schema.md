@@ -116,8 +116,18 @@ record per module stand.
 - Issue #57 (proposal, updates and decisions S1–S15); #58, #59, #60.
 - Records 0003 (partly superseded), 0005, 0008, 0010.
 - EN 15978:2011, *Sustainability of construction works: assessment of
-  environmental performance of buildings, calculation method*. Clause
-  7.4.4 "Boundaries of the use stage (Modules B1–B7)", as named in the DIN EN
-  15978 table of contents. The clauses for the product, construction and end
-  of life stages, and the module figure, were **not checked** (no copy of the
-  standard was available).
+  environmental performance of buildings, calculation method*. Clause numbers
+  and titles were checked against the table of contents in the public preview
+  (SIST EN 15978:2011, pages 2–3). The clause bodies and the module figure
+  were not checked, because the preview stops before clause 7.
+  - 7.3 Reference study period (`study_period`).
+  - 7.4 System boundary: 7.4.2 product stage, modules A1 to A3 (`A1-A3`);
+    7.4.3 construction process stage, modules A4 and A5; 7.4.4 use stage,
+    modules B1–B7; 7.4.5 end of life stage, modules C1–C4; 7.4.6 benefits and
+    loads beyond the system boundary, module D (out of scope here).
+  - 8.6.2–8.6.6 name the use-stage modules: B1 use; B2, B3, B4 maintenance,
+    repair, replacement; B5 refurbishment; B6 operational energy use; B7
+    operational water use.
+  - 9.3.3 Replaceable components and number of replacements. Under this
+    record, the user applies that rule when writing B4 events. The tool does
+    not apply it.
