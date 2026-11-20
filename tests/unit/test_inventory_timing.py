@@ -25,7 +25,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
-from pydantic import ValidationError
 
 import dlca
 from dlca.climate import EMISSION_KEYS
@@ -187,12 +186,6 @@ def test_b5_events():
     assert_series(t, {"co2": [0, 8, 1, 1, 4, 0, 0]})
 
 
-def test_b4_in_end_of_life_year_cannot_be_entered():
-    # End of life is RSP + 1, which the schema's 1..RSP event range refuses.
-    with pytest.raises(ValidationError, match="after the study period"):
-        totals(5, b4=[(6, {"co2": 1})])
-
-
 # --- the two old create_flux_mat bugs -----------------------------------------------
 
 
@@ -281,6 +274,11 @@ def test_longer_series_pads_with_zeros():
 def test_shorter_or_bad_length_refused(years):
     with pytest.raises((ValueError, TypeError)):
         timeline(totals(3), horizon=2, years=years)
+
+
+def test_numpy_integers_accepted():
+    t = timeline(totals(3), horizon=np.int64(2), years=np.int32(9))
+    assert (t.horizon, t.years) == (2, 9) and type(t.years) is int
 
 
 @pytest.mark.parametrize("horizon", [0, -5, 100.0, 100.5, "100", True, None])

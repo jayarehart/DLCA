@@ -112,14 +112,14 @@ def timeline(
         raise TypeError(
             f"building must be a BuildingTotals or BuildingInventory, got {type(building).__name__}"
         )
-    _check_int("horizon", horizon)
+    horizon = _check_int("horizon", horizon)
     if horizon < 1:
         raise ValueError(f"horizon must be >= 1 year, got {horizon}")
     rsp = building.study_period
     minimum = rsp + horizon + 2
     if years is None:
         years = minimum
-    _check_int("years", years)
+    years = _check_int("years", years)
     if years < minimum:
         raise ValueError(
             f"years must be >= study_period + horizon + 2 = {minimum} so the end-of-life "
@@ -182,9 +182,11 @@ class _Builder:
                 self._place((assembly, material, module), event.year, event.amounts, scale)
 
 
-def _check_int(name: str, value: object) -> None:
-    if isinstance(value, bool) or not isinstance(value, int):
+def _check_int(name: str, value: object) -> int:
+    """An int or NumPy integer (not a bool or a float), returned as int."""
+    if isinstance(value, (bool, np.bool_)) or not isinstance(value, (int, np.integer)):
         raise TypeError(f"{name} must be a whole number of years (int), got {value!r}")
+    return int(value)
 
 
 def _freeze(series: dict[str, NDArray[np.float64]]) -> Series:
