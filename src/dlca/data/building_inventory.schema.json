@@ -739,7 +739,7 @@
         }
       ],
       "default": null,
-      "description": "Multiplier on the fossil gases of every material's B4 events and C1-C4\n(schema version 4, record 0018). Absent means constant.",
+      "description": "Multiplier on the fossil gases of every material's B4 events and C1-C4\n(schema version 4, record 0018). Absent means constant. A material that has\na `biogenic` field, or any B4/B5 event with one, keeps the `co2` of those\namounts as entered (record 0020).",
       "title": "B4 C Trajectory"
     },
     "energy": {

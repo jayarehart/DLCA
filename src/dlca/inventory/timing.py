@@ -26,7 +26,10 @@ building's `study_period`:
 - Emission-factor trajectory (#81, record 0018): if the building has a
   `b4_c_trajectory`, the fossil gases (`co2`, `ch4_fossil`, `n2o`) of each B4
   event are multiplied by m(event year), and those of C1-C4 by m(RSP + 1).
-  Non-fossil `ch4` and every other module are left as entered.
+  Non-fossil `ch4` and every other module are left as entered. On a
+  biogenic item (#86, record 0020) the `co2` of its B4 and C1-C4 amounts is
+  left as entered too: a material that has a `biogenic` field, or any B4/B5
+  event with one, or a `BuildingTotals` with one anywhere.
 
 The series runs over years 0..RSP + 1 + H, so the end-of-life pulse gets a
 full horizon H. Pass the same H to `assess()`.
@@ -261,14 +264,32 @@ def timeline(
     m = None if trajectory is None else trajectory.multipliers(rsp + 2)
     builder = _Builder(rsp, years, m)
     if isinstance(building, BuildingTotals):
-        builder.add(None, None, 1.0, building.modules, building.per_year, building.b4, building.b5)
+        builder.add(
+            None,
+            None,
+            1.0,
+            building.modules,
+            building.per_year,
+            building.b4,
+            building.b5,
+            biogenic=_is_biogenic(building.biogenic, building.b4, building.b5),
+        )
         builder.add_biogenic(
             None, None, factors.get(None, 0.0), building.biogenic, building.b4, building.b5
         )
     else:
         for assembly in building.assemblies:
             for m in assembly.materials:
-                builder.add(assembly.name, m.name, m.quantity, m.modules, m.per_year, m.b4, m.b5)
+                builder.add(
+                    assembly.name,
+                    m.name,
+                    m.quantity,
+                    m.modules,
+                    m.per_year,
+                    m.b4,
+                    m.b5,
+                    biogenic=_is_biogenic(m.biogenic, m.b4, m.b5),
+                )
                 f = factors.get((assembly.name, m.name), 0.0)
                 builder.add_biogenic(assembly.name, m.name, m.quantity * f, m.biogenic, m.b4, m.b5)
                 builder.add_carbonation(
@@ -300,14 +321,21 @@ class _Builder:
         for gas in EMISSION_KEYS:
             series[gas][where] += scale * getattr(amounts, gas)
 
-    def _place_scaled(self, key: PartKey, year: int, amounts: GasAmounts, scale: float) -> None:
-        """Place a B4 or C1-C4 amount, its fossil gases times m(year) (record 0018)."""
+    def _place_scaled(
+        self, key: PartKey, year: int, amounts: GasAmounts, scale: float, biogenic: bool
+    ) -> None:
+        """Place a B4 or C1-C4 amount, its fossil gases times m(year) (record 0018).
+
+        Non-fossil CH4 is never scaled. On a biogenic item `co2` is not
+        scaled either, because it holds the release of stored carbon (record 0020).
+        """
         if self.m is None:
             self._place(key, year, amounts, scale)
             return
+        kept = ("ch4", "co2") if biogenic else ("ch4",)
         series = self._series(key)
         for gas in EMISSION_KEYS:
-            factor = 1.0 if gas == "ch4" else self.m[year]  # non-fossil CH4 is never scaled
+            factor = 1.0 if gas in kept else self.m[year]
             series[gas][year] += scale * getattr(amounts, gas) * factor
 
     def add(
@@ -319,12 +347,16 @@ class _Builder:
         per_year: Mapping[str, GasAmounts],
         b4: Iterable[Event],
         b5: Iterable[Event],
+        *,
+        biogenic: bool = False,
     ) -> None:
         for module, amounts in modules.items():
             if module in _YEAR_ZERO:
                 year = 0
             elif module in _END_OF_LIFE:
-                self._place_scaled((assembly, material, module), self.rsp + 1, amounts, scale)
+                self._place_scaled(
+                    (assembly, material, module), self.rsp + 1, amounts, scale, biogenic
+                )
                 continue
             else:  # the schema allows no other one-off module
                 raise ValueError(f"no timing rule for module {module!r}")
@@ -335,8 +367,11 @@ class _Builder:
             for event in events:
                 if not 1 <= event.year <= self.rsp:  # the schema checks this too
                     raise ValueError(f"{module} event year {event.year} is outside 1..{self.rsp}")
-                place = self._place_scaled if module == "B4" else self._place
-                place((assembly, material, module), event.year, event.amounts, scale)
+                key = (assembly, material, module)
+                if module == "B4":
+                    self._place_scaled(key, event.year, event.amounts, scale, biogenic)
+                else:
+                    self._place(key, event.year, event.amounts, scale)
 
     def add_energy(self, energy: Iterable[EnergyUse]) -> None:
         energy = list(energy)
@@ -425,6 +460,12 @@ class _Builder:
                 CarbonationWarning,
                 stacklevel=3,
             )
+
+
+def _is_biogenic(own: Biogenic | None, b4: Iterable[Event], b5: Iterable[Event]) -> bool:
+    """Whether an item's B4 and C1-C4 `co2` is kept out of the trajectory: it,
+    or any of its B4/B5 events, has a `biogenic` field (record 0020)."""
+    return own is not None or any(e.biogenic is not None for e in (*b4, *b5))
 
 
 def _multiplier(line: EnergyUse):
