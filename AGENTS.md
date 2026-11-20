@@ -24,6 +24,7 @@ tests/reference/        results checked against the reference spreadsheet cases
 tests/property/         property-based tests (invariants, signs, conservation)
 legacy/                 retired research code kept for porting; not packaged or tested
 docs/decisions/         decision records (science and architecture choices)
+docs/roadmap.md         milestones M0–M5, planned work and its order
 ```
 
 ## Commands
