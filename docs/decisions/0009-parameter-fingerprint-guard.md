@@ -69,6 +69,10 @@ sets:
 
 ## Consequences
 
+- The stamp records where a component came from; it does not prove it. A
+  component re-stamped by hand, for example with
+  `dataclasses.replace(gwi, parameter_fingerprint=...)`, passes `Result` (#46
+  review). Nor does the stamp tie a component to `Result.emissions`.
 - Calls that mix sets now raise instead of returning wrong numbers. `gwi()`,
   `gtp()` and `assess()` use one set throughout and are unaffected. No output
   value moves.
