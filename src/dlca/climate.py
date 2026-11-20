@@ -36,13 +36,15 @@ for fossil CH4 the factor includes the oxidised CO2 by the closed form behind
 AR5 Table 8.A.1 (Boucher et al. 2009), from ``agwp("ch4_fossil", ...)`` and
 ``agtp("ch4_fossil", ...)``.
 
-Parameter-set guard (issue #37, decision record 0009, 2026-11-19). ``Burden``,
-``Forcing`` and ``Temperature`` record ``parameter_fingerprint``, the
-``fingerprint()`` of the set that made them. ``forcing()`` and ``temperature()``
-raise ``ValueError`` when the burden's fingerprint differs from that of the set
-they are given, so a burden made with one set cannot silently be used with
-another. The check compares values, not names: a variant made with
-``dataclasses.replace()`` keeps its name but is a different set.
+Parameter-set guard (issues #37 and #46, decision record 0009, 2026-11-19).
+``Burden``, ``Forcing``, ``Temperature``, ``GWI``, ``GTP`` and ``StaticGWP``
+record ``parameter_fingerprint``, the ``fingerprint()`` of the set that made
+them; ``Result`` refuses any of the six made with a set other than its own.
+``forcing()`` and ``temperature()`` raise ``ValueError`` when the burden's
+fingerprint differs from that of the set they are given, so a burden made with
+one set cannot silently be used with another. The check compares values, not
+names: a variant made with ``dataclasses.replace()`` keeps its name but is a
+different set.
 
 Carbon-cycle feedback (issue #33, decisions C1-C8, decision record 0010,
 2026-11-19). When ``params.carbon_cycle_feedback`` is True (AR6), the warming
@@ -101,7 +103,7 @@ GASES = ("co2", "ch4", "n2o")
 EMISSION_KEYS = ("co2", "ch4", "ch4_fossil", "n2o")
 
 # Smallest horizon gwi(), gtp() and static_gwp() accept [yr] (decision H2 on
-# #47, decision record 0011). Below about 1e-9 yr the closed forms lose
+# #47, decision record 0012). Below about 1e-9 yr the closed forms lose
 # precision (1 - exp(-H/tau) rounds to 0); at 1e-6 yr their relative error is
 # at most about 3e-9. agwp() and agtp() still accept any H >= 0.
 MIN_HORIZON = 1e-6
@@ -132,7 +134,7 @@ def _fingerprint_from(data: Mapping) -> str:
 
 
 def _require_fingerprint_str(obj: object) -> None:
-    """``__post_init__`` check shared by ``Burden``, ``Forcing`` and ``Temperature``."""
+    """``__post_init__`` check shared by the six climate output dataclasses."""
     value = obj.parameter_fingerprint  # type: ignore[attr-defined]
     if not isinstance(value, str):
         raise TypeError(f"parameter_fingerprint must be a string, got {type(value).__name__}")
@@ -661,6 +663,8 @@ class GWI:
             oxidised CO2 (decision S3 on #30). Shape (N,). (``GWP_static_CO2e``.)
         horizon: Time horizon [yr].
         agwp_co2: ``agwp("co2", horizon, params)`` [W m-2 yr kg-1].
+        parameter_fingerprint: ``fingerprint()`` of the parameter set that made
+            it (#46). Kept as the last field.
     """
 
     dynamic: NDArray[np.float64]
@@ -668,15 +672,20 @@ class GWI:
     static: NDArray[np.float64]
     horizon: float
     agwp_co2: float
+    parameter_fingerprint: str
+
+    def __post_init__(self) -> None:
+        _require_fingerprint_str(self)
 
     def to_dict(self) -> dict:
-        """JSON-serialisable dict (decision record 0005)."""
+        """JSON-serialisable dict of plain lists and the fingerprint (decision record 0005)."""
         return {
             "dynamic": self.dynamic.tolist(),
             "sliding": self.sliding.tolist(),
             "static": self.static.tolist(),
             "horizon": self.horizon,
             "agwp_co2": self.agwp_co2,
+            "parameter_fingerprint": self.parameter_fingerprint,
         }
 
     @classmethod
@@ -686,6 +695,7 @@ class GWI:
             **_arrays(data, ("dynamic", "sliding", "static")),
             horizon=float(data["horizon"]),
             agwp_co2=float(data["agwp_co2"]),
+            parameter_fingerprint=_fingerprint_from(data),
         )
 
 
@@ -705,7 +715,7 @@ def gwi(
 
     Returns:
         A ``GWI``. All three series are normalised by AGWP_H(CO2) from the same
-        ``params``.
+        ``params``, and ``parameter_fingerprint`` is ``params.fingerprint()``.
     """
     horizon = _check_horizon(horizon)
     e = _validate(emissions)
@@ -729,6 +739,7 @@ def gwi(
         static=static_gwp(e, params, horizon=horizon).total,
         horizon=horizon,
         agwp_co2=ref,
+        parameter_fingerprint=params.fingerprint(),
     )
 
 
@@ -748,6 +759,8 @@ class StaticGWP:
             per kg]. Without fossil CH4 emissions, ``ch4_fossil`` is left out when
             the set cannot compute it (no fossil CH4 yield, or a CH4 lifetime equal
             to a CO2 or climate response time).
+        parameter_fingerprint: ``fingerprint()`` of the parameter set that made
+            it (#46). Kept as the last field.
     """
 
     co2: NDArray[np.float64]
@@ -756,6 +769,10 @@ class StaticGWP:
     n2o: NDArray[np.float64]
     horizon: float
     gwp: Mapping[str, float]
+    parameter_fingerprint: str
+
+    def __post_init__(self) -> None:
+        _require_fingerprint_str(self)
 
     @property
     def total(self) -> NDArray[np.float64]:
@@ -767,6 +784,7 @@ class StaticGWP:
         out: dict = {key: getattr(self, key).tolist() for key in EMISSION_KEYS}
         out["horizon"] = self.horizon
         out["gwp"] = dict(self.gwp)
+        out["parameter_fingerprint"] = self.parameter_fingerprint
         return out
 
     @classmethod
@@ -776,6 +794,7 @@ class StaticGWP:
             **_arrays(data, EMISSION_KEYS),
             horizon=float(data["horizon"]),
             gwp={key: float(value) for key, value in data["gwp"].items()},
+            parameter_fingerprint=_fingerprint_from(data),
         )
 
 
@@ -817,13 +836,15 @@ def static_gwp(
     Returns:
         A ``StaticGWP``. GWP_H is ``agwp(key, H) / agwp("co2", H)`` from the same
         ``params``; for ``ch4_fossil`` it includes the oxidised CO2 (decision
-        S2-A on #30).
+        S2-A on #30). ``parameter_fingerprint`` is ``params.fingerprint()``.
     """
     horizon = _check_horizon(horizon)
     e = _validate(emissions)
     factors = _static_factors(e, params, horizon, agwp)
     series = {key: np.cumsum(e[key]) * factors.get(key, 0.0) for key in EMISSION_KEYS}
-    return StaticGWP(**series, horizon=horizon, gwp=factors)
+    return StaticGWP(
+        **series, horizon=horizon, gwp=factors, parameter_fingerprint=params.fingerprint()
+    )
 
 
 # --- Temperature and GTP (issue #29) -----------------------------------------
@@ -1040,6 +1061,8 @@ class GTP:
             (``GTP_static_CO2e``.)
         horizon: Time horizon [yr].
         agtp_co2: ``agtp("co2", horizon, params)`` [K kg-1].
+        parameter_fingerprint: ``fingerprint()`` of the parameter set that made
+            it (#46). Kept as the last field.
     """
 
     dynamic: NDArray[np.float64]
@@ -1047,15 +1070,20 @@ class GTP:
     static: NDArray[np.float64]
     horizon: float
     agtp_co2: float
+    parameter_fingerprint: str
+
+    def __post_init__(self) -> None:
+        _require_fingerprint_str(self)
 
     def to_dict(self) -> dict:
-        """JSON-serialisable dict (decision record 0005)."""
+        """JSON-serialisable dict of plain lists and the fingerprint (decision record 0005)."""
         return {
             "dynamic": self.dynamic.tolist(),
             "sliding": self.sliding.tolist(),
             "static": self.static.tolist(),
             "horizon": self.horizon,
             "agtp_co2": self.agtp_co2,
+            "parameter_fingerprint": self.parameter_fingerprint,
         }
 
     @classmethod
@@ -1065,6 +1093,7 @@ class GTP:
             **_arrays(data, ("dynamic", "sliding", "static")),
             horizon=float(data["horizon"]),
             agtp_co2=float(data["agtp_co2"]),
+            parameter_fingerprint=_fingerprint_from(data),
         )
 
 
@@ -1084,7 +1113,7 @@ def gtp(
 
     Returns:
         A ``GTP``. All three series are normalised by AGTP_H(CO2) from the same
-        ``params``.
+        ``params``, and ``parameter_fingerprint`` is ``params.fingerprint()``.
     """
     horizon = _check_horizon(horizon)
     e = _validate(emissions)
@@ -1108,4 +1137,5 @@ def gtp(
         static=static,
         horizon=horizon,
         agtp_co2=ref,
+        parameter_fingerprint=params.fingerprint(),
     )

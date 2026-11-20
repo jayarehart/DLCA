@@ -51,13 +51,17 @@ as pure NumPy functions with cited AR5 and AR6 parameter sets.
   and `molar_mass_c`; the `Result` schema version is now 3. For the old
   behaviour use `dataclasses.replace(get_parameters("AR6"),
   carbon_cycle_feedback=False)`; AR5 refuses CCF.
+- `GWI`, `GTP` and `StaticGWP` also record `parameter_fingerprint`, in
+  `to_dict()` too, and `from_dict()` requires it. `Result` now refuses any of
+  its six components made with another parameter set, and its schema version is
+  now 4. No output value changes (#46, decision record 0009, Proposed).
 
 ### Fixed
 
 - `gwi()`, `gtp()`, `static_gwp()` and `assess()` now raise `ValueError` for a
   horizon below `dlca.climate.MIN_HORIZON` (1e-6 yr). Before, a tiny horizon
   such as 2.22e-16 raised `ZeroDivisionError` in `gtp()` or returned wrong
-  values without an error (#47, decision record 0011, Proposed).
+  values without an error (#47, decision record 0012, Proposed).
 - `EmissionsInventoryAllGHG` raised on matching materials and accepted
   mismatched ones. It now raises when the CO₂, CH₄, N₂O and biogenic-CO₂
   materials differ (#31).

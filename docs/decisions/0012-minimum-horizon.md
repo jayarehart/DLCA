@@ -1,4 +1,4 @@
-# 0011. Minimum time horizon of 1e-6 yr
+# 0012. Minimum time horizon of 1e-6 yr
 
 - **Status:** Proposed
 - **Date:** 2026-11-19

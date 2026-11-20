@@ -98,7 +98,8 @@ def test_from_dict_rejects_edited_parameter_values():
         ("schema", "something.else", "not a DLCA result"),
         ("schema_version", 1, "schema_version"),  # v1 predates the fingerprints (#37)
         ("schema_version", 2, "schema_version"),  # v2 predates ccf_co2 and the CCF values (#33)
-        ("schema_version", 4, "schema_version"),
+        ("schema_version", 3, "schema_version"),  # v3 predates the metric fingerprints (#46)
+        ("schema_version", 5, "schema_version"),
     ],
 )
 def test_from_dict_rejects_other_schemas(field, value, match):
