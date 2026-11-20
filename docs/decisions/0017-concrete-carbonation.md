@@ -1,8 +1,8 @@
 # 0017. Concrete carbonation: Lagerblad (2005), √t uptake in use, crushed stockpile at end of life
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-20
-- **Decided by:**
+- **Decided by:** Jay Arehart, 2026-11-20
 - **Extends:** 0014 (module timing), which says "a per-year profile needs a
   new record". This record adds two per-year profiles.
 
