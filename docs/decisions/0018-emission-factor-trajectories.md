@@ -47,9 +47,12 @@ A delayed decline (m = 1 for a while, then falling) needs a `series`.
 - These are not scaled: A1–A3, A4, A5, B1–B3, B5, B7, biogenic uptake (record
   0016) and carbonation (record 0017). B6 gets its own trajectory in #82.
 - A trajectory other than `constant` is refused if the `BuildingTotals`, any
-  `Material` or any B4 event has a `biogenic` field. This applies to any
+  `Material` or any B4 or B5 event has a `biogenic` field. This applies to any
   `biogenic` field, not only one with `released_co2` > 0: a user may enter a
-  release while leaving `released_co2` at 0.
+  release while leaving `released_co2` at 0. B5 events were added during the
+  work (not a separate decision by Jay; flagged in the PR): the release of
+  a B5 item's biogenic carbon would usually be entered in the material's
+  C1–C4, which is scaled.
 - All of C1–C4 is scaled, including C4 (landfill and incineration). The
   trajectory is a scenario the user chooses, and the documentation says so.
 
@@ -95,8 +98,12 @@ m(y) = 1 − y/50 up to year 50 and 0 after.
 These deliberate mistakes must each make a check fail:
 
 - Indexing m by the event year − 1 gives m(24) = 0.52, so 52 kg instead of 50.
-- Scaling A1–A3.
+- Scaling B5 events gives 50 kg instead of 100.
 - Scaling non-fossil `ch4` gives 5 kg instead of 10.
+
+"Scaling A1–A3", which #81 listed, cannot make any check fail: m(0) = 1 is
+required, so scaling year 0 is a no-op. The run showed this (all checks
+passed), and the B5 mistake took its place.
 
 Positive control: `constant` gives the same `assess()` result as no
 trajectory, and the same comparison detects the `linear` case.
