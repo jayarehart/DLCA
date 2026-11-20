@@ -1,8 +1,8 @@
 # 0012. Minimum time horizon of 1e-6 yr
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-19
-- **Decided by:**
+- **Decided by:** Jay Arehart, 2026-11-19 (H1–H5 on #47)
 
 ## Context
 

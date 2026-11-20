@@ -61,7 +61,7 @@ as pure NumPy functions with cited AR5 and AR6 parameter sets.
 - `gwi()`, `gtp()`, `static_gwp()` and `assess()` now raise `ValueError` for a
   horizon below `dlca.climate.MIN_HORIZON` (1e-6 yr). Before, a tiny horizon
   such as 2.22e-16 raised `ZeroDivisionError` in `gtp()` or returned wrong
-  values without an error (#47, decision record 0012, Proposed).
+  values without an error (#47, decision record 0012).
 - `EmissionsInventoryAllGHG` raised on matching materials and accepted
   mismatched ones. It now raises when the CO₂, CH₄, N₂O and biogenic-CO₂
   materials differ (#31).
