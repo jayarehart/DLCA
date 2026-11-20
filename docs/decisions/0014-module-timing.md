@@ -1,8 +1,8 @@
 # 0014. Module timing: when each EN 15978 module's emissions happen
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-19
-- **Decided by:**
+- **Decided by:** Jay Arehart, 2026-11-19 (decisions T1–T6 on #58; C1–C4 in RSP + 1)
 
 ## Context
 

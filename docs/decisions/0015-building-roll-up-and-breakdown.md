@@ -1,8 +1,8 @@
 # 0015. Building roll-up and breakdown: `assess_building()` and `BuildingResult`
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-19
-- **Decided by:**
+- **Decided by:** Jay Arehart, 2026-11-19 (decisions R1–R8 on #59)
 
 ## Context
 
