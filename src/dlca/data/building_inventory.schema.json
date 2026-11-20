@@ -73,6 +73,84 @@
       "title": "Biogenic",
       "type": "object"
     },
+    "Carbonation": {
+      "additionalProperties": false,
+      "description": "Concrete carbonation by Lagerblad (2005), CBI report 2:2005 (#74).\n\nDepth d = k sqrt(t) [mm], t in years from casting, with k from Table 2\n(strength class x exposure) times the cover factor (Table 3) times\n`binder_factor`. Uptake per m3 carbonated = `degree_of_carbonation` x\n`cement` x `cao_share` x 44.01 / 56.077 kg CO2. The carbonated volume is\nthe sum over `surfaces` of area x d, capped at the volume per declared\nunit. See `dlca.inventory.carbonation`.",
+      "properties": {
+        "strength_class": {
+          "enum": [
+            "<15",
+            "15-25",
+            "25-35",
+            ">35"
+          ],
+          "title": "Strength Class",
+          "type": "string"
+        },
+        "cement": {
+          "description": "Portland cement (clinker) content [kg per m3 of concrete]. For a\nblended cement, the Portland part only (Lagerblad §5.3.2).",
+          "exclusiveMinimum": 0,
+          "title": "Cement",
+          "type": "number"
+        },
+        "surfaces": {
+          "items": {
+            "$ref": "#/$defs/Surface"
+          },
+          "minItems": 1,
+          "title": "Surfaces",
+          "type": "array"
+        },
+        "end_of_life": {
+          "$ref": "#/$defs/Stockpile"
+        },
+        "cao_share": {
+          "default": 0.65,
+          "description": "Mass share of CaO in the Portland cement (Lagerblad's example value).",
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Cao Share",
+          "type": "number"
+        },
+        "binder_factor": {
+          "default": 1.0,
+          "description": "Factor on k for the binder; Lagerblad Table 4 is guidance (it and his\nappendix A2.4 disagree, so neither is encoded).",
+          "minimum": 1,
+          "title": "Binder Factor",
+          "type": "number"
+        },
+        "degree_of_carbonation": {
+          "default": 0.75,
+          "description": "Share of the CaO that carbonates in the carbonated layer (Lagerblad\n§5.1.5; Andersson et al. 2013 use 0.8-0.9).",
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Degree Of Carbonation",
+          "type": "number"
+        },
+        "volume": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "m3 of concrete per declared unit. Required unless the material's unit\nis ``\"m3\"`` (then it is 1 and may not be given).",
+          "title": "Volume"
+        }
+      },
+      "required": [
+        "strength_class",
+        "cement",
+        "surfaces",
+        "end_of_life"
+      ],
+      "title": "Carbonation",
+      "type": "object"
+    },
     "Event": {
       "additionalProperties": false,
       "description": "A B4 (replacement) or B5 (refurbishment) event.\n\n`year` is a year of the study period, 1 to `study_period`. A B4 amount is\nthe whole replacement: the new item's A1-A5 plus the old item's C1-C4.\nEvents in the same year add together.",
@@ -96,6 +174,18 @@
           ],
           "default": null,
           "description": "Biogenic carbon of the item the event puts in; its uptake starts in the\nevent year (#73, B4)."
+        },
+        "carbonation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Carbonation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Carbonation of the concrete a B4 event puts in, per declared unit of its\nmaterial: the clock restarts in the event year and the replaced item's\nuptake stops after the event year (#74, K5; schema version 3). Not allowed on B5 events or on\n`BuildingTotals`."
         }
       },
       "required": [
@@ -217,6 +307,18 @@
           ],
           "default": null,
           "description": "Biogenic carbon per declared unit, in kg CO2 (schema version 2)."
+        },
+        "carbonation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Carbonation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Concrete carbonation per declared unit (schema version 3, #74)."
         }
       },
       "required": [
@@ -225,6 +327,69 @@
         "unit"
       ],
       "title": "Material",
+      "type": "object"
+    },
+    "Stockpile": {
+      "additionalProperties": false,
+      "description": "End of life: crushed and stockpiled in the open (#74, K4).\n\nIn the end-of-life year the concrete still uncarbonated is crushed into\nspheres of `radius`. They carbonate as ``\"exposed\"`` concrete of the same\nstrength class and binder, with no cover factor, for `years` years.",
+      "properties": {
+        "radius": {
+          "description": "Radius of the crushed pieces [mm]. Required, no default.",
+          "exclusiveMinimum": 0,
+          "title": "Radius",
+          "type": "number"
+        },
+        "years": {
+          "default": 1,
+          "description": "Years in the stockpile, from the end-of-life year on.",
+          "minimum": 1,
+          "title": "Years",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "radius"
+      ],
+      "title": "Stockpile",
+      "type": "object"
+    },
+    "Surface": {
+      "additionalProperties": false,
+      "description": "One kind of exposed concrete surface (#74, K2; Andersson et al. 2013, eq. 2).",
+      "properties": {
+        "area": {
+          "description": "m2 per declared unit.",
+          "exclusiveMinimum": 0,
+          "title": "Area",
+          "type": "number"
+        },
+        "exposure": {
+          "enum": [
+            "indoors",
+            "sheltered",
+            "exposed",
+            "wet",
+            "buried"
+          ],
+          "title": "Exposure",
+          "type": "string"
+        },
+        "cover": {
+          "enum": [
+            "none",
+            "indoor_house",
+            "outdoor_house"
+          ],
+          "title": "Cover",
+          "type": "string"
+        }
+      },
+      "required": [
+        "area",
+        "exposure",
+        "cover"
+      ],
+      "title": "Surface",
       "type": "object"
     }
   },
@@ -237,8 +402,8 @@
       "type": "string"
     },
     "schema_version": {
-      "default": 2,
-      "maximum": 2,
+      "default": 3,
+      "maximum": 3,
       "minimum": 1,
       "title": "Schema Version",
       "type": "integer"

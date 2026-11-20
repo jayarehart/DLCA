@@ -12,6 +12,14 @@ building's `study_period`:
 - Biogenic uptake (#73): negative `co2` from the product's year (0, or the
   B4/B5 event's year), in its own part, module ``"biogenic-uptake"``, net of
   the carbon released as non-fossil CH4. See `dlca.inventory.biogenic`.
+- Concrete carbonation (#74, record 0017): negative `co2`. In use, the yearly
+  increments of the cumulative sqrt(t) uptake in years s + 1 .. end, where s
+  is the casting year (0, or a B4 event's year that carries `carbonation`)
+  and end is RSP, or the year of the next such event (the replaced item
+  carbonates through that year, then stops). Module ``"carbonation-uptake"``.
+  The item in place at the end is crushed in RSP + 1 and its stockpile uptake goes in years
+  RSP + 1 .. RSP + n, module ``"carbonation-eol"``. See
+  `dlca.inventory.carbonation`.
 
 The series runs over years 0..RSP + 1 + H, so the end-of-life pulse gets a
 full horizon H. Pass the same H to `assess()`.
@@ -38,7 +46,22 @@ from dlca.inventory.biogenic import (
     warn_on_balance,
     years_for_full_uptake,
 )
-from dlca.inventory.schema import Biogenic, BuildingInventory, BuildingTotals, Event, GasAmounts
+from dlca.inventory.carbonation import EOL_MODULE as CARBONATION_EOL_MODULE
+from dlca.inventory.carbonation import UPTAKE_MODULE as CARBONATION_UPTAKE_MODULE
+from dlca.inventory.carbonation import (
+    CarbonationWarning,
+    eol_increments,
+    in_use_increments,
+    volume_per_unit,
+)
+from dlca.inventory.schema import (
+    Biogenic,
+    BuildingInventory,
+    BuildingTotals,
+    Carbonation,
+    Event,
+    GasAmounts,
+)
 
 PartKey = tuple[str | None, str | None, str]
 """(assembly, material, module). Assembly and material are None for
@@ -49,14 +72,16 @@ Series = Mapping[str, NDArray[np.float64]]
 
 TIMELINE_SCHEMA = "dlca.timeline"
 # Bump whenever the form of Timeline.to_dict() changes. Version 2 (#73) adds
-# the module "biogenic-uptake"; version 1 data still loads.
-TIMELINE_SCHEMA_VERSION = 2
-_READABLE_TIMELINE_VERSIONS = (1, 2)
+# the module "biogenic-uptake"; version 3 (#74) adds "carbonation-uptake" and
+# "carbonation-eol". Older data still loads.
+TIMELINE_SCHEMA_VERSION = 3
+_READABLE_TIMELINE_VERSIONS = (1, 2, 3)
 
 _YEAR_ZERO = ("A1-A3", "A4", "A5")
 _END_OF_LIFE = ("C1", "C2", "C3", "C4")
 _MODULES = (
-    UPTAKE_MODULE, *_YEAR_ZERO, "B1", "B2", "B3", "B4", "B5", "B6", "B7", *_END_OF_LIFE,
+    UPTAKE_MODULE, *_YEAR_ZERO, "B1", CARBONATION_UPTAKE_MODULE, "B2", "B3", "B4", "B5",
+    "B6", "B7", *_END_OF_LIFE, CARBONATION_EOL_MODULE,
 )  # fmt: skip
 
 
@@ -235,6 +260,9 @@ def timeline(
                 builder.add(assembly.name, m.name, m.quantity, m.modules, m.per_year, m.b4, m.b5)
                 f = factors.get((assembly.name, m.name), 0.0)
                 builder.add_biogenic(assembly.name, m.name, m.quantity * f, m.biogenic, m.b4, m.b5)
+                builder.add_carbonation(
+                    assembly.name, m.name, m.quantity, m.unit, m.carbonation, m.b4
+                )
         builder.add(None, None, 1.0, {}, building.per_year, [], [])
 
     parts = MappingProxyType({key: _freeze(series) for key, series in builder.parts.items()})
@@ -309,6 +337,58 @@ class _Builder:
                     BiogenicCarbonWarning,
                     stacklevel=3,
                 )
+
+    def add_carbonation(
+        self,
+        assembly: str,
+        material: str,
+        scale: float,  # quantity
+        unit: str,
+        own: Carbonation | None,
+        b4: Iterable[Event],
+    ) -> None:
+        b4 = list(b4)
+        items = [(0, own)] if own is not None else []
+        items += sorted(
+            ((e.year, e.carbonation) for e in b4 if e.carbonation is not None),
+            key=lambda item: item[0],
+        )
+        if not items:
+            return
+        where = f"{assembly}/{material}"
+        first = items[0][0]
+        for event in b4:
+            if event.carbonation is None and event.year > first:
+                warnings.warn(
+                    f"{where}: the B4 event in year {event.year} has no carbonation, so the "
+                    "carbonation clock is not restarted; give the event a carbonation field "
+                    "if it replaces the concrete.",
+                    CarbonationWarning,
+                    stacklevel=3,
+                )
+        for i, (start, item) in enumerate(items):
+            volume = volume_per_unit(item, unit)
+            end = items[i + 1][0] if i + 1 < len(items) else self.rsp
+            if end > start:
+                series = self._series((assembly, material, CARBONATION_UPTAKE_MODULE))
+                series["co2"][start + 1 : end + 1] -= scale * in_use_increments(
+                    item, volume, end - start
+                )
+        start, item = items[-1]
+        volume = volume_per_unit(item, unit)
+        increments = scale * eol_increments(item, volume, self.rsp - start)
+        first_year = self.rsp + 1
+        fits = min(len(increments), self.years - first_year)
+        series = self._series((assembly, material, CARBONATION_EOL_MODULE))
+        series["co2"][first_year : first_year + fits] -= increments[:fits]
+        cut = float(increments[fits:].sum())
+        if cut > 0.0:
+            warnings.warn(
+                f"{where}: {cut:.6g} kg CO2 of stockpile carbonation falls after the series "
+                f"end and is left out; pass years >= {first_year + len(increments)} to keep it.",
+                CarbonationWarning,
+                stacklevel=3,
+            )
 
 
 def _check_int(name: str, value: object) -> int:

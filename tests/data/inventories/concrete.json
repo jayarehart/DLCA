@@ -1,6 +1,6 @@
 {
   "schema": "dlca.building_inventory",
-  "schema_version": 1,
+  "schema_version": 3,
   "name": "Illustrative concrete floor (1,000 m2)",
   "study_period": 60,
   "assemblies": [
@@ -20,8 +20,14 @@
             "C3": {"co2": 5},
             "C4": {"co2": 3}
           },
-          "per_year": {
-            "B1": {"co2": -0.2}
+          "carbonation": {
+            "strength_class": "25-35",
+            "cement": 320,
+            "surfaces": [
+              {"area": 4, "exposure": "indoors", "cover": "indoor_house"},
+              {"area": 4, "exposure": "indoors", "cover": "indoor_house"}
+            ],
+            "end_of_life": {"radius": 10}
           }
         },
         {

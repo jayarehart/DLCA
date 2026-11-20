@@ -16,7 +16,7 @@ plausible. They are not citations.
 | `timber.json` | `BuildingInventory` | CLT floor on glulam beams |
 | `timber_biogenic.json` | `BuildingInventory` | The same floor with biogenic carbon (schema version 2, #73) |
 | `steel.json` | `BuildingInventory` | Steel beams with a composite deck |
-| `concrete.json` | `BuildingInventory` | 250 mm reinforced flat slab |
+| `concrete.json` | `BuildingInventory` | 250 mm reinforced flat slab, with carbonation (schema version 3, #74) |
 | `totals.json` | `BuildingTotals` | Whole-building totals with their own numbers (not a roll-up of the other three) |
 
 Load them with the pytest fixtures `example_inventories` (name to
@@ -30,8 +30,7 @@ Load them with the pytest fixtures `example_inventories` (name to
   like.
 - `study_period` = 60 years for all three.
 - No B6 or B7: operational energy and water are M4.
-- All amounts are kg per declared unit (B1 per unit per year, B4/B5 per unit
-  per event).
+- All amounts are kg per declared unit (B4/B5 per unit per event).
 - All CH₄ in A1–A3 comes from fossil supply chains, so it is `ch4_fossil`.
   The only non-fossil `ch4` is timber landfill gas in C4.
 - A4, A5 and C1–C3 are fuel use, so CO₂ only. At this rounding, the CH₄ and
@@ -121,7 +120,7 @@ stand.
 | Frame / Steel beams | 30 | t | 1500 / 2 / 0.05 | 50 | 20 | 10 | 5 | 20 | 1 | none |
 | Frame / Intumescent coating | 750 | m2 | 5 / 0 / 0 | 0.1 | 0.5 | 0 | 0 | 0 | 0.5 | B4 years 25 and 50: co2 6 each |
 | Floor / Steel deck | 12 | t | 2500 / 3 / 0.06 | 50 | 20 | 10 | 5 | 20 | 1 | none |
-| Floor / Concrete topping | 120 | m3 | 300 / 0.4 / 0.01 | 7 | 15 | 10 | 12 | 5 | 3 | B1: co2 −0.2 per year |
+| Floor / Concrete topping | 120 | m3 | 300 / 0.4 / 0.01 | 7 | 15 | 10 | 12 | 5 | 3 | none |
 
 - Beams 30 kg/m², deck 12 kg/m², topping about 120 mm on average: a typical
   composite floor.
@@ -132,8 +131,10 @@ stand.
 - B4: the coating is replaced twice in 60 years. Each event is the new
   coating's A1–A5 (5.6) plus the old coating's C1–C4 (0.5) = 6.1, rounded to
   6 kg/m². The sum is written in by hand, as record 0013 requires.
-- The concrete topping uses the same per-unit factors as the slab in
-  `concrete.json`.
+- The concrete topping uses the same per-module factors as the slab in
+  `concrete.json`. It has no carbonation: the hand-entered B1 uptake it had
+  (−0.2 kg CO₂/m³ per year) was removed in #74, and no `carbonation` field
+  was added, so this file stays at schema version 1.
 
 **Hand total, A1–A3:**
 
@@ -146,30 +147,55 @@ About 120 kg CO₂e per m² of floor (range 80–200).
 **Hand total, whole series:**
 
 - co2: beams 30 × 1606 = 48,180; coating 750 × (6.1 + 2 × 6) = 13,575;
-  deck 12 × 2606 = 31,272; topping 120 × (352 − 0.2 × 60) = 40,800. Total
-  **133,827 kg**.
+  deck 12 × 2606 = 31,272; topping 120 × 352 = 42,240. Total
+  **135,267 kg**.
 - ch4 **0 kg**, ch4_fossil **144 kg**, n2o **3.42 kg**.
 
 **Hand total by module, co2 (kg):** A1–A3 114,750; A4 30 × 50 + 750 × 0.1 +
 12 × 50 + 120 × 7 = 3,015; A5 3,015; C1 1,620; C2 1,650; C3 1,440; C4 777;
-B1 120 × −0.2 = −24 per year, −1,440 over 60 years; B4 750 × 6 = 4,500 in
-each of years 25 and 50, 9,000 in all. Sum 133,827.
+B4 750 × 6 = 4,500 in each of years 25 and 50, 9,000 in all. Sum 135,267.
 
 ## `concrete.json` (illustrative)
 
 | Assembly / material | Qty | Unit | A1–A3 | A4 | A5 | C1 | C2 | C3 | C4 | Events |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Slab / Concrete C30/37 | 250 | m3 | 300 / 0.4 / 0.01 | 7 | 15 | 10 | 12 | 5 | 3 | B1: co2 −0.2 per year |
+| Slab / Concrete C30/37 | 250 | m3 | 300 / 0.4 / 0.01 | 7 | 15 | 10 | 12 | 5 | 3 | none; carbonation (below) |
 | Slab / Rebar | 25 | t | 1000 / 1.5 / 0.03 | 30 | 20 | 10 | 5 | 20 | 1 | none |
 
 - Concrete A1–A3: 250–350 kg CO₂/m³ for ordinary Portland cement mixes.
 - Rebar (electric-arc, recycled): 0.7–1.5 t CO₂/t, at 100 kg per m³ of
   concrete.
 - A4: 2.4 t/m³ × 30 km × 0.1 ≈ 7. A5 includes about 3 % waste and pumping.
-- B1 is carbonation uptake: −0.2 kg CO₂/m³ per year, so −12 kg/m³ over 60
-  years, about 4 % of A1–A3 (range 2–20 % for indoor slabs over a life). It
-  is the only negative number in the set.
 - C2: 2.4 t/m³ × 50 km × 0.1 = 12.
+- **Carbonation** (#74, schema version 3; Lagerblad 2005, record 0017).
+  The hand-entered B1 uptake of −0.2 kg CO₂/m³ per year is replaced by a
+  `carbonation` field:
+  - `strength_class` `25-35` (C30/37 is 30 MPa cylinder), `cement` 320 kg
+    Portland cement per m³ (range 280–380 for C30/37 with CEM I), `cao_share`
+    0.65 and `degree_of_carbonation` 0.75 (the defaults).
+  - Surfaces per m³: the 250 mm slab has 1,000 m² of top and 1,000 m² of
+    soffit for 250 m³, so 4 m² + 4 m² per m³. Both `indoors` with
+    `indoor_house` cover (floor finish on top, paint below). Edges are left
+    out. k = 6 × 0.7 = 4.2 mm/√yr.
+  - `end_of_life`: crushed to 10 mm spheres (`radius` 10), 1 year in the
+    stockpile (the default).
+
+**Hand total, carbonation** (a = uptake per m³ carbonated):
+
+- a = 0.75 × 320 × 0.65 × 44.01/56.077 = **122.431 kg CO₂/m³**.
+- In use, years 1–60: depth 4.2 × √60 = 32.5 mm on each face, so
+  8 × 4.2 × √60 / 1000 = 0.26026 m³ per m³ carbonated (no cap; the slab is
+  250 mm). Uptake 122.431 × 0.26026 = 31.864 kg/m³, × 250 = **7,966.1 kg**,
+  in module `carbonation-uptake`. Year 1 alone: 250 × 122.431 × 33.6 / 1000
+  = 1,028.4 kg; it falls as √t − √(t − 1) after that.
+- End of life, year 61: the remaining 0.73974 m³ per m³ is crushed. The
+  stockpile k is 1.5 (exposed, 25–35 MPa, no cover), so d(1) = 1.5 mm and
+  the share is 1 − (8.5/10)³ = 0.385875. Uptake 122.431 × 0.73974 × 0.385875
+  = 34.947 kg/m³, × 250 = **8,736.8 kg**, in module `carbonation-eol`.
+- Together 66.8 kg/m³, about 22 % of A1–A3. That is high next to measured
+  practice: Andersson et al. (2013) found end-of-life uptake today is only
+  about 11 % of the theoretical maximum, because stockpiles let little air
+  in. The open-air sphere model may overstate it (record 0017).
 
 **Hand total, A1–A3:**
 
@@ -181,13 +207,13 @@ About 105 kg CO₂e per m² of floor (range 60–150).
 
 **Hand total, whole series:**
 
-- co2: concrete 250 × (352 − 12) = 85,000; rebar 25 × 1086 = 27,150. Total
-  **112,150 kg**.
+- co2: concrete 250 × 352 − 7,966.1 − 8,736.8 = 71,297.1; rebar
+  25 × 1086 = 27,150. Total **98,447.1 kg**.
 - ch4 **0 kg**, ch4_fossil **137.5 kg**, n2o **3.25 kg**.
 
 **Hand total by module, co2 (kg):** A1–A3 100,000; A4 250 × 7 + 25 × 30 =
-2,500; A5 4,250; C1 2,750; C2 3,125; C3 1,750; C4 775; B1 250 × −0.2 = −50
-per year, −3,000 over 60 years. Sum 112,150.
+2,500; A5 4,250; C1 2,750; C2 3,125; C3 1,750; C4 775; `carbonation-uptake`
+−7,966.1 (years 1–60); `carbonation-eol` −8,736.8 (year 61). Sum 98,447.1.
 
 ## `totals.json` (illustrative)
 
@@ -217,5 +243,7 @@ depend on the inventories. Whole-building kg, `study_period` = 50 years.
 
 Units `m3`, `t`, `kg` and `m2`. One assembly (concrete) and two (timber,
 steel). Every gas key and every one-off module. A B4 list with two events
-(steel and totals), a B5 event (timber and totals), per-year B1 with a
-negative value (concrete and topping), and per-year B2 in totals.
+(steel and totals), a B5 event (timber and totals), per-year B2 in totals,
+biogenic carbon (`timber_biogenic`) and concrete carbonation (`concrete`).
+Since #74 no file has a per-year B1, and the only negative `co2` is uptake
+(biogenic and carbonation).

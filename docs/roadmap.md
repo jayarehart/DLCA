@@ -159,9 +159,11 @@ table and the release pipeline depend only on M0 and can start at any time.
    biogenic-carbon credit for non-fossil CH₄ lives (record 0010, C8): decide
    how the inventory counts the carbon that a biogenic CH₄ source took from the
    air, and test that it is counted once.
-2. **Concrete carbonation** (#74; `science`, **needs Jay**). Port the model in `legacy/` as CO₂
-   uptake in the B and C modules (negative `co2`), tested against the legacy
-   results.
+2. **Concrete carbonation** (#74; `science`, decided; PR #77, record 0017).
+   Lagerblad (2005): √t uptake in use and a crushed stockpile at end of life,
+   as negative `co2` in two timeline parts of their own. The legacy model was
+   not ported (it never ran and had known bugs) and `legacy/carbonation/` is
+   deleted. Other models are #76.
 
 ### M4 · Operational and scenarios (v0.5.0)
 
