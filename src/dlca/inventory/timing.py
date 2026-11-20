@@ -15,9 +15,9 @@ building's `study_period`:
 - Concrete carbonation (#74, record 0017): negative `co2`. In use, the yearly
   increments of the cumulative sqrt(t) uptake in years s + 1 .. end, where s
   is the casting year (0, or a B4 event's year that carries `carbonation`)
-  and end is RSP, or the year before the next such event (the replaced item
-  stops). Module ``"carbonation-uptake"``. The item in place at the end is
-  crushed in RSP + 1 and its stockpile uptake goes in years
+  and end is RSP, or the year of the next such event (the replaced item
+  carbonates through that year, then stops). Module ``"carbonation-uptake"``.
+  The item in place at the end is crushed in RSP + 1 and its stockpile uptake goes in years
   RSP + 1 .. RSP + n, module ``"carbonation-eol"``. See
   `dlca.inventory.carbonation`.
 
@@ -368,7 +368,7 @@ class _Builder:
                 )
         for i, (start, item) in enumerate(items):
             volume = volume_per_unit(item, unit)
-            end = items[i + 1][0] - 1 if i + 1 < len(items) else self.rsp
+            end = items[i + 1][0] if i + 1 < len(items) else self.rsp
             if end > start:
                 series = self._series((assembly, material, CARBONATION_UPTAKE_MODULE))
                 series["co2"][start + 1 : end + 1] -= scale * in_use_increments(

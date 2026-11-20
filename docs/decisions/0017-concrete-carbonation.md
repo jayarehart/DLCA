@@ -53,9 +53,10 @@ timeline parts.
 
 - s is the casting year: 0 for the material's own item, or the year of a B4
   event that carries `carbonation`. e is RSP for the item in place at the end.
-  For an item that is replaced, e is the year before the replacing event, so
-  nothing carbonates in the event year. This matches year 0 for casting,
-  when nothing carbonates either.
+  For an item that is replaced, e is the year of the replacing event: the old
+  item carbonates through that year, and the new item starts in the year
+  after, as cast concrete does after year 0 (Jay, PR #77, on the fresh
+  review's suggestion).
 - In RSP + 1 (record 0014's end-of-life year) the uncarbonated remainder of
   the last item, V_u = volume − V_c(RSP − s), is crushed into spheres of
   radius r. The carbonated share after j years is
@@ -70,7 +71,7 @@ timeline parts.
 
 **Replacements (K5).** A B4 event restarts the clock in its year only if it
 carries its own `carbonation` (per declared unit of the same material). The
-replaced item's in-use uptake stops, and it gets **no** stockpile uptake. At
+replaced item's in-use uptake stops after the event year, and it gets **no** stockpile uptake. At
 most one B4 event per year per material may carry `carbonation`.
 `carbonation` is refused on B5 events and on `BuildingTotals`. A B4 event
 without `carbonation`, on a material with an earlier carbonating item, keeps
@@ -89,6 +90,12 @@ with no `carbonation` give the same numbers as before, bit for bit.
   overstates late uptake against early uptake.
 - **The user enters k directly.** Lost: there is less to check. A user can still raise k
   through `binder_factor` (it cannot go below 1).
+- **No in-use uptake in a carbonating B4 event's year** (old item stops at
+  event year − 1, as the building stops at RSP before end of life in
+  RSP + 1). Lost: Jay chose to let the old item carbonate through the event
+  year (PR #77), so no year of uptake is dropped at each replacement. In the
+  test case (B4 in year 20) the dropped year was about 2.7 % of the old
+  item's uptake.
 - **Stockpile uptake for the replaced item from the event year.** Lost for
   v0.4: the user's B4 amount already holds its C1–C4, and a stockpile part
   would need its own placement rule.
@@ -105,14 +112,6 @@ with no `carbonation` give the same numbers as before, bit for bit.
   1.1 times the in-use uptake.
 - **Known under-count:** concrete replaced by a B4 event gets no crushed
   end-of-life uptake.
-- **Known under-count:** at each carbonating B4 event, neither item
-  carbonates in the event year. The old item stops at event year − 1, as the
-  building stops at RSP before its end of life in RSP + 1, and the new item
-  starts in event year + 1, as cast concrete does after year 0. In the
-  `test_b4_with_carbonation_restarts_the_clock` case (k = 6, 2.5 m²/m³, B4 in
-  year 20), one year of the old item's increment is about 2.7 % of its
-  19-year uptake. The alternative is to let the old item carbonate through
-  the event year.
 - The volume cap treats the surfaces' carbonated layers as additive. Edges
   and corners, where layers overlap, are not corrected (Andersson et al.
   note the same). Thin or compact elements can therefore reach the cap a

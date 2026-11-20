@@ -227,7 +227,7 @@ class Event(_Strict):
     carbonation: Carbonation | None = None
     """Carbonation of the concrete a B4 event puts in, per declared unit of its
     material: the clock restarts in the event year and the replaced item's
-    uptake stops (#74, K5; schema version 3). Not allowed on B5 events or on
+    uptake stops after the event year (#74, K5; schema version 3). Not allowed on B5 events or on
     `BuildingTotals`."""
 
 

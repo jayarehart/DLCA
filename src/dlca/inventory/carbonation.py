@@ -14,7 +14,8 @@ cycle: state of the art*, CBI report 2:2005. Decisions K1-K8 (Jay,
   capped at the volume per declared unit (Andersson et al. 2013, eq. 2).
 - In use: the yearly increments U(t) - U(t - 1) (Andersson et al. 2013,
   eq. 1), cast in year 0 (or a B4 event's year s), placed in years
-  s + 1 .. end. Module ``"carbonation-uptake"``.
+  s + 1 .. end, where end is RSP or the year of the replacing B4 event.
+  Module ``"carbonation-uptake"``.
 - End of life: in RSP + 1 the uncarbonated remainder is crushed into spheres
   of radius r. Their carbonated share is 1 - ((r - d) / r)^3, capped at 1,
   with k for ``"exposed"``, the same strength class and binder, no cover

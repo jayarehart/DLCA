@@ -160,7 +160,7 @@
             }
           ],
           "default": null,
-          "description": "Carbonation of the concrete a B4 event puts in, per declared unit of its\nmaterial: the clock restarts in the event year and the replaced item's\nuptake stops (#74, K5; schema version 3). Not allowed on B5 events or on\n`BuildingTotals`."
+          "description": "Carbonation of the concrete a B4 event puts in, per declared unit of its\nmaterial: the clock restarts in the event year and the replaced item's\nuptake stops after the event year (#74, K5; schema version 3). Not allowed on B5 events or on\n`BuildingTotals`."
         }
       },
       "required": [

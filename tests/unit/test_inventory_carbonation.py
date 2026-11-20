@@ -268,8 +268,9 @@ def test_stockpile_past_the_series_end_is_cut_and_warned():
 
 def test_b4_with_carbonation_restarts_the_clock():
     """Own item cast in year 0 (k 6), B4 in year 20 with a new item (cement
-    350). Old: increments in years 1..19, so U_old(19). Year 20: nothing. New:
-    years 21..50, so U_new(30). Crushed at the end: the new item at age 30."""
+    350). Old: increments in years 1..20, so U_old(20); year 20 holds only its
+    last increment, U_old(20) - U_old(19) (Jay, PR #77). New: years 21..50, so
+    U_new(30). Crushed at the end: the new item at age 30."""
     new = carbonation(cement=350.0)
     t = timeline(
         inventory(
@@ -280,8 +281,9 @@ def test_b4_with_carbonation_restarts_the_clock():
     )
     co2 = part(t, USE)
     per_m3 = 2.5 * 6 / 1000 * 0.75 * 0.65 * CO2_PER_CAO  # per kg cement per sqrt(yr)
-    assert -co2[1:20].sum() == pytest.approx(3 * per_m3 * 300 * math.sqrt(19), rel=1e-12)
-    assert co2[20] == 0
+    assert -co2[1:21].sum() == pytest.approx(3 * per_m3 * 300 * math.sqrt(20), rel=1e-12)
+    old_last = 3 * per_m3 * 300 * (math.sqrt(20) - math.sqrt(19))
+    assert -co2[20] == pytest.approx(old_last, rel=1e-12)
     assert -co2[21:51].sum() == pytest.approx(3 * per_m3 * 350 * math.sqrt(30), rel=1e-12)
     assert -co2[21] == pytest.approx(3 * per_m3 * 350, rel=1e-12)  # age 1 again
     remaining = 1 - 2.5 * 6 * math.sqrt(30) / 1000
