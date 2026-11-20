@@ -41,7 +41,7 @@ link is fine.
 |-----|-------|--------|
 | [0001](0001-rebuild-from-main-validate-against-cooper.md) | Rebuild from `main`; validate against the Cooper et al. spreadsheet | Accepted |
 | [0002](0002-ar5-and-ar6-parameter-sets.md) | Ship AR5 and AR6 parameter sets; AR6 is the default | Accepted |
-| [0003](0003-en-15978-inventory-modules.md) | Inventory input uses EN 15978 modules | Accepted |
+| [0003](0003-en-15978-inventory-modules.md) | Inventory input uses EN 15978 modules | Superseded in part by 0013 |
 | [0004](0004-mit-license.md) | MIT license | Accepted |
 | [0005](0005-backend-agnostic-api.md) | Backend-agnostic API | Accepted |
 | [0006](0006-adopt-cairn-practices-subset.md) | Adopt a subset of cairn practices | Accepted |
@@ -51,6 +51,6 @@ link is fine.
 | [0010](0010-carbon-cycle-feedback.md) | Carbon-cycle feedback for CH₄ and N₂O (AR6 on, exact) | Proposed |
 | [0011](0011-fossil-ch4-oxidation-residual.md) | Fossil CH₄ oxidation keeps the perturbation lifetime; the AR6 gap is documented | Accepted |
 | [0012](0012-minimum-horizon.md) | Minimum time horizon of 1e-6 yr | Accepted |
-| [0013](0013-inventory-schema.md) | Inventory input schemas: `BuildingTotals` and `BuildingInventory` | Proposed |
-| [0014](0014-module-timing.md) | Module timing: when each EN 15978 module's emissions happen | Proposed |
-| [0015](0015-building-roll-up-and-breakdown.md) | Building roll-up and breakdown: `assess_building()` and `BuildingResult` | Proposed |
+| [0013](0013-inventory-schema.md) | Inventory input schemas: `BuildingTotals` and `BuildingInventory` | Accepted |
+| [0014](0014-module-timing.md) | Module timing: when each EN 15978 module's emissions happen | Accepted |
+| [0015](0015-building-roll-up-and-breakdown.md) | Building roll-up and breakdown: `assess_building()` and `BuildingResult` | Accepted |

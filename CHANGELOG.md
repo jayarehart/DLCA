@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Decision records 0013 (inventory input schemas), 0014 (module timing) and
+  0015 (building roll-up and breakdown) are now Accepted. Record 0003 is now
+  "Superseded in part by 0013": module D, and service life and replacement
+  interval, no longer apply. No code or output changes.
+
 ## [0.3.0] - 2026-11-20
 
 Milestone M2, "Inventory and timing": a building inventory now goes from

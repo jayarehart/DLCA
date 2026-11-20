@@ -1,6 +1,6 @@
 # 0003. Inventory input uses EN 15978 modules
 
-- **Status:** Accepted
+- **Status:** Superseded in part by 0013 (module D; service life and replacement interval)
 - **Date:** 2026-11-12
 - **Decided by:** Jay Arehart
 

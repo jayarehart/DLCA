@@ -1,8 +1,8 @@
 # 0013. Inventory input schemas: `BuildingTotals` and `BuildingInventory`
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-19
-- **Decided by:**
+- **Decided by:** Jay Arehart, 2026-11-19 (decisions S1–S15 on #57)
 - **Supersedes:** 0003, in part: its module D and its service-life and
   replacement-interval sentences. The rest of 0003 stands.
 
