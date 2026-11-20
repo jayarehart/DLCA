@@ -62,9 +62,10 @@ BUILDING_RESULT_SCHEMA = "dlca.building_result"
 # the building may hold `biogenic` fields and a "biogenic-uptake" module row;
 # version 1 data still loads. Version 3 (#74): `carbonation` fields and the
 # "carbonation-uptake" and "carbonation-eol" module rows. Version 4 (#81): the
-# building may hold a `b4_c_trajectory` (record 0018).
-BUILDING_RESULT_SCHEMA_VERSION = 4
-_READABLE_BUILDING_RESULT_VERSIONS = (1, 2, 3, 4)
+# building may hold a `b4_c_trajectory` (record 0018). Version 5 (#82): the
+# building may hold `energy` lines (record 0019).
+BUILDING_RESULT_SCHEMA_VERSION = 5
+_READABLE_BUILDING_RESULT_VERSIONS = (1, 2, 3, 4, 5)
 
 MODULE_ORDER = (
     UPTAKE_MODULE,

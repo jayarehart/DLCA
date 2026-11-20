@@ -67,8 +67,9 @@ def inventory(material=None, **fields):
 
 
 def test_versions():
-    assert SCHEMA_VERSION == 4
-    assert BUILDING_RESULT_SCHEMA_VERSION == 4
+    # #82 (record 0019) bumped both to 5; the trajectory field arrived in 4.
+    assert SCHEMA_VERSION == 5
+    assert BUILDING_RESULT_SCHEMA_VERSION == 5
 
 
 def test_constant_multipliers_are_one():
@@ -167,7 +168,7 @@ def test_building_result_json_keeps_the_trajectory():
         inventory({"modules": {"C4": {"co2": 1.0}}}, b4_c_trajectory=LINEAR), horizon=20
     )
     d = json.loads(json.dumps(r.to_dict()))
-    assert d["schema_version"] == 4
+    assert d["schema_version"] == 5
     assert d["building"]["b4_c_trajectory"] == LINEAR
     back = BuildingResult.from_dict(d)
     assert back.building == r.building

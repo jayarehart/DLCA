@@ -6,6 +6,9 @@ building's `study_period`:
 
 - A1-A3, A4, A5: once, in year 0.
 - B1, B2, B3, B6, B7: the yearly amount in each of years 1..RSP.
+- Energy lines (#82, record 0019): amount x factor(y) x m(y) in each of
+  years 1..RSP, added into the same B6 part as `per_year["B6"]` (a building
+  gives one or the other). See `dlca.inventory.operational`.
 - C1-C4: once, in the end-of-life year RSP + 1.
 - B4, B5: in the year each event gives (1..RSP, checked by the schema).
 - Amounts in the same year add.
@@ -58,11 +61,13 @@ from dlca.inventory.carbonation import (
     in_use_increments,
     volume_per_unit,
 )
+from dlca.inventory.operational import b6_series
 from dlca.inventory.schema import (
     Biogenic,
     BuildingInventory,
     BuildingTotals,
     Carbonation,
+    EnergyUse,
     Event,
     GasAmounts,
 )
@@ -270,6 +275,7 @@ def timeline(
                     assembly.name, m.name, m.quantity, m.unit, m.carbonation, m.b4
                 )
         builder.add(None, None, 1.0, {}, building.per_year, [], [])
+    builder.add_energy(building.energy)
 
     parts = MappingProxyType({key: _freeze(series) for key, series in builder.parts.items()})
     return Timeline(study_period=rsp, horizon=horizon, years=years, parts=parts)
@@ -331,6 +337,15 @@ class _Builder:
                     raise ValueError(f"{module} event year {event.year} is outside 1..{self.rsp}")
                 place = self._place_scaled if module == "B4" else self._place
                 place((assembly, material, module), event.year, event.amounts, scale)
+
+    def add_energy(self, energy: Iterable[EnergyUse]) -> None:
+        energy = list(energy)
+        if not energy:
+            return
+        series = self._series((None, None, "B6"))
+        added = b6_series(energy, self.rsp, self.years, _multiplier)
+        for gas in EMISSION_KEYS:
+            series[gas] += added[gas]
 
     def add_biogenic(
         self,
@@ -410,6 +425,11 @@ class _Builder:
                 CarbonationWarning,
                 stacklevel=3,
             )
+
+
+def _multiplier(line: EnergyUse):
+    """The line's trajectory multiplier, or None for constant."""
+    return None if line.trajectory is None else line.trajectory.multipliers
 
 
 def _check_int(name: str, value: object) -> int:

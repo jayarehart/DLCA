@@ -18,9 +18,8 @@ speed. Jay Arehart is the maintainer and reviews and merges every PR.
 src/dlca/climate.py     climate engine: burden, forcing, temperature, GWI, GTP, static GWP
 src/dlca/parameters.py  AR5/AR6 climate parameter sets (ClimateParameters, get_parameters)
 src/dlca/result.py      assess() entry point and the Result object
-src/dlca/inventory/     building input schemas, timeline(), assess_building() roll-up
-src/dlca/models.py      old building and energy models, kept until M4 operational energy
-src/dlca/data/          packaged data (parameter sets, input JSON Schemas, eGRID factors)
+src/dlca/inventory/     building input schemas, timeline(), assess_building() roll-up, B6 energy
+src/dlca/data/          packaged data (parameter sets, input JSON Schemas, eGRID2023 factors)
 tests/unit/             fast tests of single functions
 tests/analytic/         results checked against closed-form solutions
 tests/reference/        results checked against the reference spreadsheet cases

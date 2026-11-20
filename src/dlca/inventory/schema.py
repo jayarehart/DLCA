@@ -24,6 +24,10 @@ Schema version 4 (#81, record 0018) adds an optional `b4_c_trajectory` to
 `BuildingTotals` and `BuildingInventory`: a multiplier m(y) on study years for
 the fossil gases of B4 events and of C1-C4. Absent means constant. Version 1-3
 files still load and may not use it.
+Schema version 5 (#82, record 0019) adds an optional building-level `energy`
+field: operational energy (B6) as energy use by fuel. A building gives
+`energy` or `per_year["B6"]`, never both. Version 1-4 files still load and may
+not use it.
 
 This module only checks the input. Turning it into yearly emissions is the
 timing engine's job (#58).
@@ -32,6 +36,7 @@ timing engine's job (#58).
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Annotated, Literal
 
@@ -39,10 +44,11 @@ import numpy as np
 from numpy.typing import NDArray
 from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 FIRST_BIOGENIC_VERSION = 2
 FIRST_CARBONATION_VERSION = 3
 FIRST_TRAJECTORY_VERSION = 4
+FIRST_ENERGY_VERSION = 5
 TOTALS_TAG = "dlca.building_totals"
 INVENTORY_TAG = "dlca.building_inventory"
 
@@ -85,6 +91,28 @@ StrengthClass = Literal["<15", "15-25", "25-35", ">35"]
 those of his appendix A2.3; Table 2 labels its second column 15-20 MPa (#74,
 K2)."""
 
+Fuel = Literal["electricity", "natural_gas", "fuel_oil_2"]
+"""Fuels of an energy line (#82, record 0019)."""
+
+EnergyUnit = Literal["kWh", "MJ", "GJ", "MMBtu", "kBtu", "therm"]
+"""Energy units (#80). Kept equal to `dlca.inventory.units.MJ_PER_UNIT` by a test."""
+
+EgridSubregion = Literal[
+    "AKGD", "AKMS", "AZNM", "CAMX", "ERCT", "FRCC", "HIMS", "HIOA", "MROE",
+    "MROW", "NEWE", "NWPP", "NYCW", "NYLI", "NYUP", "PRMS", "RFCE", "RFCM",
+    "RFCW", "RMPA", "SPNO", "SPSO", "SRMV", "SRMW", "SRSO", "SRTV", "SRVC",
+]  # fmt: skip
+"""eGRID2023 subregions. Kept equal to the packaged file by a test."""
+
+EgridState = Literal[
+    "AK", "AL", "AR", "AZ", "CA", "CO", "CT", "DC", "DE", "FL", "GA", "HI",
+    "IA", "ID", "IL", "IN", "KS", "KY", "LA", "MA", "MD", "ME", "MI", "MN",
+    "MO", "MS", "MT", "NC", "ND", "NE", "NH", "NJ", "NM", "NV", "NY", "OH",
+    "OK", "OR", "PA", "PR", "RI", "SC", "SD", "TN", "TX", "UT", "VA", "VT",
+    "WA", "WI", "WV", "WY",
+]  # fmt: skip
+"""eGRID2023 states (with DC and PR). Kept equal to the packaged file by a test."""
+
 
 _Amount = Annotated[float, Field(allow_inf_nan=False)]
 _Name = Annotated[str, Field(pattern=r"^\S(.*\S)?$")]
@@ -96,7 +124,11 @@ _Positive = Annotated[float, Field(gt=0, allow_inf_nan=False)]
 _Share = Annotated[float, Field(gt=0, le=1, allow_inf_nan=False)]
 
 
-_OMIT_IF_NONE = ("biogenic", "rotation", "carbonation", "volume", "b4_c_trajectory")
+_OMIT_IF_NONE = (
+    "biogenic", "rotation", "carbonation", "volume", "b4_c_trajectory", "egrid_subregion",
+    "egrid_state", "factor", "trajectory",
+)  # fmt: skip
+_OMIT_IF_EMPTY = ("energy",)
 
 
 class _Strict(BaseModel):
@@ -112,13 +144,15 @@ class _Strict(BaseModel):
 
     @model_serializer(mode="wrap")
     def _drop_unset_optional(self, handler):
-        # An unset `biogenic`, `rotation`, `carbonation`, `volume` or
-        # `b4_c_trajectory` is left out, so a file without them dumps exactly as
-        # under schema version 1.
+        # Unset optional fields (`_OMIT_IF_NONE`) and an empty `energy` list are
+        # left out, so a file without them dumps exactly as under schema version 1.
         data = handler(self)
         if isinstance(data, dict):
             for key in _OMIT_IF_NONE:
                 if key in data and data[key] is None:
+                    del data[key]
+            for key in _OMIT_IF_EMPTY:
+                if key in data and data[key] == []:
                     del data[key]
         return data
 
@@ -320,6 +354,75 @@ def _check_trajectory(
         )
 
 
+class EnergyUse(_Strict):
+    """One fuel's energy use per year, for B6 (#82, record 0019).
+
+    B6 in year y (1..RSP) is `amount` x factor(y) x m(y), where m is the
+    `trajectory` multiplier (constant when absent), applied to the fossil
+    gases only.
+
+    Factor source:
+
+    - ``"electricity"``: exactly one of `egrid_subregion`, `egrid_state`
+      (packaged eGRID2023 Rev 2) or `factor`.
+    - ``"natural_gas"``, ``"fuel_oil_2"``: `factor`, or none for the packaged
+      EPA Hub 2025 factor.
+
+    Packaged factors cover combustion and generation only: no transmission
+    and distribution losses and no upstream emissions.
+    """
+
+    fuel: Fuel
+    amount: _NonNegative
+    """Energy used per year, in `unit`."""
+    unit: EnergyUnit
+    egrid_subregion: EgridSubregion | None = None
+    egrid_state: EgridState | None = None
+    factor: GasAmounts | Annotated[list[GasAmounts], Field(min_length=1)] | None = None
+    """kg of each gas per one `unit` of energy. One `GasAmounts` (constant) or
+    a list indexed by study year (entry i is year i; B6 uses 1..RSP; a short
+    list holds its last value)."""
+    trajectory: Trajectory | None = None
+    """Multiplier m(y) on the fossil gases of this line (record 0018 kinds).
+    Absent means constant. Not with a series `factor`."""
+
+    @model_validator(mode="after")
+    def _one_factor_source(self) -> EnergyUse:
+        if (
+            isinstance(self.factor, list)
+            and self.trajectory is not None
+            and self.trajectory.kind != "constant"
+        ):
+            raise ValueError(
+                "a series factor may not have a non-constant trajectory (it would be scaled twice)"
+            )
+        sources = [
+            name
+            for name in ("egrid_subregion", "egrid_state", "factor")
+            if getattr(self, name) is not None
+        ]
+        if self.fuel == "electricity":
+            if len(sources) != 1:
+                raise ValueError(
+                    "electricity needs exactly one of egrid_subregion, egrid_state or factor, "
+                    f"got {sources or 'none'}"
+                )
+        elif self.egrid_subregion is not None or self.egrid_state is not None:
+            raise ValueError(f"{self.fuel}: eGRID codes are for electricity only")
+        return self
+
+
+def _check_energy(version: int, energy: list[EnergyUse], per_year: Mapping, where: str) -> None:
+    if not energy:
+        return
+    if version < FIRST_ENERGY_VERSION:
+        raise ValueError(
+            f"{where}: energy needs schema_version {FIRST_ENERGY_VERSION}, got {version}"
+        )
+    if "B6" in per_year:
+        raise ValueError(f'{where}: give B6 as energy or as per_year["B6"], not both')
+
+
 def _check_event_years(events: list[Event], study_period: int, where: str) -> None:
     for event in events:
         if event.year > study_period:
@@ -376,9 +479,12 @@ class BuildingTotals(_Strict):
     b4_c_trajectory: Trajectory | None = None
     """Multiplier on the fossil gases of B4 events and C1-C4 (schema version 4,
     record 0018). Absent means constant."""
+    energy: list[EnergyUse] = Field(default_factory=list)
+    """Operational energy (B6) by fuel (schema version 5). Not with `per_year["B6"]`."""
 
     @model_validator(mode="after")
     def _events_in_study_period(self) -> BuildingTotals:
+        _check_energy(self.schema_version, self.energy, self.per_year, "building")
         _check_event_years(self.b4, self.study_period, "b4")
         _check_event_years(self.b5, self.study_period, "b5")
         _check_biogenic_version(
@@ -469,9 +575,12 @@ class BuildingInventory(_Strict):
     b4_c_trajectory: Trajectory | None = None
     """Multiplier on the fossil gases of every material's B4 events and C1-C4
     (schema version 4, record 0018). Absent means constant."""
+    energy: list[EnergyUse] = Field(default_factory=list)
+    """Operational energy (B6) by fuel (schema version 5). Not with `per_year["B6"]`."""
 
     @model_validator(mode="after")
     def _check_tree(self) -> BuildingInventory:
+        _check_energy(self.schema_version, self.energy, self.per_year, "building")
         _check_unique([a.name for a in self.assemblies], "building")
         for assembly in self.assemblies:
             for material in assembly.materials:

@@ -405,7 +405,7 @@ def test_result_json_round_trip_with_carbonation_rows():
     fields = {"modules": {"C4": {"co2": 1.0}}, "per_year": {"B1": {"co2": 0.1}}}
     r = assess_building(inventory(carbonation=carbonation(), **fields), horizon=100)
     d = r.to_dict()
-    assert d["schema_version"] == 4
+    assert d["schema_version"] == 5
     assert list(r.by_module) == ["B1", USE, "C4", EOL]
     back = BuildingResult.from_dict(d)
     assert list(back.by_module) == list(r.by_module)
