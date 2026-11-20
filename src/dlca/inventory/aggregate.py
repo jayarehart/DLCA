@@ -19,8 +19,14 @@ dynamic, sliding and static, over the whole timeline.
 Sliding metrics give an emission in year k the horizon ``max(H - k, 0)``, so
 an emission in year H or later counts zero in `gwi_sliding` and
 `gtp_sliding`. The dynamic and static series still count it. Rows with any
-such emission are listed in `BuildingResult.sliding_incomplete`, and
+such input emission are listed in `BuildingResult.sliding_incomplete`, and
 `assess_building()` warns once (R6).
+
+The flag looks at input emissions only. CO2 that forms in the atmosphere in
+year H or later (from fossil CH4 oxidation, or released by the carbon-cycle
+feedback of CH4 and N2O) also counts zero in the sliding series, even when
+the CH4 or N2O was emitted before year H. That is part of the metric's
+definition; such a row is not flagged.
 """
 
 from __future__ import annotations
@@ -36,7 +42,7 @@ from numpy.typing import NDArray
 
 from dlca.climate import EMISSION_KEYS
 from dlca.inventory.schema import INVENTORY_TAG, TOTALS_TAG, BuildingInventory, BuildingTotals
-from dlca.inventory.timing import Timeline, timeline
+from dlca.inventory.timing import Timeline, _check_int, timeline
 from dlca.parameters import ClimateParameters, get_parameters
 from dlca.result import Result, assess
 
@@ -93,6 +99,8 @@ class Metrics:
             array = _read_only(getattr(self, f.name))
             if array.ndim != 1 or (shape is not None and array.shape != shape):
                 raise ValueError("every Metrics series must be 1-D and of the same length")
+            if not np.all(np.isfinite(array)):
+                raise ValueError(f"Metrics.{f.name} has non-finite values")
             shape = array.shape
             object.__setattr__(self, f.name, array)
 
@@ -165,6 +173,8 @@ class BuildingResult:
     def __post_init__(self) -> None:
         if not isinstance(self.building, (BuildingTotals, BuildingInventory)):
             raise TypeError("building must be a BuildingTotals or BuildingInventory")
+        for name in ("horizon", "years", "sliding_cutoff_year"):
+            object.__setattr__(self, name, _check_int(name, getattr(self, name)))
         if self.total.horizon != self.horizon:
             raise ValueError(
                 f"horizon {self.horizon} differs from the total result's {self.total.horizon}"
@@ -179,11 +189,26 @@ class BuildingResult:
                 if row.years != self.years:
                     raise ValueError(f"{name}[{key!r}] is {row.years} years long, not {self.years}")
             object.__setattr__(self, name, MappingProxyType(dict(rows)))
+        if tuple(self.by_gas) != EMISSION_KEYS:
+            raise ValueError(f"by_gas must have exactly the keys {list(EMISSION_KEYS)}, in order")
+        if isinstance(self.building, BuildingTotals) and (self.by_material or self.by_assembly):
+            raise ValueError("a BuildingTotals has no material or assembly rows")
         unknown = set(self.sliding_incomplete) - set(BREAKDOWNS)
         if unknown:
             raise ValueError(f"unknown breakdowns in sliding_incomplete: {sorted(unknown)}")
         incomplete = {name: tuple(keys) for name, keys in self.sliding_incomplete.items()}
+        for name, keys in incomplete.items():
+            missing = [k for k in keys if k not in self._rows(name)]
+            if missing:
+                raise ValueError(
+                    f"sliding_incomplete[{name!r}] names rows that do not exist: {missing}"
+                )
         object.__setattr__(self, "sliding_incomplete", MappingProxyType(incomplete))
+        # The total must be the building's own emissions, placed by timeline().
+        t = timeline(self.building, horizon=self.horizon, years=self.years)
+        for gas, series in t.emissions().items():
+            if not np.array_equal(series, self.total.emissions[gas]):
+                raise ValueError(f"the total result's {gas} emissions are not the building's")
 
     @property
     def total_metrics(self) -> Metrics:
@@ -228,8 +253,18 @@ class BuildingResult:
 
         Raises:
             ValueError: for another schema or version, an unknown building
-                schema, or parts that do not fit together (horizon or length).
+                schema, a missing field, a repeated row, or parts that do not
+                fit together (horizon, length, the building's emissions, or a
+                `sliding_incomplete` key that is not a row).
+            TypeError: if `horizon`, `years` or `sliding_cutoff_year` is not an int.
         """
+        try:
+            return cls._from_dict(data)
+        except (KeyError, AttributeError) as error:
+            raise ValueError(f"malformed building result: {error!r}") from error
+
+    @classmethod
+    def _from_dict(cls, data: Mapping[str, Any]) -> BuildingResult:
         if data.get("schema") != BUILDING_RESULT_SCHEMA:
             raise ValueError(f"not a DLCA building result: schema {data.get('schema')!r}")
         if data.get("schema_version") != BUILDING_RESULT_SCHEMA_VERSION:
@@ -248,6 +283,8 @@ class BuildingResult:
             for entry in data["breakdowns"][name]:
                 entry = dict(entry)
                 key = _key_from_json(entry.pop("key"))
+                if key in rows[name]:
+                    raise ValueError(f"repeated {name} row {key!r}")
                 rows[name][key] = Metrics.from_dict(entry)
         return cls(
             building=model.model_validate(raw),
@@ -380,7 +417,8 @@ def assess_building(
         warnings.warn(
             f"emissions in year {t.horizon} or later get zero weight in the sliding GWI "
             f"and GTP (horizon H = {t.horizon}); dynamic and static still count them. "
-            f"Rows affected: {listed}",
+            f"Rows affected: {listed}. (CO2 formed in the air in year {t.horizon} or later "
+            f"from earlier CH4 or N2O also counts zero there and is not flagged.)",
             UserWarning,
             stacklevel=2,
         )

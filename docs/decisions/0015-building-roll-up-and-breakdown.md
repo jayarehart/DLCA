@@ -46,7 +46,11 @@ years=None) -> BuildingResult` (R1). It calls `timeline()` and then `assess()`.
   `sliding_cutoff_year` is H. `sliding_incomplete` maps each breakdown to the
   keys of its rows that have a non-zero emission in year H or later. If any row
   is listed, `assess_building()` gives one `UserWarning` that names the rows.
-  Nothing is refused.
+  Nothing is refused. The flag looks at input emissions only: CO₂ that forms
+  in the air in year H or later, from fossil CH₄ oxidation or the
+  carbon-cycle feedback of CH₄ and N₂O emitted earlier, also counts zero in
+  the sliding series but is not flagged. The docstring and the warning say
+  so.
 - **`Timeline` JSON (R7).** `Timeline.to_dict()`/`from_dict()` under
   `schema: "dlca.timeline"`, `schema_version: 1`. Parts are a list of
   `{assembly, material, module, co2, ch4, ch4_fossil, n2o}`. The timeline is
@@ -76,6 +80,10 @@ years=None) -> BuildingResult` (R1). It calls `timeline()` and then `assess()`.
 - **A `"building"` string key for the B6/B7 row** (as first proposed). Changed
   to `None` during the work, because an assembly may be called "building".
   (Not a separate decision by Jay; flagged in the PR.)
+- **`sliding_incomplete` as a tuple of labels such as `"module:C3"`** (the
+  proposal's sketch). Changed during the work to a mapping from breakdown
+  name to row keys, because a label string cannot be split back into a key
+  when names contain `/` or `:`. (Flagged in the PR.)
 
 ## Consequences
 

@@ -5,7 +5,8 @@ For any valid building, of either schema, and any whole-number horizon:
 - each breakdown's rows add up to the total, for all six metric series
   (GWI and GTP; dynamic, sliding and static);
 - a row is listed in `sliding_incomplete` exactly when its emissions have a
-  non-zero value in some year >= H.
+  non-zero value in some year >= H, and cutting any row's emissions at year
+  H leaves its sliding series unchanged (what the flag claims).
 
 Faults these catch that no other test does: a part dropped from, or counted
 twice in, some breakdown for a mix of modules, events, materials and gases
@@ -28,6 +29,7 @@ import numpy as np
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
+from dlca import assess
 from dlca.climate import EMISSION_KEYS
 from dlca.inventory import BuildingInventory, BuildingTotals, assess_building, timeline
 
@@ -172,3 +174,16 @@ def test_sliding_flag_marks_rows_with_emissions_at_or_after_horizon(building, ho
             want[name] = set(late)
     assert {k: set(v) for k, v in r.sliding_incomplete.items()} == want
     assert r.sliding_cutoff_year == horizon
+    # What the flag means: cutting a row's emissions at year H leaves its
+    # sliding series unchanged, flagged or not.
+    for name, rows in groups.items():
+        row_metrics = getattr(r, f"by_{name}")
+        for key, series in rows.items():
+            cut = {g: np.where(np.arange(t.years) < horizon, s, 0.0) for g, s in series.items()}
+            again = assess(cut, parameters="AR6", horizon=horizon)
+            for got, want_ in (
+                (row_metrics[key].gwi_sliding, again.gwi.sliding),
+                (row_metrics[key].gtp_sliding, again.gtp.sliding),
+            ):
+                scale = np.abs(got).max() + np.abs(want_).max()
+                assert np.all(np.abs(got - want_) <= RTOL * scale), (name, key)

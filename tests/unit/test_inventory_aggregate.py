@@ -408,3 +408,58 @@ def test_timeline_from_dict_refuses_bad_input(change):
     t = timeline(totals(3, modules={"A5": {"co2": 1.0}}), horizon=5, years=20)
     with pytest.raises(ValueError):
         Timeline.from_dict({**t.to_dict(), **change})
+
+
+def _broken(change):
+    d = json.loads(json.dumps(assess_building(two_materials(), horizon=100).to_dict()))
+    change(d)
+    return d
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        pytest.param(
+            lambda d: d["breakdowns"]["module"].append(d["breakdowns"]["module"][0]),
+            id="repeated-row",
+        ),
+        pytest.param(lambda d: d["breakdowns"]["gas"].pop(), id="missing-gas-row"),
+        pytest.param(lambda d: d["sliding_incomplete"].update(module=["B6"]), id="flag-not-a-row"),
+        pytest.param(lambda d: d.pop("sliding_incomplete"), id="missing-field"),
+        pytest.param(lambda d: d["building"].update(study_period=59), id="building-changed"),
+        pytest.param(
+            lambda d: d["breakdowns"]["module"][0]["gwi_dynamic"].__setitem__(3, "NaN"), id="nan"
+        ),
+        pytest.param(lambda d: d["breakdowns"].pop("assembly"), id="missing-breakdown"),
+    ],
+)
+def test_building_result_from_dict_refuses_inconsistent_input(change):
+    with pytest.raises(ValueError):
+        BuildingResult.from_dict(_broken(change))
+
+
+def test_building_result_from_dict_refuses_a_float_horizon():
+    with pytest.raises(TypeError):
+        BuildingResult.from_dict(_broken(lambda d: d.update(horizon=100.0)))
+
+
+@pytest.mark.parametrize(
+    "change",
+    [{"horizon": 0}, {"years": 3 + 5 + 1}],
+)
+def test_timeline_from_dict_refuses_short_or_zero_horizon(change):
+    t = timeline(totals(3, modules={"A5": {"co2": 1.0}}), horizon=5)
+    d = t.to_dict()
+    d.update(change)
+    for part in d["parts"]:
+        for gas in EMISSION_KEYS:
+            part[gas] = part[gas][: d["years"]]
+    with pytest.raises(ValueError):
+        Timeline.from_dict(d)
+
+
+def test_timeline_from_dict_refuses_unknown_module():
+    d = timeline(totals(3, modules={"A5": {"co2": 1.0}}), horizon=5).to_dict()
+    d["parts"][0]["module"] = "D"
+    with pytest.raises(ValueError, match="module"):
+        Timeline.from_dict(d)

@@ -40,6 +40,7 @@ TIMELINE_SCHEMA_VERSION = 1
 
 _YEAR_ZERO = ("A1-A3", "A4", "A5")
 _END_OF_LIFE = ("C1", "C2", "C3", "C4")
+_MODULES = (*_YEAR_ZERO, "B1", "B2", "B3", "B4", "B5", "B6", "B7", *_END_OF_LIFE)
 
 
 @dataclass(frozen=True, eq=False)
@@ -119,9 +120,11 @@ class Timeline:
         """Inverse of `to_dict()`.
 
         Raises:
-            ValueError: for another schema or version, a part with missing or
-                extra fields, a repeated part, or a series whose length is not
-                `years`.
+            ValueError: for another schema or version, a horizon < 1, `years`
+                below ``study_period + horizon + 2``, a part with missing or
+                extra fields or an unknown module, a repeated part, or a
+                series whose length is not `years`.
+            TypeError: if `study_period`, `horizon` or `years` is not an int.
         """
         if data.get("schema") != TIMELINE_SCHEMA:
             raise ValueError(f"not a DLCA timeline: schema {data.get('schema')!r}")
@@ -130,12 +133,18 @@ class Timeline:
         study_period = _check_int("study_period", data["study_period"])
         horizon = _check_int("horizon", data["horizon"])
         years = _check_int("years", data["years"])
+        if study_period < 1 or horizon < 1:
+            raise ValueError("study_period and horizon must be >= 1")
+        if years < study_period + horizon + 2:
+            raise ValueError(f"years must be >= study_period + horizon + 2, got {years}")
         fields = {"assembly", "material", "module", *EMISSION_KEYS}
         parts: dict[PartKey, Series] = {}
         for entry in data["parts"]:
             if set(entry) != fields:
                 raise ValueError(f"a timeline part must have exactly the fields {sorted(fields)}")
             key = (entry["assembly"], entry["material"], entry["module"])
+            if entry["module"] not in _MODULES:
+                raise ValueError(f"unknown module {entry['module']!r}")
             if key in parts:
                 raise ValueError(f"repeated timeline part {key!r}")
             series = {gas: np.asarray(entry[gas], dtype=float) for gas in EMISSION_KEYS}
