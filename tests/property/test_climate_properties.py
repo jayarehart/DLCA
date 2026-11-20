@@ -83,7 +83,7 @@ def signed(lo: float, hi: float) -> st.SearchStrategy[float]:
 
 value = signed(1e-6, 1e6)  # kg per year
 scale = signed(1e-3, 10.0)
-# The smallest allowed horizon (#47) in about one example in ten, so the
+# The smallest allowed horizon (#47) in at least one example in ten, so the
 # invariants are checked at the boundary as well as at ordinary horizons.
 horizon = st.integers(0, 9).flatmap(
     lambda i: st.just(MIN_HORIZON) if i == 0 else st.floats(1.0, 150.0)

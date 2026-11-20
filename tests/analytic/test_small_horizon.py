@@ -12,11 +12,15 @@ a 1 kg pulse of any key, as H -> 0:
   every gas.
 
 So GWP_H and GTP_H of every key tend to ``A_x / A_CO2``, with ``A`` the
-specific forcing (``A_ch4_fossil = A_ch4``). The second-order terms are of
+specific forcing (``A_ch4_fossil = A_ch4``). ``A`` is taken from
+``specific_forcing()``: this checks the closed forms at small H, not the
+specific forcings, which the IPCC-table tests check. The second-order terms are of
 relative size H / (2 tau) or H / (2 d); with the shortest time scale above
 1 yr in both sets that is below 1e-6 at H = 1e-6 yr, so the check allows
 ``RTOL = 1e-5``. A wrong closed form, a lost term at small H or a wrong CO2
-normalisation moves the ratio by far more.
+normalisation moves the ratio by far more. It detects a minimum of about
+1e-12 yr or lower (the factors are then about 1e-2 off), not 1e-9 (2e-6 off);
+the unit tests in test_climate_horizon.py pin the minimum itself.
 
 Faults these catch that no other test does: the closed forms inaccurate at the
 minimum horizon (as they are below about 1e-9 yr, #47); a minimum set so low
@@ -45,6 +49,8 @@ def shortest_time_scale(params) -> float:
 @pytest.mark.parametrize("name", ["AR5", "AR6"])
 def test_time_scales_allow_the_tolerance(name):
     """The bound on the second-order terms in the docstring holds."""
+    p = get_parameters(name)
+    assert sum(p.co2_a) == pytest.approx(1.0, abs=1e-12)  # AGWP_CO2 -> H
     assert MIN_HORIZON / (2 * shortest_time_scale(get_parameters(name))) < RTOL / 10
 
 
