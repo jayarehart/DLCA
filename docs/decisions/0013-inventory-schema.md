@@ -102,8 +102,10 @@ record per module stand.
 
 - #58 reduces either schema to one internal form, so #59 and `assess()` see
   one type. #58 places events in the year given, so it needs no replacement
-  rule, but it must fix the end-of-life year. After that, the B4 check in the
-  end-of-life year can be added (a strict xfail stands in for it now).
+  rule, but it must fix the end-of-life year. Record 0014 puts end of life in
+  year RSP + 1, so the 1..`study_period` range already keeps every B4 and B5
+  event out of the end-of-life year; no separate check is needed.
+  `test_event_in_end_of_life_year_refused` confirms it (#58).
 - Replacement counts are the user's job. A file with too few B4 events is not
   caught.
 - The JSON Schemas are committed as `src/dlca/data/building_totals.schema.json`
