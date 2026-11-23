@@ -180,8 +180,9 @@ table and the release pipeline depend only on M0 and can start at any time.
    (`DOE_energyuse_fake.csv`) and the building models that read it.
 3. **Energy unit table** (#80; PR #83). A small internal table (kWh, MJ, GJ,
    MMBtu, kBtu, therm), with tests. Internally the package uses kg and years.
-4. **NREL Cambium grid projections** (#85; `science`, **needs Jay**). Decide
-   whether and how to package Cambium projections as B6 factor series.
+4. **NREL Cambium grid projections** (#85; `science`, decided; record 0021).
+   A packaged Cambium 2024 extract (`aer_gen_*_c`, 8 scenarios, 18 GEA
+   regions), joined to NLR's GEA history, as a B6 electricity factor series.
 5. **Trajectories for biogenic items** (#86; `science`, **needs Jay**). Lift the #81 refusal
    so buildings with biogenic items can use a B4/C trajectory without
    scaling the biogenic release.
