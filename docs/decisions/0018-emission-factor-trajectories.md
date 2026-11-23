@@ -1,8 +1,8 @@
 # 0018. Emission-factor trajectories for B4 and end-of-life emissions
 
-- **Status:** Proposed
+- **Status:** Superseded in part by 0020 (the refusal of trajectories for biogenic items)
 - **Date:** 2026-11-20
-- **Decided by:**
+- **Decided by:** Jay Arehart, accepted 2026-11-23 (E1–E5 on #81, 2026-11-20; E2 amended to cover B5 events, PR #89)
 - **Extends:** 0013 (inventory schema), 0014 (module timing) and 0015
   (`BuildingResult`).
 

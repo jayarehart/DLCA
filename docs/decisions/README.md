@@ -56,7 +56,7 @@ link is fine.
 | [0015](0015-building-roll-up-and-breakdown.md) | Building roll-up and breakdown: `assess_building()` and `BuildingResult` | Accepted |
 | [0016](0016-biogenic-carbon.md) | Biogenic carbon: declared uptake, regrowth options, storage report | Accepted |
 | [0017](0017-concrete-carbonation.md) | Concrete carbonation: Lagerblad (2005), √t uptake in use, crushed stockpile at end of life | Accepted |
-| [0018](0018-emission-factor-trajectories.md) | Emission-factor trajectories for B4 and end-of-life emissions | Proposed |
-| [0019](0019-operational-energy-b6.md) | Operational energy (B6) from energy use by fuel | Proposed |
-| [0020](0020-trajectories-for-biogenic-items.md) | Trajectories for biogenic items: their CO₂ is not scaled | Proposed |
-| [0021](0021-cambium-b6-factors.md) | Packaged Cambium 2024 grid factors for B6 electricity | Proposed |
+| [0018](0018-emission-factor-trajectories.md) | Emission-factor trajectories for B4 and end-of-life emissions | Superseded in part by 0020 |
+| [0019](0019-operational-energy-b6.md) | Operational energy (B6) from energy use by fuel | Accepted |
+| [0020](0020-trajectories-for-biogenic-items.md) | Trajectories for biogenic items: their CO₂ is not scaled | Accepted |
+| [0021](0021-cambium-b6-factors.md) | Packaged Cambium 2024 grid factors for B6 electricity | Accepted |

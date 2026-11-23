@@ -1,8 +1,8 @@
 # 0020. Trajectories for biogenic items: their CO₂ is not scaled
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-20
-- **Decided by:**
+- **Decided by:** Jay Arehart, accepted 2026-11-23 (G1–G4 on #86, 2026-11-20)
 - **Supersedes:** 0018, in part: the refusal of a non-constant
   `b4_c_trajectory` on a building with any `biogenic` field (E2, as amended
   to cover B5 events).
