@@ -67,9 +67,10 @@ calendar-year series is:
    2018–2023, all three gases in kg/MWh;
 2. a straight line from the last historical year (2023) to Cambium 2030.
    **Cambium's 2025 point is not used**, following the conservative option in
-   the documentation's §4.2. That section reports step changes from eGRID 2023
-   to Cambium 2025 in several regions; CAISO CO₂ falls from 182.5 kg/MWh in
-   2023 to 132.2 in 2025;
+   the documentation's §4.2. That section names step changes from eGRID 2023
+   to Cambium 2025 in NorthernGrid_West, ERCOT, ISONE, NorthernGrid_East,
+   NorthernGrid_South, SPP_North and WestConnect_North. For example (DLCA's,
+   from the files), CAISO CO₂ goes from 182.5 kg/MWh in 2023 to 132.2 in 2025;
 3. Cambium 2030–2050, with a straight line between the 5-year points;
 4. the first value held before 2014 and the 2050 value held after 2050.
 
@@ -124,10 +125,17 @@ B6 in study year *y* (1..RSP) is amount × factor(`year_zero` + *y*).
 - A user can model a declining grid by naming a region, a scenario and the
   construction year.
 - **A known method gap at the join (C5, accepted).** NLR's historical
-  intensities are eGRID-based, and their CH₄ and N₂O are 4–5× Cambium's. CAISO
-  CH₄ is 9.37 g/MWh in 2023 and 2.1 g/MWh in 2030; N₂O is 1.13 and 0.21 g/MWh.
-  The joined series shows this change of method as a smooth decline to 2030.
-  For CAISO it's about 0.4 kg CO₂e/MWh, around 0.25% of CO₂e. The historical
+  intensities are eGRID-based, and their CH₄ and N₂O are higher than
+  Cambium's. CAISO CH₄ is 9.37 g/MWh in 2023 and 2.1 g/MWh in 2030; N₂O is 1.13
+  and 0.21 g/MWh. The joined series shows this change of method as a smooth
+  decline to 2030.
+  - Across the 18 regions (2023 historical vs Mid-case 2030), the CH₄ ratio
+    runs from about 1.2× (SERTP) to 28× (NorthernGrid_West).
+  - Valued at AR6 GWP100, the CH₄ and N₂O difference is 0.05–3.5 kg
+    CO₂e/MWh, or 0.04–0.72% of the 2023 CO₂ intensity. It is largest in ISONE
+    and WestConnect_North. For CAISO it is 0.47 kg, 0.26%.
+  - Part of the difference is a real decline in fossil generation, so these
+    are upper bounds on the method effect. The historical
   CO₂ also leaves out behind-the-meter PV, storage and Canadian imports, which
   Cambium includes (documentation §4.2: under 10 kg/MWh in most regions).
 - Cambium is modelled: NLR says it should not be the sole basis for
