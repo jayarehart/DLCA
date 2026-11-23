@@ -1,8 +1,8 @@
 # 0021. Packaged Cambium 2024 grid factors for B6 electricity
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-23
-- **Decided by:**
+- **Decided by:** Jay Arehart, accepted 2026-11-23 (C0–C6 on #85, 2026-11-20; licence metadata, `year_zero` bounds and CH₄/N₂O tolerance on PR #91, 2026-11-23)
 
 ## Context
 

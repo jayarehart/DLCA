@@ -1,8 +1,8 @@
 # 0019. Operational energy (B6) from energy use by fuel
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-20
-- **Decided by:**
+- **Decided by:** Jay Arehart, accepted 2026-11-23 (O1–O4 on #82, 2026-11-20; rounded eGRID CH₄/N₂O rates accepted after review, PR #89)
 
 ## Context
 
