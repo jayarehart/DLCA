@@ -7,6 +7,73 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-23
+
+Milestone M4, "Operational and scenarios": emission factors can now change
+over time for replacements and end of life, and operational energy (B6) can be
+entered as energy use by fuel, with packaged eGRID2023 and Cambium 2024 grid
+factors. Inputs that use none of the new fields give the same numbers as in
+0.4.0, bit for bit.
+
+### Added
+
+- Emission-factor trajectories (#81, decision record 0018). An optional
+  `b4_c_trajectory` on `BuildingTotals` and `BuildingInventory`: a multiplier
+  m(y) on study years that scales `co2`, `ch4_fossil` and `n2o` of each B4
+  event, by m(event year), and of C1–C4, by m(RSP + 1). Non-fossil `ch4` and
+  all other modules stay as entered. Three kinds, `ConstantTrajectory`,
+  `LinearTrajectory` and `SeriesTrajectory`, combined in the `Trajectory`
+  union.
+- Trajectories on biogenic items (#86, decision record 0020). A material with
+  a `biogenic` field (its own, or on any B4 or B5 event), or a biogenic
+  `BuildingTotals`, keeps the `co2` of its B4 and C1–C4 as entered; its
+  `ch4_fossil` and `n2o` are still scaled. This replaces 0018's refusal of
+  such buildings.
+- Operational energy B6 by fuel (#82, decision record 0019). An optional
+  `energy` list (`dlca.inventory.EnergyUse`) on `BuildingTotals` and
+  `BuildingInventory`: `fuel` (`electricity`, `natural_gas`, `fuel_oil_2`),
+  `amount` per year, `unit`, one factor source and an optional per-line
+  `trajectory`. Electricity takes `egrid_subregion`, `egrid_state`,
+  `cambium_gea` or a user `factor`; the two fuels take a user `factor` or the
+  packaged one. A user `factor` is constant or a series by study year. A
+  building may not give both `energy` and `per_year["B6"]`.
+- Packaged factors, combustion and generation only, with CH₄ under
+  `ch4_fossil`: eGRID2023 Rev 2 subregion and state rates (lb/MWh, as EPA
+  publishes them), and natural gas and fuel oil No. 2 from EPA Hub 2025
+  Table 1.
+- Cambium 2024 grid factors for B6 electricity (#85, decision record 0021).
+  Name a GEA region (`cambium_gea`), a scenario (`cambium_scenario`, default
+  `MidCase`) and the calendar year of study year 0 (`year_zero`). Each study
+  year gets NLR's eGRID-based history to 2023, a straight line to Cambium
+  2030, Cambium to 2050, and the 2050 value after. The extract is rebuilt by
+  `scripts/build_cambium_extract.py`. The two Cambium CSVs come from NLR with
+  no named licence and are not under DLCA's MIT licence;
+  `src/dlca/data/CAMBIUM_NOTICE.md` gives their terms and credit. The package
+  metadata stays `MIT`.
+- `dlca.inventory.to_study_years()`, which turns calendar-year values into
+  study years (straight line between given years, end values held).
+- An internal energy unit table, `dlca.inventory.units` (#80): kWh, MJ, GJ,
+  MMBtu, kBtu and therm, from exact definitions. Not exported.
+
+### Changed
+
+- Input `schema_version` 4 adds `b4_c_trajectory`, 5 adds `energy` and 6 adds
+  the Cambium fields. Files of earlier versions still load but may not use the
+  newer fields. The committed JSON Schema files are regenerated.
+- `BuildingResult` JSON goes from schema version 3 to 6 (it embeds the
+  building) and still reads earlier versions. `Result` stays at schema version
+  4 and `Timeline` at 3.
+- Decision records 0019, 0020 and 0021 are Accepted. Record 0018 is
+  "Superseded in part by 0020": only its refusal of trajectories on biogenic
+  items is replaced.
+
+### Removed
+
+- `dlca.models` (the old building and energy models), `dlca.data.csv_loader`,
+  the fake DOE energy-use data (`DOE_energyuse_fake.csv`) and the eGRID2020
+  factor files. Their natural-gas factor (54.06 kg CO₂/MMBtu) was wrong; the
+  new code uses 53.06 from EPA.
+
 ## [0.4.0] - 2026-11-20
 
 Milestone M3, "Biogenic and carbonation": the inventory now models the CO₂
@@ -198,7 +265,8 @@ functions with cited AR5 and AR6 parameter sets.
   form (#31).
 - Empty `LICENSE.txt` and `CHANGES.txt` placeholders.
 
-[Unreleased]: https://github.com/jayarehart/DLCA/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/jayarehart/DLCA/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/jayarehart/DLCA/releases/tag/v0.5.0
 [0.4.0]: https://github.com/jayarehart/DLCA/releases/tag/v0.4.0
 [0.3.0]: https://github.com/jayarehart/DLCA/releases/tag/v0.3.0
 [0.2.0]: https://github.com/jayarehart/DLCA/releases/tag/v0.2.0
