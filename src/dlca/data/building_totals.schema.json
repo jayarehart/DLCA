@@ -648,7 +648,7 @@
         }
       ],
       "default": null,
-      "description": "Multiplier on the fossil gases of B4 events and C1-C4 (schema version 4,\nrecord 0018). Absent means constant.",
+      "description": "Multiplier on the fossil gases of B4 events and C1-C4 (schema version 4,\nrecord 0018). Absent means constant. If the building or any of its events\nhas a `biogenic` field, their `co2` is not scaled (record 0020).",
       "title": "B4 C Trajectory"
     },
     "energy": {

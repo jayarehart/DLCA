@@ -58,3 +58,4 @@ link is fine.
 | [0017](0017-concrete-carbonation.md) | Concrete carbonation: Lagerblad (2005), √t uptake in use, crushed stockpile at end of life | Accepted |
 | [0018](0018-emission-factor-trajectories.md) | Emission-factor trajectories for B4 and end-of-life emissions | Proposed |
 | [0019](0019-operational-energy-b6.md) | Operational energy (B6) from energy use by fuel | Proposed |
+| [0020](0020-trajectories-for-biogenic-items.md) | Trajectories for biogenic items: their CO₂ is not scaled | Proposed |

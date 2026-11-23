@@ -23,7 +23,9 @@ files still load and may not use it.
 Schema version 4 (#81, record 0018) adds an optional `b4_c_trajectory` to
 `BuildingTotals` and `BuildingInventory`: a multiplier m(y) on study years for
 the fossil gases of B4 events and of C1-C4. Absent means constant. Version 1-3
-files still load and may not use it.
+files still load and may not use it. On an item with a `biogenic` field (a
+material, or a whole `BuildingTotals`, or any of its B4/B5 events) the `co2`
+of those amounts is not scaled (#86, record 0020).
 Schema version 5 (#82, record 0019) adds an optional building-level `energy`
 field: operational energy (B6) as energy use by fuel. A building gives
 `energy` or `per_year["B6"]`, never both. Version 1-4 files still load and may
@@ -337,20 +339,10 @@ Trajectory = Annotated[
 Each kind has ``multipliers(n)``, m(y) for years 0..n - 1, with m(0) = 1."""
 
 
-def _check_trajectory(
-    version: int, trajectory: Trajectory | None, biogenic: list[Biogenic | None]
-) -> None:
-    if trajectory is None:
-        return
-    if version < FIRST_TRAJECTORY_VERSION:
+def _check_trajectory(version: int, trajectory: Trajectory | None) -> None:
+    if trajectory is not None and version < FIRST_TRAJECTORY_VERSION:
         raise ValueError(
             f"b4_c_trajectory needs schema_version {FIRST_TRAJECTORY_VERSION}, got {version}"
-        )
-    if trajectory.kind != "constant" and any(item is not None for item in biogenic):
-        raise ValueError(
-            "b4_c_trajectory: a non-constant trajectory is refused on a building with a "
-            "biogenic field, because biogenic release is entered inside C1-C4 and B4 "
-            "amounts and would be scaled too (record 0018)"
         )
 
 
@@ -478,7 +470,8 @@ class BuildingTotals(_Strict):
     """Biogenic carbon of the whole building, in kg CO2 (schema version 2)."""
     b4_c_trajectory: Trajectory | None = None
     """Multiplier on the fossil gases of B4 events and C1-C4 (schema version 4,
-    record 0018). Absent means constant."""
+    record 0018). Absent means constant. If the building or any of its events
+    has a `biogenic` field, their `co2` is not scaled (record 0020)."""
     energy: list[EnergyUse] = Field(default_factory=list)
     """Operational energy (B6) by fuel (schema version 5). Not with `per_year["B6"]`."""
 
@@ -497,11 +490,7 @@ class BuildingTotals(_Strict):
                 "building: carbonation is for materials of a BuildingInventory, "
                 "not BuildingTotals events"
             )
-        _check_trajectory(
-            self.schema_version,
-            self.b4_c_trajectory,
-            [self.biogenic, *_event_biogenic(self.b4, self.b5)],
-        )
+        _check_trajectory(self.schema_version, self.b4_c_trajectory)
         return self
 
 
@@ -574,7 +563,9 @@ class BuildingInventory(_Strict):
     per_year: dict[OperationalModule, GasAmounts] = Field(default_factory=dict)
     b4_c_trajectory: Trajectory | None = None
     """Multiplier on the fossil gases of every material's B4 events and C1-C4
-    (schema version 4, record 0018). Absent means constant."""
+    (schema version 4, record 0018). Absent means constant. A material that has
+    a `biogenic` field, or any B4/B5 event with one, keeps the `co2` of those
+    amounts as entered (record 0020)."""
     energy: list[EnergyUse] = Field(default_factory=list)
     """Operational energy (B6) by fuel (schema version 5). Not with `per_year["B6"]`."""
 
@@ -597,16 +588,7 @@ class BuildingInventory(_Strict):
                     [material.carbonation, *(e.carbonation for e in material.b4)],
                     where,
                 )
-        _check_trajectory(
-            self.schema_version,
-            self.b4_c_trajectory,
-            [
-                item
-                for assembly in self.assemblies
-                for m in assembly.materials
-                for item in (m.biogenic, *_event_biogenic(m.b4, m.b5))
-            ],
-        )
+        _check_trajectory(self.schema_version, self.b4_c_trajectory)
         return self
 
 
