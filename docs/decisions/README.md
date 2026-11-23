@@ -59,3 +59,4 @@ link is fine.
 | [0018](0018-emission-factor-trajectories.md) | Emission-factor trajectories for B4 and end-of-life emissions | Proposed |
 | [0019](0019-operational-energy-b6.md) | Operational energy (B6) from energy use by fuel | Proposed |
 | [0020](0020-trajectories-for-biogenic-items.md) | Trajectories for biogenic items: their CO₂ is not scaled | Proposed |
+| [0021](0021-cambium-b6-factors.md) | Packaged Cambium 2024 grid factors for B6 electricity | Proposed |

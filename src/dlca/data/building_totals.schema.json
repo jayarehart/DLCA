@@ -144,7 +144,7 @@
     },
     "EnergyUse": {
       "additionalProperties": false,
-      "description": "One fuel's energy use per year, for B6 (#82, record 0019).\n\nB6 in year y (1..RSP) is `amount` x factor(y) x m(y), where m is the\n`trajectory` multiplier (constant when absent), applied to the fossil\ngases only.\n\nFactor source:\n\n- ``\"electricity\"``: exactly one of `egrid_subregion`, `egrid_state`\n  (packaged eGRID2023 Rev 2) or `factor`.\n- ``\"natural_gas\"``, ``\"fuel_oil_2\"``: `factor`, or none for the packaged\n  EPA Hub 2025 factor.\n\nPackaged factors cover combustion and generation only: no transmission\nand distribution losses and no upstream emissions.",
+      "description": "One fuel's energy use per year, for B6 (#82, record 0019).\n\nB6 in year y (1..RSP) is `amount` x factor(y) x m(y), where m is the\n`trajectory` multiplier (constant when absent), applied to the fossil\ngases only.\n\nFactor source:\n\n- ``\"electricity\"``: exactly one of `egrid_subregion`, `egrid_state`\n  (packaged eGRID2023 Rev 2), `factor` or `cambium_gea` (packaged NLR\n  Cambium 2024 series, with `year_zero` and optional `cambium_scenario`;\n  schema version 6, record 0021).\n- ``\"natural_gas\"``, ``\"fuel_oil_2\"``: `factor`, or none for the packaged\n  EPA Hub 2025 factor.\n\nPackaged factors cover combustion and generation only: no transmission\nand distribution losses and no upstream emissions.",
       "properties": {
         "fuel": {
           "enum": [
@@ -328,8 +328,77 @@
             }
           ],
           "default": null,
-          "description": "Multiplier m(y) on the fossil gases of this line (record 0018 kinds).\nAbsent means constant. Not with a series `factor`.",
+          "description": "Multiplier m(y) on the fossil gases of this line (record 0018 kinds).\nAbsent means constant. Not with a series `factor` or `cambium_gea`.",
           "title": "Trajectory"
+        },
+        "cambium_gea": {
+          "anyOf": [
+            {
+              "enum": [
+                "CAISO",
+                "ERCOT",
+                "FRCC",
+                "ISONE",
+                "MISO_Central",
+                "MISO_North",
+                "MISO_South",
+                "NYISO",
+                "NorthernGrid_East",
+                "NorthernGrid_South",
+                "NorthernGrid_West",
+                "PJM_East",
+                "PJM_West",
+                "SERTP",
+                "SPP_North",
+                "SPP_South",
+                "WestConnect_North",
+                "WestConnect_South"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Cambium GEA region for a packaged, year-by-year electricity factor:\nNLR's eGRID-based GEA history, then Cambium 2024 `aer_gen_*_c` from 2030\n(record 0021). Needs `year_zero`.",
+          "title": "Cambium Gea"
+        },
+        "cambium_scenario": {
+          "anyOf": [
+            {
+              "enum": [
+                "MidCase",
+                "HighDemandGrowth",
+                "HighNGPrice",
+                "LowNGPrice",
+                "HighRECost",
+                "LowRECost",
+                "HighRECost_LowNGPrice",
+                "LowRECost_HighNGPrice"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Cambium scenario; absent means ``\"MidCase\"``. Only with `cambium_gea`.",
+          "title": "Cambium Scenario"
+        },
+        "year_zero": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Calendar year of study year 0 (construction). Only with `cambium_gea`,\nand required there.",
+          "title": "Year Zero"
         }
       },
       "required": [
@@ -543,8 +612,8 @@
       "type": "string"
     },
     "schema_version": {
-      "default": 5,
-      "maximum": 5,
+      "default": 6,
+      "maximum": 6,
       "minimum": 1,
       "title": "Schema Version",
       "type": "integer"

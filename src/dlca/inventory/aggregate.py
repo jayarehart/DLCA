@@ -63,9 +63,10 @@ BUILDING_RESULT_SCHEMA = "dlca.building_result"
 # version 1 data still loads. Version 3 (#74): `carbonation` fields and the
 # "carbonation-uptake" and "carbonation-eol" module rows. Version 4 (#81): the
 # building may hold a `b4_c_trajectory` (record 0018). Version 5 (#82): the
-# building may hold `energy` lines (record 0019).
-BUILDING_RESULT_SCHEMA_VERSION = 5
-_READABLE_BUILDING_RESULT_VERSIONS = (1, 2, 3, 4, 5)
+# building may hold `energy` lines (record 0019). Version 6 (#85): an energy
+# line may hold `cambium_gea`, `cambium_scenario` and `year_zero` (record 0021).
+BUILDING_RESULT_SCHEMA_VERSION = 6
+_READABLE_BUILDING_RESULT_VERSIONS = (1, 2, 3, 4, 5, 6)
 
 MODULE_ORDER = (
     UPTAKE_MODULE,
