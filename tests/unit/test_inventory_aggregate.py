@@ -363,11 +363,11 @@ def test_building_result_json_round_trip_is_exact(building):
 def test_building_result_from_dict_refuses_other_schema_or_version():
     d = assess_building(two_materials(), horizon=100).to_dict()
     assert d["schema"] == "dlca.building_result"
-    assert d["schema_version"] == 5
+    assert d["schema_version"] == 6
     with pytest.raises(ValueError, match="schema"):
         BuildingResult.from_dict({**d, "schema": "dlca.result"})
     with pytest.raises(ValueError, match="schema_version"):
-        BuildingResult.from_dict({**d, "schema_version": 6})
+        BuildingResult.from_dict({**d, "schema_version": 7})
 
 
 def test_building_result_from_dict_refuses_a_horizon_that_differs_from_total():

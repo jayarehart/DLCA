@@ -89,7 +89,9 @@ def _historical(path: Path) -> list[list[str]]:
     for row in rows[4:]:
         if not row or not row[0].strip():
             continue
-        out.append([row[index["year"]], row[index["gea"]]] + [row[index[k]] for k in HISTORICAL_COLUMNS])
+        out.append(
+            [row[index["year"]], row[index["gea"]]] + [row[index[k]] for k in HISTORICAL_COLUMNS]
+        )
     if len({r[1] for r in out[1:]}) != N_GEAS:
         _stop(f"{path.name}: expected {N_GEAS} GEA regions")
     return out
@@ -99,13 +101,15 @@ def main(argv: list[str]) -> None:
     if len(argv) not in (2, 3):
         _stop("usage: build_cambium_extract.py ANNUAL_CSV HISTORICAL_CSV [OUT_DIR]")
     annual, historical = Path(argv[0]), Path(argv[1])
-    out_dir = Path(argv[2]) if len(argv) == 3 else Path(__file__).resolve().parents[1] / "src/dlca/data"
+    out_dir = (
+        Path(argv[2]) if len(argv) == 3 else Path(__file__).resolve().parents[1] / "src/dlca/data"
+    )
     a_rows, h_rows = _annual(annual), _historical(historical)
     for name, rows in ((ANNUAL_OUT, a_rows), (HISTORICAL_OUT, h_rows)):
         with (out_dir / name).open("w", newline="", encoding="utf-8") as f:
             csv.writer(f, lineterminator="\n").writerows(rows)
-    print(f"{annual.name}: sha256 {_sha256(annual)}, {len(a_rows) - 1} rows -> {ANNUAL_OUT}")
-    print(f"{historical.name}: sha256 {_sha256(historical)}, {len(h_rows) - 1} rows -> {HISTORICAL_OUT}")
+    for path, rows, name in ((annual, a_rows, ANNUAL_OUT), (historical, h_rows, HISTORICAL_OUT)):
+        print(f"{path.name}: sha256 {_sha256(path)}, {len(rows) - 1} rows -> {name}")
 
 
 if __name__ == "__main__":

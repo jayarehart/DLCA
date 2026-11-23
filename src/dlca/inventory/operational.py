@@ -12,6 +12,12 @@ distribution losses, no upstream emissions):
   ``egrid2023_data_rev2.xlsx``). Public domain.
 - Natural gas and fuel oil No. 2: US EPA GHG Emission Factors Hub, January
   2025, Table 1 (40 CFR 98 Tables C-1 and C-2).
+- Electricity by Cambium GEA region, year by year (#85, record 0021): NLR's
+  eGRID-based historical intensities for the GEA regions (2014-2023), then a
+  straight line to NLR Cambium 2024 ``aer_gen_*_c`` in 2030, then Cambium to
+  2050, held after. Cambium's 2025 point is not used. Source: the Cambium
+  2024 project on NLR's Scenario Viewer; see ``dlca/data/CAMBIUM_NOTICE.md``
+  (not under the package's MIT licence).
 
 CH4 from the packaged factors is fossil (`ch4_fossil`).
 """
@@ -37,6 +43,12 @@ MJ_PER_MWH = 3600.0
 
 EGRID_SUBREGION_FILE = "egrid2023_rev2_subregion.csv"
 EGRID_STATE_FILE = "egrid2023_rev2_state.csv"
+CAMBIUM_FILE = "cambium2024_gea_aer_gen_c.csv"
+CAMBIUM_HISTORICAL_FILE = "cambium2024_gea_historical.csv"
+CAMBIUM_FIRST_YEAR = 2030
+"""First Cambium year used; earlier Cambium points (2025) are dropped and the
+series runs straight from the last historical year to this one (record 0021)."""
+DEFAULT_CAMBIUM_SCENARIO = "MidCase"
 
 FOSSIL_KEYS = ("co2", "ch4_fossil", "n2o")
 """Gases a trajectory scales (record 0018, E2)."""
@@ -98,6 +110,54 @@ def fuel_factor_per_mj(fuel: str) -> Mapping[str, float]:
         raise ValueError(f"no packaged factor for fuel {fuel!r}") from None
     mj = to_mj(1.0, "MMBtu")
     return _per_mj(co2 / mj, ch4_g / 1000 / mj, n2o_g / 1000 / mj)
+
+
+def _read_rows(file_name: str) -> list[dict[str, str]]:
+    with files("dlca.data").joinpath(file_name).open("r", encoding="utf-8") as f:
+        return list(csv.DictReader(f))
+
+
+@cache
+def _cambium_kg_per_mwh(gea: str, scenario: str) -> Mapping[str, Mapping[int, float]]:
+    """Gas -> {calendar year: kg per MWh} for one GEA region and scenario.
+
+    Historical years from NLR's eGRID-based file, then Cambium `aer_gen_*_c`
+    from `CAMBIUM_FIRST_YEAR` on (CH4 and N2O converted from g to kg).
+    """
+    out: dict[str, dict[int, float]] = {gas: {} for gas in FOSSIL_KEYS}
+    for row in _read_rows(CAMBIUM_HISTORICAL_FILE):
+        if row["gea"] == gea:
+            year = int(row["year"])
+            out["co2"][year] = float(row["co2_kg_per_mwh"])
+            out["ch4_fossil"][year] = float(row["ch4_kg_per_mwh"])
+            out["n2o"][year] = float(row["n2o_kg_per_mwh"])
+    last_historical = max(out["co2"], default=None)
+    for row in _read_rows(CAMBIUM_FILE):
+        if row["gea"] == gea and row["scenario"] == scenario:
+            year = int(row["year"])
+            if year < CAMBIUM_FIRST_YEAR:
+                continue
+            out["co2"][year] = float(row["co2_kg_per_mwh"])
+            out["ch4_fossil"][year] = float(row["ch4_g_per_mwh"]) / 1000
+            out["n2o"][year] = float(row["n2o_g_per_mwh"]) / 1000
+    if last_historical is None or max(out["co2"]) <= last_historical:
+        raise ValueError(f"no packaged Cambium series for {gea!r}, scenario {scenario!r}")
+    return MappingProxyType({gas: MappingProxyType(v) for gas, v in out.items()})
+
+
+def cambium_factor_per_mj(
+    gea: str, year_zero: int, n_years: int, scenario: str = DEFAULT_CAMBIUM_SCENARIO
+) -> dict[str, NDArray[np.float64]]:
+    """kg of each gas per MJ of electricity, study years 0..n_years - 1 (record 0021).
+
+    Built with `to_study_years` from the joined calendar-year series of
+    `gea` and `scenario`; `year_zero` is the calendar year of study year 0.
+    """
+    by_year = _cambium_kg_per_mwh(gea, scenario)
+    out = {gas: np.zeros(n_years) for gas in EMISSION_KEYS}
+    for gas in FOSSIL_KEYS:
+        out[gas] = np.asarray(to_study_years(by_year[gas], year_zero, n_years)) / MJ_PER_MWH
+    return out
 
 
 def to_study_years(values: Mapping[int, float], year_zero: int, n_years: int) -> list[float]:
@@ -169,6 +229,15 @@ def b6_series(
 def _factor_by_year(line, study_period: int) -> dict[str, NDArray[np.float64]]:
     """kg of each gas per unit of the line's energy, for years 1..RSP."""
     factor = line.factor
+    if getattr(line, "cambium_gea", None) is not None:
+        per_mj = cambium_factor_per_mj(
+            line.cambium_gea,
+            line.year_zero,
+            study_period + 1,
+            line.cambium_scenario or DEFAULT_CAMBIUM_SCENARIO,
+        )
+        mj = to_mj(1.0, line.unit)
+        return {gas: per_mj[gas][1:] * mj for gas in EMISSION_KEYS}
     if factor is None:
         if line.fuel == "electricity":
             per_mj = electricity_factor_per_mj(

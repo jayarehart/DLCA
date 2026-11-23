@@ -31,6 +31,10 @@ field: operational energy (B6) as energy use by fuel. A building gives
 `energy` or `per_year["B6"]`, never both. Version 1-4 files still load and may
 not use it.
 
+Schema version 6 (#85, record 0021) adds a Cambium factor source to an
+electricity energy line: `cambium_gea`, `cambium_scenario` and `year_zero`.
+Version 1-5 files still load and may not use it.
+
 This module only checks the input. Turning it into yearly emissions is the
 timing engine's job (#58).
 """
@@ -46,11 +50,12 @@ import numpy as np
 from numpy.typing import NDArray
 from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 FIRST_BIOGENIC_VERSION = 2
 FIRST_CARBONATION_VERSION = 3
 FIRST_TRAJECTORY_VERSION = 4
 FIRST_ENERGY_VERSION = 5
+FIRST_CAMBIUM_VERSION = 6
 TOTALS_TAG = "dlca.building_totals"
 INVENTORY_TAG = "dlca.building_inventory"
 
@@ -115,6 +120,23 @@ EgridState = Literal[
 ]  # fmt: skip
 """eGRID2023 states (with DC and PR). Kept equal to the packaged file by a test."""
 
+CambiumGea = Literal[
+    "CAISO", "ERCOT", "FRCC", "ISONE", "MISO_Central", "MISO_North", "MISO_South",
+    "NYISO", "NorthernGrid_East", "NorthernGrid_South", "NorthernGrid_West",
+    "PJM_East", "PJM_West", "SERTP", "SPP_North", "SPP_South",
+    "WestConnect_North", "WestConnect_South",
+]  # fmt: skip
+"""NLR Cambium 2024 generation and emission assessment (GEA) regions (#85,
+record 0021). They are not eGRID subregions. Kept equal to the packaged
+files by a test."""
+
+CambiumScenario = Literal[
+    "MidCase", "HighDemandGrowth", "HighNGPrice", "LowNGPrice", "HighRECost",
+    "LowRECost", "HighRECost_LowNGPrice", "LowRECost_HighNGPrice",
+]  # fmt: skip
+"""Cambium 2024 scenarios, named as in NLR's files. Kept equal to the packaged
+file by a test."""
+
 
 _Amount = Annotated[float, Field(allow_inf_nan=False)]
 _Name = Annotated[str, Field(pattern=r"^\S(.*\S)?$")]
@@ -128,7 +150,7 @@ _Share = Annotated[float, Field(gt=0, le=1, allow_inf_nan=False)]
 
 _OMIT_IF_NONE = (
     "biogenic", "rotation", "carbonation", "volume", "b4_c_trajectory", "egrid_subregion",
-    "egrid_state", "factor", "trajectory",
+    "egrid_state", "factor", "trajectory", "cambium_gea", "cambium_scenario", "year_zero",
 )  # fmt: skip
 _OMIT_IF_EMPTY = ("energy",)
 
@@ -356,7 +378,9 @@ class EnergyUse(_Strict):
     Factor source:
 
     - ``"electricity"``: exactly one of `egrid_subregion`, `egrid_state`
-      (packaged eGRID2023 Rev 2) or `factor`.
+      (packaged eGRID2023 Rev 2), `factor` or `cambium_gea` (packaged NLR
+      Cambium 2024 series, with `year_zero` and optional `cambium_scenario`;
+      schema version 6, record 0021).
     - ``"natural_gas"``, ``"fuel_oil_2"``: `factor`, or none for the packaged
       EPA Hub 2025 factor.
 
@@ -376,31 +400,46 @@ class EnergyUse(_Strict):
     list holds its last value)."""
     trajectory: Trajectory | None = None
     """Multiplier m(y) on the fossil gases of this line (record 0018 kinds).
-    Absent means constant. Not with a series `factor`."""
+    Absent means constant. Not with a series `factor` or `cambium_gea`."""
+    cambium_gea: CambiumGea | None = None
+    """Cambium GEA region for a packaged, year-by-year electricity factor:
+    NLR's eGRID-based GEA history, then Cambium 2024 `aer_gen_*_c` from 2030
+    (record 0021). Needs `year_zero`."""
+    cambium_scenario: CambiumScenario | None = None
+    """Cambium scenario; absent means ``"MidCase"``. Only with `cambium_gea`."""
+    year_zero: int | None = None
+    """Calendar year of study year 0 (construction). Only with `cambium_gea`,
+    and required there."""
 
     @model_validator(mode="after")
     def _one_factor_source(self) -> EnergyUse:
-        if (
-            isinstance(self.factor, list)
-            and self.trajectory is not None
-            and self.trajectory.kind != "constant"
-        ):
+        series = isinstance(self.factor, list) or self.cambium_gea is not None
+        if series and self.trajectory is not None and self.trajectory.kind != "constant":
             raise ValueError(
-                "a series factor may not have a non-constant trajectory (it would be scaled twice)"
+                "a series or Cambium factor may not have a non-constant trajectory "
+                "(it would be scaled twice)"
             )
+        if self.cambium_gea is None:
+            for name in ("cambium_scenario", "year_zero"):
+                if getattr(self, name) is not None:
+                    raise ValueError(f"{name} is only for a line with cambium_gea")
+        elif self.year_zero is None:
+            raise ValueError("cambium_gea needs year_zero (the calendar year of study year 0)")
         sources = [
             name
-            for name in ("egrid_subregion", "egrid_state", "factor")
+            for name in ("egrid_subregion", "egrid_state", "factor", "cambium_gea")
             if getattr(self, name) is not None
         ]
         if self.fuel == "electricity":
             if len(sources) != 1:
                 raise ValueError(
-                    "electricity needs exactly one of egrid_subregion, egrid_state or factor, "
-                    f"got {sources or 'none'}"
+                    "electricity needs exactly one of egrid_subregion, egrid_state, factor or "
+                    f"cambium_gea, got {sources or 'none'}"
                 )
         elif self.egrid_subregion is not None or self.egrid_state is not None:
             raise ValueError(f"{self.fuel}: eGRID codes are for electricity only")
+        elif self.cambium_gea is not None:
+            raise ValueError(f"{self.fuel}: Cambium regions are for electricity only")
         return self
 
 
@@ -413,6 +452,10 @@ def _check_energy(version: int, energy: list[EnergyUse], per_year: Mapping, wher
         )
     if "B6" in per_year:
         raise ValueError(f'{where}: give B6 as energy or as per_year["B6"], not both')
+    if version < FIRST_CAMBIUM_VERSION and any(line.cambium_gea is not None for line in energy):
+        raise ValueError(
+            f"{where}: cambium_gea needs schema_version {FIRST_CAMBIUM_VERSION}, got {version}"
+        )
 
 
 def _check_event_years(events: list[Event], study_period: int, where: str) -> None:
