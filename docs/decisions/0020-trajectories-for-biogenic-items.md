@@ -56,6 +56,7 @@ refusing.
 | Timber | uptake | −100 kg CO₂ in year 0, as with `constant` |
 | Steel: no `biogenic` | C3 co2 100; B4 in year 25, co2 40 | 0; 20 |
 | Steel with a `biogenic` B5 event in year 10, co2 10 | C3 co2 100; B5 | 100; 10 |
+| Steel, quantity 2, with a `biogenic` B4 event only (year 25, co2 40) | C3 co2 100; B4 | 200; 80 |
 | `BuildingTotals` with `biogenic` | C3: co2 100, n2o 1; B4 in year 25, co2 40 | 100, 0; 40 |
 
 The issue's first example (`released_co2` 80 of 100 kg in C3) now expects
@@ -67,6 +68,8 @@ These deliberate mistakes each make a check fail (run in the PR):
 - Exempting the whole building gives Steel C3 = 100, not 0.
 - Exempting every gas gives Timber C3 n2o = 1, not 0.
 - Ignoring B5 events gives the B5 material's C3 = 0, not 100.
+- Ignoring B4 events gives the B4 material's C3 = 0, not 200 (the row was
+  added after the fresh-session review on PR #90 found the gap).
 
 Positive control: Timber's C3 is the same under `linear` as under
 `constant`. The same comparison on Steel, in the same building, detects the

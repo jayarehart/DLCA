@@ -10,10 +10,10 @@ Other materials get the full trajectory. A `BuildingTotals` is one item.
 Faults these catch that no other test does: a biogenic material's CO2
 release scaled (cut while its uptake stays whole); the exemption applied to
 the whole building instead of per material; the exemption applied to
-`ch4_fossil` or `n2o` too; a `biogenic` field on a B4 or B5 event not
-counted; `released_co2` used to split the amount (the issue's first
-example would then give 80 instead of 100); the uptake changed by the
-trajectory.
+`ch4_fossil` or `n2o` too; a `biogenic` field on a B4 event, or on a B5
+event, not counted; the quantity not applied to an exempt amount;
+`released_co2` used to split the amount (the issue's first example would
+then give 80 instead of 100); the uptake changed by the trajectory.
 """
 
 import numpy as np
@@ -54,6 +54,19 @@ def inventory(trajectory=None):
                         "unit": "kg",
                         "modules": {"C3": {"co2": 100.0}},
                         "b4": [{"year": 25, "amounts": {"co2": 40.0}}],
+                    },
+                    {
+                        "name": "Steel B4",
+                        "quantity": 2.0,
+                        "unit": "kg",
+                        "modules": {"C3": {"co2": 100.0}},
+                        "b4": [
+                            {
+                                "year": 25,
+                                "amounts": {"co2": 40.0},
+                                "biogenic": {"co2": 5.0, "regrowth": "none"},
+                            }
+                        ],
                     },
                     {
                         "name": "Steel B5",
@@ -122,6 +135,15 @@ def test_biogenic_b5_event_exempts_the_material():
     t = timeline(inventory(LINEAR_TO_ZERO), horizon=10)
     assert part(t, "C3", "Steel B5")["co2"][61] == 100.0
     assert part(t, "B5", "Steel B5")["co2"][10] == 10.0
+
+
+def test_biogenic_b4_event_exempts_the_material():
+    # Added after the fresh-session review of PR #90: no other test has a
+    # biogenic field on a B4 event only. Quantity 2: C3 2 x 100 = 200 kg and
+    # B4 2 x 40 = 80 kg, both unscaled.
+    t = timeline(inventory(LINEAR_TO_ZERO), horizon=10)
+    assert part(t, "C3", "Steel B4")["co2"][61] == 200.0
+    assert part(t, "B4", "Steel B4")["co2"][25] == 80.0
 
 
 def test_uptake_is_not_changed_by_the_trajectory():
