@@ -49,9 +49,9 @@ A delayed decline (m = 1 for a while, then falling) needs a `series`.
 - A trajectory other than `constant` is refused if the `BuildingTotals`, any
   `Material` or any B4 or B5 event has a `biogenic` field. This applies to any
   `biogenic` field, not only one with `released_co2` > 0: a user may enter a
-  release while leaving `released_co2` at 0. B5 events were added during the
-  work (not a separate decision by Jay; flagged in the PR): the release of
-  a B5 item's biogenic carbon would usually be entered in the material's
+  release while leaving `released_co2` at 0. The refusal covers B5 events
+  as well as B4 (Jay, 2026-11-20, amending E2 after review): the release of a
+  B5 item's biogenic carbon would usually be entered in the material's
   C1–C4, which is scaled. The refusal looks at `kind`, so a trajectory that is
   constant in effect (`series` [1], or `linear` with `target` 1) is refused
   too.

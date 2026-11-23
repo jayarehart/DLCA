@@ -108,6 +108,9 @@ their test.
 
 - Users can enter B6 as kWh, therms and so on, and choose a grid region.
 - Results for buildings without `energy` do not move.
+- The packaged CH₄ and N₂O rates keep EPA's published rounding. Some are
+  coarse: NYUP's N₂O rate (0.001 lb/MWh) could be off by up to ±50%, which is
+  small in CO₂e terms. Jay accepted this for now (2026-11-20, after review).
 - The packaged scope (no losses, no upstream) understates B6, most of all for
   natural gas. Docs must say so.
 - `pandas` is no longer used by the package itself; dropping it from the
