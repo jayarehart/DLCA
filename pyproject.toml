@@ -1,16 +1,41 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
 name = "dlca"
-version = "0.5.0"
+dynamic = ["version"]
 description = "Dynamic life cycle assessment (DLCA) for buildings."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "Jay Arehart" }]
+keywords = [
+    "life cycle assessment",
+    "LCA",
+    "dynamic LCA",
+    "buildings",
+    "embodied carbon",
+    "greenhouse gas",
+    "global warming",
+    "radiative forcing",
+    "climate",
+]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Science/Research",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Atmospheric Science",
+]
 dependencies = [
     "numpy",
     "pandas",
@@ -18,10 +43,26 @@ dependencies = [
 ]
 
 [project.urls]
+# Documentation points at the README until the docs site (#97) exists.
+Documentation = "https://github.com/jayarehart/DLCA#readme"
 Repository = "https://github.com/jayarehart/DLCA"
+Changelog = "https://github.com/jayarehart/DLCA/blob/main/CHANGELOG.md"
+Issues = "https://github.com/jayarehart/DLCA/issues"
+
+[tool.hatch.version]
+# The version comes from the git tag (v1.2.3 -> 1.2.3); commits after a tag get a
+# .devN+g<hash> suffix. The fallback is for builds with no git history, such as a
+# GitHub "Download ZIP" archive. An sdist carries its version in PKG-INFO instead.
+source = "vcs"
+fallback-version = "0.0.0+unknown"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/dlca"]
+
+[tool.uv]
+# Rebuild the editable install's metadata when the commit or tags change, so the
+# installed version follows the tag.
+cache-keys = [{ file = "pyproject.toml" }, { git = { commit = true, tags = true } }]
 
 [dependency-groups]
 dev = [

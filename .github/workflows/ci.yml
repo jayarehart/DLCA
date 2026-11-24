@@ -49,3 +49,23 @@ jobs:
         run: |
           echo "## Coverage" >> "$GITHUB_STEP_SUMMARY"
           uv run coverage report --format=markdown >> "$GITHUB_STEP_SUMMARY"
+
+  package:
+    name: package (build and check the wheel)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0 # full history and tags, so hatch-vcs finds the version
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          version: "0.13.8"
+          python-version: "3.13"
+      - run: uv build
+      - name: Check the wheel holds the packaged data
+        run: python scripts/check_wheel.py dist/*.whl
+      - name: Install the wheel into a clean environment and import it
+        run: |
+          uv venv --no-project /tmp/smoke
+          uv pip install --python /tmp/smoke dist/*.whl
+          /tmp/smoke/bin/python -c "import importlib.metadata as m, dlca; print('dlca', m.version('dlca'))"
