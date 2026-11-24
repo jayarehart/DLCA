@@ -1,0 +1,35 @@
+{
+  "title": "DLCA: Dynamic life cycle assessment for buildings",
+  "upload_type": "software",
+  "description": "<p>DLCA is a Python package for dynamic life cycle assessment of buildings. It models greenhouse-gas emissions as they occur over time, rather than lumping them into a single point in time, and reports cumulative global warming impact (GWI) and global temperature change potential (GTP) over the chosen study period.</p><p>DLCA is released under the MIT licence, except two packaged data files (Cambium 2024 extracts from NLR), which carry NLR's own terms; see src/dlca/data/CAMBIUM_NOTICE.md.</p>",
+  "creators": [
+    {
+      "name": "Arehart, Jay",
+      "orcid": "0000-0002-9434-1783"
+    },
+    {
+      "name": "Khajah, Fatemah",
+      "affiliation": "University of Colorado Boulder"
+    }
+  ],
+  "license": "MIT",
+  "keywords": [
+    "life cycle assessment",
+    "LCA",
+    "dynamic LCA",
+    "buildings",
+    "embodied carbon",
+    "greenhouse gas",
+    "global warming",
+    "radiative forcing",
+    "climate"
+  ],
+  "related_identifiers": [
+    {
+      "relation": "isSupplementTo",
+      "identifier": "https://github.com/jayarehart/DLCA",
+      "resource_type": "software",
+      "scheme": "url"
+    }
+  ]
+}

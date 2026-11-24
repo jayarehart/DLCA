@@ -37,6 +37,19 @@ jobs:
       - run: uv sync --locked --group docs
       - run: uv run --group docs mkdocs build --strict
 
+  citation:
+    name: citation metadata
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          version: "0.13.8"
+      - name: Validate CITATION.cff
+        run: uvx cffconvert --validate
+      - name: Check .zenodo.json is valid JSON
+        run: python -c "import json; json.load(open('.zenodo.json', encoding='utf-8'))"
+
   test:
     name: test (${{ matrix.os }}, ${{ matrix.python }})
     runs-on: ${{ matrix.os }}

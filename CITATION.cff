@@ -6,5 +6,38 @@ authors:
   - family-names: Arehart
     given-names: Jay
     orcid: "https://orcid.org/0000-0002-9434-1783"
+  - family-names: Khajah
+    given-names: Fatemah
+    affiliation: "University of Colorado Boulder"
 license: MIT
 repository-code: "https://github.com/jayarehart/DLCA"
+abstract: >-
+  DLCA is a Python package for dynamic life cycle assessment of buildings.
+  It models greenhouse-gas emissions as they occur over time, rather than
+  lumping them into a single point in time, and reports cumulative global
+  warming impact (GWI) and global temperature change potential (GTP) over
+  the chosen study period.
+keywords:
+  - life cycle assessment
+  - LCA
+  - dynamic LCA
+  - buildings
+  - embodied carbon
+  - greenhouse gas
+  - global warming
+  - radiative forcing
+  - climate
+# --- To fill in at v1.0.0 (#104). Do not guess these; take them from the release. ---
+# version: "1.0.0"
+# date-released: "YYYY-MM-DD"   # the release date
+# doi: "10.5281/zenodo.XXXXXXX"  # Zenodo concept DOI, which exists only after the first release
+# preferred-citation:            # the JOSS paper (#102), once it has a DOI
+#   type: article
+#   title: "..."
+#   authors:
+#     - family-names: Arehart
+#       given-names: Jay
+#       orcid: "https://orcid.org/0000-0002-9434-1783"
+#   journal: "Journal of Open Source Software"
+#   doi: "10.21105/joss.XXXXX"
+#   year: YYYY
