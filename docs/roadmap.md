@@ -35,6 +35,7 @@ pure functions with JSON-serialisable inputs and outputs (record 0005).
 | M3 · Biogenic and carbonation | v0.4.0 | Biogenic carbon (uptake, storage, release) and concrete CO₂ uptake | [milestone 4](https://github.com/jayarehart/DLCA/milestone/4) |
 | M4 · Operational and scenarios | v0.5.0 | Time-varying emission factors for replacement and end-of-life emissions, operational energy (B6). Remove the fake DOE data | [milestone 5](https://github.com/jayarehart/DLCA/milestone/5) |
 | M5 · Docs and release | v1.0.0 | Settle the proposed API records and the public API, docs site, tutorials, GitHub release, Zenodo DOI, JOSS paper, repository goes public, then branch protection | [milestone 6](https://github.com/jayarehart/DLCA/milestone/6) |
+| M6 · After v1.0 | v1.x | Additive work deferred past the v1.0 API freeze: new entry points or schemas that break nothing in v1.0, released as minor versions | [milestone 7](https://github.com/jayarehart/DLCA/milestone/7) |
 
 ## Decisions from M0 and M1 that shape later work
 
@@ -114,6 +115,10 @@ flowchart TB
     R --> V["Release v1.0.0"]
     Z --> V
   end
+  subgraph M6["M6 · After v1.0"]
+    GI["Entry point for non-building inventories"]
+  end
+  API --> GI
   A --> S
   T --> B
   T --> C
@@ -230,6 +235,19 @@ table and the release pipeline depend only on M0 and can start at any time.
     review. Blocked by item 9.
 11. **Release v1.0.0** (#104). CHANGELOG, tag, GitHub release and DOI, then
     mark M5 done here. Blocked by all of the above.
+
+### M6 · After v1.0 (v1.x)
+
+Each item here must be additive: a new name, schema or result type that
+changes nothing a v1.0 user relies on, so it ships as a minor release.
+
+1. **Entry point for inventories that are not buildings** (#107; `science`,
+   **needs Jay**). A function, input schema and result type for a list of
+   timed items with no EN 15978 modules or study period, for example a
+   product with manufacture, use and disposal. The proposal is on #107.
+   For it to stay additive, the public API record (#96) should not freeze
+   `Timeline` as a public, module-only type, and should not promise that
+   `dlca.inventory` holds only building schemas. Blocked by M5 item 2.
 
 ## Not scheduled
 
