@@ -1,0 +1,98 @@
+name: Release
+
+# Pushing a tag such as v1.0.0 builds the wheel and sdist, checks them, and
+# creates a GitHub release with both attached. Nothing is published to PyPI.
+# See "Releasing" in CONTRIBUTING.md.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: build and release ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the release and upload its assets
+    env:
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0 # full history and tags, so hatch-vcs reads the tag
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          version: "0.13.8"
+          python-version: "3.13"
+
+      - name: Work out the version from the tag
+        run: |
+          VERSION="${TAG#v}"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          # A pre-release (a, b, rc or dev in the version) is marked as such on GitHub.
+          if [[ "$VERSION" =~ (a|b|rc|dev)[0-9]*$ ]]; then
+            echo "PRERELEASE=true" >> "$GITHUB_ENV"
+          else
+            echo "PRERELEASE=false" >> "$GITHUB_ENV"
+          fi
+
+      - run: uv build
+
+      - name: Check the wheel holds the packaged data and the tag's version
+        run: python scripts/check_wheel.py dist/*.whl --version "$VERSION"
+
+      - name: Check the sdist name carries the tag's version
+        run: test -f "dist/dlca-$VERSION.tar.gz"
+
+      - name: Install the wheel into a clean environment and import it
+        run: |
+          uv venv --no-project /tmp/smoke
+          uv pip install --python /tmp/smoke dist/*.whl
+          /tmp/smoke/bin/python - <<'PY'
+          import importlib.metadata
+          import os
+
+          import dlca  # noqa: F401
+
+          got = importlib.metadata.version("dlca")
+          print("dlca", got)
+          assert got == os.environ["VERSION"], (got, os.environ["VERSION"])
+          PY
+
+      - name: Take the release notes from CHANGELOG.md
+        run: |
+          # The section runs from "## [VERSION]" to the next "## [" heading or
+          # the link references at the end of the file.
+          awk -v v="$VERSION" '
+            index($0, "## [" v "]") == 1 { found = 1; next }
+            found && (/^## \[/ || /^\[[^]]+\]: /) { exit }
+            found { print }
+          ' CHANGELOG.md > notes.md
+          if [ ! -s notes.md ]; then
+            if [ "$PRERELEASE" = "true" ]; then
+              echo "Pre-release of DLCA $VERSION. See [Unreleased] in CHANGELOG.md." > notes.md
+            else
+              echo "::error::CHANGELOG.md has no '## [$VERSION]' section"
+              exit 1
+            fi
+          fi
+          cat notes.md
+
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          args=()
+          if [ "$PRERELEASE" = "true" ]; then args+=(--prerelease); fi
+          gh release create "$TAG" dist/*.whl dist/*.tar.gz \
+            --verify-tag \
+            --title "DLCA $VERSION" \
+            --notes-file notes.md \
+            "${args[@]}"
