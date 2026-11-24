@@ -35,6 +35,7 @@ pure functions with JSON-serialisable inputs and outputs (record 0005).
 | M3 · Biogenic and carbonation | v0.4.0 | Biogenic carbon (uptake, storage, release) and concrete CO₂ uptake | [milestone 4](https://github.com/jayarehart/DLCA/milestone/4) |
 | M4 · Operational and scenarios | v0.5.0 | Time-varying emission factors for replacement and end-of-life emissions, operational energy (B6). Remove the fake DOE data | [milestone 5](https://github.com/jayarehart/DLCA/milestone/5) |
 | M5 · Docs and release | v1.0.0 | Settle the proposed API records and the public API, docs site, tutorials, GitHub release, Zenodo DOI, JOSS paper, repository goes public, then branch protection | [milestone 6](https://github.com/jayarehart/DLCA/milestone/6) |
+| M5r · Internal review | v1.0.0rc1 | Jay and colleagues review a frozen release candidate; blockers are fixed and confirmed before the v1.0.0 tag and the JOSS submission (record 0023) | milestone not yet created |
 | M6 · After v1.0 | v1.x | Additive work deferred past the v1.0 API freeze: new entry points or schemas that break nothing in v1.0, released as minor versions | [milestone 7](https://github.com/jayarehart/DLCA/milestone/7) |
 
 ## Decisions from M0 and M1 that shape later work
@@ -115,6 +116,17 @@ flowchart TB
     R --> V["Release v1.0.0"]
     Z --> V
   end
+  subgraph M5R["M5r · Internal review"]
+    RC["Tag v1.0.0rc1"] --> RW["Review window"]
+    RW --> WM["Wrap-up meeting and triage"]
+    WM --> FX["Fix and confirm blockers"]
+    FX --> RS["Review summary"]
+  end
+  MP --> RC
+  TU --> RC
+  R --> RC
+  RS --> V
+  RS --> P
   subgraph M6["M6 · After v1.0"]
     GI["Entry point for non-building inventories"]
   end
@@ -227,14 +239,44 @@ table and the release pipeline depend only on M0 and can start at any time.
    repository. Blocked by item 9.
 8. **JOSS paper** (#102; **needs Jay**). `paper.md`, `paper.bib`, the
    statement of need, and a PDF build in CI. Blocked by item 4; submission
-   waits for item 11 and a public repository.
+   waits for item 11 and for the internal review (M5r) to close.
 9. **Pre-public checklist** (#103; **needs Jay**). Scan the history for
    secrets and data files, check issue and PR text, badges and links, then
    Jay makes the repository public.
 10. **Branch protection on main** (#16; **needs Jay**). Require CI and Jay's
     review. Blocked by item 9.
 11. **Release v1.0.0** (#104). CHANGELOG, tag, GitHub release and DOI, then
-    mark M5 done here. Blocked by all of the above.
+    mark M5 done here. Blocked by all of the above and by the internal review
+    (M5r).
+
+### M5r · Internal review (v1.0.0rc1)
+
+Jay and colleagues review the package before v1.0.0 and the JOSS submission.
+Findings that would make a result wrong or a claim misleading are fixed first.
+The process is in record 0023 and the review packet is
+`docs/reviews/v1.0-internal/README.md`. Jay creates the GitHub milestone.
+
+1. **Set up the review** (#120). This roadmap entry, the `review.yml` issue
+   form, the `review` labels, the review packet and record 0023.
+2. **Tag the release candidate** (**needs Jay**). `v1.0.0rc1` from `main`
+   once the methodology page (#98) and tutorials (#99) have merged. The
+   release pipeline marks it as a pre-release. Before tagging, check whether
+   the Zenodo integration archives pre-releases; if it does, turn it off for
+   the rc or accept a DOI version for it. Blocked by M5 items 4 and 5.
+3. **Review window** (**needs Jay**). Two to three weeks. Each reviewer
+   takes one or two areas from the packet and files each finding as a
+   `review` issue against the rc tag.
+4. **Wrap-up meeting and triage** (**needs Jay**). Reviewers present their
+   blockers and proposed fixes. Jay sorts each finding: blockers stay in M5r
+   and go through their normal lane (most are `science`); should-fix items go
+   to M5r if cheap, else M6; later items go to "Not scheduled" or are closed
+   with a reason.
+5. **Fix and confirm.** One PR per finding, `Closes #<finding>`. The reviewer
+   who raised it confirms the fix before the issue closes. If any output
+   number moves, tag `v1.0.0rc2` and re-check the changed areas only.
+6. **Review summary.** Fill in the summary section of the packet: who
+   reviewed which area, counts by severity, what changed, and what was not
+   reviewed. Then the milestone closes.
 
 ### M6 · After v1.0 (v1.x)
 
