@@ -60,4 +60,4 @@ link is fine.
 | [0019](0019-operational-energy-b6.md) | Operational energy (B6) from energy use by fuel | Accepted |
 | [0020](0020-trajectories-for-biogenic-items.md) | Trajectories for biogenic items: their CO₂ is not scaled | Accepted |
 | [0021](0021-cambium-b6-factors.md) | Packaged Cambium 2024 grid factors for B6 electricity | Accepted |
-| [0022](0022-public-api-and-stability-promise.md) | The v1.0 public API and its stability promise | Proposed |
+| [0022](0022-public-api-and-stability-promise.md) | The v1.0 public API and its stability promise | Accepted |
