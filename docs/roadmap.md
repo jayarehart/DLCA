@@ -34,7 +34,7 @@ pure functions with JSON-serialisable inputs and outputs (record 0005).
 | M2 · Inventory and timing | v0.3.0 | EN 15978 input schemas (building totals or a full inventory), dated B4/B5 events, end-of-life timing, roll-up from material to building, retire the old inventory code | [milestone 3](https://github.com/jayarehart/DLCA/milestone/3) |
 | M3 · Biogenic and carbonation | v0.4.0 | Biogenic carbon (uptake, storage, release) and concrete CO₂ uptake | [milestone 4](https://github.com/jayarehart/DLCA/milestone/4) |
 | M4 · Operational and scenarios | v0.5.0 | Time-varying emission factors for replacement and end-of-life emissions, operational energy (B6). Remove the fake DOE data | [milestone 5](https://github.com/jayarehart/DLCA/milestone/5) |
-| M5 · Docs and release | v1.0.0 | Settle the proposed API records, docs site, tutorials, PyPI, Zenodo DOI, JOSS paper, repository goes public, then branch protection | not yet created |
+| M5 · Docs and release | v1.0.0 | Settle the proposed API records and the public API, docs site, tutorials, GitHub release, Zenodo DOI, JOSS paper, repository goes public, then branch protection | [milestone 6](https://github.com/jayarehart/DLCA/milestone/6) |
 
 ## Decisions from M0 and M1 that shape later work
 
@@ -102,11 +102,17 @@ flowchart TB
     E --> BT["Trajectories for biogenic items"]
   end
   subgraph M5["M5 · Docs and release"]
-    AR["Settle proposed records"] --> D["Docs site"]
+    AR["Settle proposed records"] --> API["Public API record"]
+    API --> D["Docs site"]
+    AR --> MP["Methodology page"]
+    D --> MP
     D --> TU["Tutorials"]
-    TU --> P["JOSS paper"]
+    MP --> P["JOSS paper"]
     R["Release pipeline"]
     PP["Pre-public checklist"] --> BP["Branch protection"]
+    PP --> Z["Zenodo DOI"]
+    R --> V["Release v1.0.0"]
+    Z --> V
   end
   A --> S
   T --> B
@@ -189,22 +195,41 @@ table and the release pipeline depend only on M0 and can start at any time.
 
 ### M5 · Docs and release (v1.0.0)
 
-1. **Settle the proposed records** (**needs Jay**). Records 0008 (`assess()`
-   and `Result`), 0009 (parameter fingerprint guard) and 0010 (carbon-cycle
-   feedback) are still Proposed. The public API should not be frozen at v1.0
-   until Jay accepts or replaces them.
-2. **Docs site**. mkdocs-material and mkdocstrings on GitHub Pages, with a
-   methodology page that mirrors the paper and draws on the decision records.
-3. **Tutorial notebooks**. Material, assembly, building and scenario
-   comparison, executed in CI.
-4. **Release pipeline**. Version from the git tag (v0.2.0 was set by hand in
-   `pyproject.toml`), CHANGELOG, PyPI trusted publishing, Zenodo DOI with
-   `.zenodo.json`.
-5. **JOSS paper** (**needs Jay**). `paper.md` and the statement of need.
-6. **Pre-public checklist** (**needs Jay**). Check the history for anything
-   private, check badges and links, then make the repository public.
-7. **Branch protection on main** (**needs Jay**, issue #16). Require CI and
-   Jay's review. Waits until the repository is public.
+1. **Settle the proposed records** (#95; `science`, **needs Jay**). Records
+   0008 (`assess()` and `Result`), 0009 (parameter fingerprint guard) and 0010
+   (carbon-cycle feedback) are still Proposed. An agent checks each record's
+   claims against the code, and Jay accepts, amends or supersedes each one.
+   The public API should not be frozen at v1.0 until this is done.
+2. **Public API record** (#96; `science`, **needs Jay**). A decision record
+   (0022) on which names are public, what semver covers (Python API, input and
+   result JSON versions, packaged data and parameters) and the deprecation
+   policy, then `__all__` to match and a test that guards it. Blocked by
+   item 1.
+3. **Docs site** (#97). mkdocs-material and mkdocstrings, with an API
+   reference for the public names, a strict build in CI, and a GitHub Pages
+   deploy that stays off until the repository is public. Blocked by item 2.
+4. **Methodology page** (#98; **needs Jay**). One page on what the model
+   computes, each rule linked to its decision record and its function. It
+   mirrors the paper. Blocked by items 1 and 3.
+5. **Tutorial notebooks** (#99). Material, assembly, building and scenario
+   comparison, executed in CI, using only the shared example inventories.
+   Blocked by item 3.
+6. **Release pipeline** (#100). Version from the git tag (`hatch-vcs`), a
+   check that the wheel holds the packaged data, and a GitHub release with the
+   wheel and sdist on each `v*` tag. No PyPI in M5.
+7. **Zenodo DOI** (#101; **needs Jay**). `.zenodo.json`, an updated
+   `CITATION.cff`, and the Zenodo GitHub integration, which needs a public
+   repository. Blocked by item 9.
+8. **JOSS paper** (#102; **needs Jay**). `paper.md`, `paper.bib`, the
+   statement of need, and a PDF build in CI. Blocked by item 4; submission
+   waits for item 11 and a public repository.
+9. **Pre-public checklist** (#103; **needs Jay**). Scan the history for
+   secrets and data files, check issue and PR text, badges and links, then
+   Jay makes the repository public.
+10. **Branch protection on main** (#16; **needs Jay**). Require CI and Jay's
+    review. Blocked by item 9.
+11. **Release v1.0.0** (#104). CHANGELOG, tag, GitHub release and DOI, then
+    mark M5 done here. Blocked by all of the above.
 
 ## Not scheduled
 
@@ -215,3 +240,5 @@ Put off during M1. Each needs an issue and a milestone before work starts.
 - The CO₂ sink of 0.7 ± 0.7 kg per kg that AR6 gives for biogenic CH₄, which
   neither parameter set models (#26).
 - Caching `ClimateParameters.fingerprint()` if speed ever matters (#37).
+- Publishing to PyPI. Left out of M5 by Jay's choice; releases are on GitHub.
+- Other concrete carbonation models, such as Jungclaus et al. (2025) (#76).
