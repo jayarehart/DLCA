@@ -40,6 +40,9 @@ markdown_extensions:
   - tables
   - toc:
       permalink: true
+  - pymdownx.arithmatex:
+      # LaTeX for MathJax on the methodology page (#98).
+      generic: true
   - pymdownx.details
   - pymdownx.highlight
   - pymdownx.superfences
@@ -49,6 +52,9 @@ markdown_extensions:
       # copying them. A missing file fails the build.
       base_path: ["."]
       check_paths: true
+
+extra_javascript:
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 
 plugins:
   - search
@@ -83,7 +89,7 @@ nav:
   - Quick start: quickstart.md
   # Tutorials (#99) go here, as a section: `- Tutorials: tutorials/...`
   - Inputs: inputs.md
-  # Methodology (#98) goes here: `- Methodology: methodology.md`
+  - Methodology: methodology.md
   - API reference:
       - api/index.md
       - dlca: api/dlca.md
