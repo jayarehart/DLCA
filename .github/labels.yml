@@ -13,6 +13,20 @@
   color: "5319E7"
   description: "Touches equations, parameters, timing, or reference data; deliberate lane"
 
+# Internal review before v1.0 (milestone M5r, record 0023)
+- name: review
+  color: "FBCA04"
+  description: "Finding from the internal review before v1.0"
+- name: "review:blocker"
+  color: "B60205"
+  description: "Review finding: must be fixed before v1.0.0"
+- name: "review:should-fix"
+  color: "E99695"
+  description: "Review finding: real problem, fix before v1.0 if cheap"
+- name: "review:later"
+  color: "F9E1A8"
+  description: "Review finding: can wait past v1.0"
+
 # Areas
 - name: "area:climate"
   color: "C5DEF5"

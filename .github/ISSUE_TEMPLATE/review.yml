@@ -1,0 +1,77 @@
+name: Review finding
+description: A finding from the internal review before v1.0 (milestone M5r). One finding per issue.
+title: "[Review]: "
+labels: ["review"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reviewing. The review packet is `docs/reviews/v1.0-internal/README.md`; it lists the areas, what to read and the known gaps that don't need reporting.
+        **This repository is public.** Don't paste unpublished results, embargoed or licence-restricted data, or secrets. A small made-up input that shows the problem is best.
+        Security problems go through private reporting (see SECURITY.md), not here.
+  - type: input
+    id: tag
+    attributes:
+      label: Release candidate reviewed
+      description: The tag you reviewed, or a commit hash.
+      placeholder: "v1.0.0rc1"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Climate engine and parameters
+        - Inventory, timing and EN 15978 modules
+        - Biogenic carbon, carbonation, B6 and trajectories
+        - Usability and public API
+        - Docs, methodology and paper
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: |
+        blocker = a result is wrong, or the docs or paper claim something the code doesn't do. Must be fixed before v1.0.0.
+        should-fix = a real problem that doesn't make a result wrong (confusing API, missing check, unclear docs).
+        later = an idea or improvement that can wait past v1.0.
+      options:
+        - blocker
+        - should-fix
+        - later
+    validations:
+      required: true
+  - type: textarea
+    id: finding
+    attributes:
+      label: What is wrong
+      description: What you saw, and where (file, function, docs page or paper section).
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence from outside the code
+      description: |
+        Where your expectation comes from: a hand calculation, a closed-form result, an IPCC table, a standard (e.g. EN 15978), a paper (with DOI), or the reference spreadsheet. A value the code itself produced is not independent evidence.
+        For usability or docs findings, say what you tried and what you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce (if it's a result)
+      description: The smallest code and input that show the problem.
+      render: python
+    validations:
+      required: false
+  - type: textarea
+    id: fix
+    attributes:
+      label: Suggested fix
+      description: What you would change. For science findings, Jay decides before any code is written.
+    validations:
+      required: false
