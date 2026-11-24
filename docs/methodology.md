@@ -525,13 +525,14 @@ fingerprint, so a stored result says which release and parameters made it.
   decay and contribution to global warming. *GCB Bioenergy* 3(5), 413–426.
   [doi:10.1111/j.1757-1707.2011.01102.x](https://doi.org/10.1111/j.1757-1707.2011.01102.x).
 - Cooper, S. J. G., Green, R., Hattam, L., Röder, M., Welfle, A., McManus, M.
-  (2020). *Biomass and Bioenergy* 142, 105778.
+  (2020). Exploring temporal aspects of climate-change effects due to
+  bioenergy. *Biomass and Bioenergy* 142, 105778.
   [doi:10.1016/j.biombioe.2020.105778](https://doi.org/10.1016/j.biombioe.2020.105778).
 - EN 15978:2011. *Sustainability of construction works: assessment of
   environmental performance of buildings, calculation method.*
-- Forster, P., et al. (2021). The Earth's energy budget, climate feedbacks,
-  and climate sensitivity. In *Climate Change 2021: The Physical Science Basis*
-  (IPCC AR6 WG1), Chapter 7 and its Supplementary Material.
+- Forster, P., et al. (2021). The Earth's energy budget, climate feedbacks and
+  climate sensitivity. In *Climate Change 2021: The Physical Science Basis*
+  (IPCC AR6 WG1), Chapter 7, pp. 923–1054, and its Supplementary Material.
   [doi:10.1017/9781009157896.009](https://doi.org/10.1017/9781009157896.009).
 - Gagnon, P., et al. (2025). *Cambium 2024 Scenario Descriptions and
   Documentation.* National Renewable Energy Laboratory.
@@ -552,8 +553,8 @@ fingerprint, so a stored result says which release and parameters made it.
   Dev.* 13, 3571–3605.
   [doi:10.5194/gmd-13-3571-2020](https://doi.org/10.5194/gmd-13-3571-2020).
 - Myhre, G., et al. (2013). Anthropogenic and natural radiative forcing. In
-  *Climate Change 2013: The Physical Science Basis* (IPCC AR5 WG1), Chapter 8
-  and its Supplementary Material.
+  *Climate Change 2013: The Physical Science Basis* (IPCC AR5 WG1), Chapter 8,
+  pp. 659–740, and its Supplementary Material.
   [doi:10.1017/CBO9781107415324.018](https://doi.org/10.1017/CBO9781107415324.018).
 - Smith, C. J., et al. (2021). IPCC-WG1/Chapter-7 code.
   [doi:10.5281/zenodo.5211357](https://doi.org/10.5281/zenodo.5211357).
