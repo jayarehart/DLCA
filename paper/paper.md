@@ -72,7 +72,7 @@ TODO(Jay). Prompts:
 # Software design
 
 DLCA has two layers. The climate engine (`dlca.climate`) works on a yearly
-emissions series of four keys (CO₂, non-fossil CH₄, fossil CH₄ and N₂O, in kg
+emissions series of four keys (CO~2~, non-fossil CH~4~, fossil CH~4~ and N~2~O, in kg
 per year) and has no knowledge of buildings. The inventory layer
 (`dlca.inventory`) turns a building description into that series and then
 calls the engine. Users who already have a yearly emissions series can call
@@ -95,11 +95,11 @@ equation to its record and to the function that computes it.
 
 # Functionality
 
-**Climate engine.** CO₂ follows the four-pool impulse response of
-@Joos2013. CH₄ and N₂O decay with one perturbation lifetime each. Forcing
+**Climate engine.** CO~2~ follows the four-pool impulse response of
+@Joos2013. CH~4~ and N~2~O decay with one perturbation lifetime each. Forcing
 uses effective radiative efficiencies that include the indirect effects of
-CH₄ and N₂O. Fossil CH₄ is oxidised to CO₂ following @Boucher2009. With the
-AR6 parameters, the carbon-cycle feedback of CH₄ and N₂O follows
+CH~4~ and N~2~O. Fossil CH~4~ is oxidised to CO~2~ following @Boucher2009. With the
+AR6 parameters, the carbon-cycle feedback of CH~4~ and N~2~O follows
 @Gasser2017. Temperature uses the two-box climate response of each parameter
 set [@Forster2021; @Smith2021]. Between whole years every quantity follows its
 exact continuous solution, so for a single pulse the yearly results equal the
@@ -108,7 +108,7 @@ closed-form absolute GWP and GTP.
 **Metrics.** For a chosen horizon, DLCA returns dynamic GWI and GTP (the
 cumulative effect up to each year), sliding GWI and GTP (each emission
 assessed up to a fixed end year), and static GWP and GTP (no timing), all in
-kg CO₂-equivalent.
+kg CO~2~-equivalent.
 
 **Building inventory.** A building is entered either as whole-building totals
 by EN 15978 life cycle module [@EN15978] or as assemblies of materials with

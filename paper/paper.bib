@@ -97,10 +97,12 @@
 
 % Crossref lists no authors for this chapter, and gives the print edition's
 % date (2023). The year below is the report's (2021), as IPCC asks it to be
-% cited; the author list is the first author as docs/methodology.md gives it,
-% then "others". Author list: UNCHECKED against a registry.
+% cited. Author list: UNCHECKED. ipcc.ch refused automated reads, so the
+% chapter's own citation text was not seen; "Forster et al." is written as a
+% literal name so that it renders as "et al.". TODO(Jay): replace with the
+% full author list from the chapter's "should be cited as" text.
 @incollection{Forster2021,
-  author    = {Forster, P. and others},
+  author    = {{Forster et al.}},
   title     = {{The Earth's Energy Budget, Climate Feedbacks and Climate Sensitivity}},
   booktitle = {Climate Change 2021 -- The Physical Science Basis. Contribution of Working Group I to the Sixth Assessment Report of the Intergovernmental Panel on Climate Change},
   year      = {2021},
@@ -110,10 +112,10 @@
 }
 
 % Crossref lists no authors for this chapter, and gives the print date
-% (2014). The year below is the report's (2013). Author list: UNCHECKED
-% against a registry (first author, then "others").
+% (2014). The year below is the report's (2013). Author list: UNCHECKED, as
+% for Forster2021. TODO(Jay): replace with the full author list.
 @incollection{Myhre2013,
-  author    = {Myhre, G. and others},
+  author    = {{Myhre et al.}},
   title     = {{Anthropogenic and Natural Radiative Forcing}},
   booktitle = {Climate Change 2013 -- The Physical Science Basis. Contribution of Working Group I to the Fifth Assessment Report of the Intergovernmental Panel on Climate Change},
   year      = {2013},
@@ -154,13 +156,16 @@
   year         = {2011}
 }
 
-% UNCHECKED: no DOI. Author list as in docs/methodology.md ("Gagnon, P., et al.").
+% Crossref record of the OSTI DOI (checked 2026-11-24): authors, title,
+% date and DOI as given there. Crossref lists the publisher as OSTI; the
+% institution and report number are from the OSTI record.
 @techreport{Gagnon2025,
-  author      = {Gagnon, P. and others},
+  author      = {Gagnon, Pieter and Sanchez Perez, Pedro Andres and Florez, Julian and Morris, James and Llerena Velasquez, Marck and Eisenman, Jordan},
   title       = {{Cambium 2024 Scenario Descriptions and Documentation}},
   institution = {National Renewable Energy Laboratory},
+  number      = {NREL/TP-6A40-93005},
   year        = {2025},
-  url         = {https://docs.nlr.gov/docs/fy25osti/93005.pdf}
+  doi         = {10.2172/2558937}
 }
 
 % UNCHECKED: no DOI.
