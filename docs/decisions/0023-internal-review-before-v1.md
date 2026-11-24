@@ -1,6 +1,6 @@
 # 0023. Internal review gate before v1.0
 
-- **Status:** Accepted
+- **Status:** Superseded in part by 0024
 - **Date:** 2026-11-24
 - **Decided by:** Jay Arehart, accepted 2026-11-24 (#120, PR #121)
 
