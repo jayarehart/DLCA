@@ -58,6 +58,7 @@ __all__ = [
 ]
 
 BUILDING_RESULT_SCHEMA = "dlca.building_result"
+"""The ``schema`` tag of `BuildingResult.to_dict()` output."""
 # Bump whenever the form of BuildingResult.to_dict() changes. Version 2 (#73):
 # the building may hold `biogenic` fields and a "biogenic-uptake" module row;
 # version 1 data still loads. Version 3 (#74): `carbonation` fields and the
@@ -66,6 +67,7 @@ BUILDING_RESULT_SCHEMA = "dlca.building_result"
 # building may hold `energy` lines (record 0019). Version 6 (#85): an energy
 # line may hold `cambium_gea`, `cambium_scenario` and `year_zero` (record 0021).
 BUILDING_RESULT_SCHEMA_VERSION = 6
+"""The ``schema_version`` that `BuildingResult.to_dict()` writes; older versions still load."""
 _READABLE_BUILDING_RESULT_VERSIONS = (1, 2, 3, 4, 5, 6)
 
 MODULE_ORDER = (

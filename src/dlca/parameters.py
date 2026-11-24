@@ -30,6 +30,7 @@ __all__ = [
 ]
 
 DEFAULT_PARAMETER_SET = "AR6"
+"""Name of the parameter set used when none is given (record 0007, D6)."""
 
 _SCHEMA_VERSION = 1
 _INDIRECT_FORMS = ("multiplicative", "additive")

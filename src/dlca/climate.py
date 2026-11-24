@@ -94,25 +94,32 @@ __all__ = [
     "temperature",
 ]
 
-# The physical gases: one burden, forcing and temperature series each.
 GASES = ("co2", "ch4", "n2o")
+"""The physical gases: one burden, forcing and temperature series each."""
 
-# The keys an emissions mapping may hold (decision S4 on #30). ``ch4`` is
-# non-fossil (biogenic) CH4, which is not oxidised to CO2; ``ch4_fossil`` is
-# fossil CH4, which is. Both add to the CH4 burden.
 EMISSION_KEYS = ("co2", "ch4", "ch4_fossil", "n2o")
+"""The keys an emissions mapping may hold (decision S4 on #30).
 
-# Smallest horizon gwi(), gtp() and static_gwp() accept [yr] (decision H2 on
-# #47, decision record 0012). Below about 1e-9 yr the closed forms lose
-# precision (1 - exp(-H/tau) rounds to 0); at 1e-6 yr their relative error is
-# at most about 3e-9. agwp() and agtp() still accept any H >= 0.
+``ch4`` is non-fossil (biogenic) CH4, which is not oxidised to CO2;
+``ch4_fossil`` is fossil CH4, which is. Both add to the CH4 burden.
+"""
+
 MIN_HORIZON = 1e-6
+"""Smallest horizon `gwi()`, `gtp()` and `static_gwp()` accept [yr].
 
-# kg CO2 per kg CH4 for a 1 mol/mol conversion, from nominal integer molar masses
-# (12 + 2*16) / (12 + 4) = 44/16. Decision D1 on issue #27 (Jay, 2026-11-18): this
-# reproduces the Cooper et al. 2020 spreadsheet. The parameter sets' own molar
-# masses (44.01 / 16.05) would give 0.29% less oxidised CO2.
+Decision H2 on #47, decision record 0012. Below about 1e-9 yr the closed forms
+lose precision (1 - exp(-H/tau) rounds to 0); at 1e-6 yr their relative error
+is at most about 3e-9. `agwp()` and `agtp()` still accept any H >= 0.
+"""
+
 CO2_PER_CH4_MASS_RATIO = 44.0 / 16.0
+"""kg CO2 per kg CH4 for a 1 mol/mol conversion [kg CO2 / kg CH4].
+
+From nominal integer molar masses: (12 + 2*16) / (12 + 4) = 44/16. Decision D1
+on issue #27 (Jay, 2026-11-18): this reproduces the Cooper et al. 2020
+spreadsheet. The parameter sets' own molar masses (44.01 / 16.05) would give
+0.29% less oxidised CO2.
+"""
 
 
 def _arrays(data: Mapping, names: tuple[str, ...]) -> dict[str, NDArray[np.float64]]:
@@ -655,9 +662,9 @@ class GWI:
             emissions of years 0..t, divided by ``agwp_co2`` [kg CO2e]. An
             emission in year k gets horizon ``max(horizon - k, 0)``. For a
             whole-number horizon, ``sliding[t] == dynamic[horizon]`` for
-            t >= horizon. CO2 formed from
-            fossil CH4 counts as CO2 emitted in the year it forms (decision D2,
-            #28). Shape (N,). (The Cooper spreadsheet's ``GWP_sliding_CO2e``.)
+            t >= horizon. CO2 formed from fossil CH4 counts as CO2 emitted in
+            the year it forms (decision D2, #28). Shape (N,). (The Cooper
+            spreadsheet's ``GWP_sliding_CO2e``.)
         static: ``static_gwp(...).total``: cumulative net emissions up to year t
             times GWP_H, summed over the keys [kg CO2e]. Fossil CH4 includes its
             oxidised CO2 (decision S3 on #30). Shape (N,). (``GWP_static_CO2e``.)
