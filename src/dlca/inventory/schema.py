@@ -51,13 +51,16 @@ from numpy.typing import NDArray
 from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
 
 SCHEMA_VERSION = 6
+"""Newest input ``schema_version``, and the default. Inputs from 1 to this value validate."""
 FIRST_BIOGENIC_VERSION = 2
 FIRST_CARBONATION_VERSION = 3
 FIRST_TRAJECTORY_VERSION = 4
 FIRST_ENERGY_VERSION = 5
 FIRST_CAMBIUM_VERSION = 6
 TOTALS_TAG = "dlca.building_totals"
+"""The ``schema`` tag of a `BuildingTotals` input."""
 INVENTORY_TAG = "dlca.building_inventory"
+"""The ``schema`` tag of a `BuildingInventory` input."""
 
 OneOffModule = Literal["A1-A3", "A4", "A5", "C1", "C2", "C3", "C4"]
 """Modules with a single amount."""

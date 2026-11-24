@@ -40,11 +40,13 @@ from dlca.parameters import ClimateParameters, get_parameters
 __all__ = ["RESULT_SCHEMA", "RESULT_SCHEMA_VERSION", "Result", "assess"]
 
 RESULT_SCHEMA = "dlca.result"
+"""The ``schema`` tag of `Result.to_dict()` output."""
 # Bump whenever the form of Result.to_dict() changes.
 # 2: burden, forcing and temperature carry parameter_fingerprint (#37, G6).
 # 3: burden carries ccf_co2 and the parameter values carry the CCF fields (#33, C7).
 # 4: gwi, gtp and static_gwp carry parameter_fingerprint (#46, F3).
 RESULT_SCHEMA_VERSION = 4
+"""The ``schema_version`` that `Result.to_dict()` writes."""
 
 
 def _package_version() -> str:

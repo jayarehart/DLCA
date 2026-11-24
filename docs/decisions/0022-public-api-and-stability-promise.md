@@ -1,8 +1,8 @@
 # 0022. The v1.0 public API and its stability promise
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-24
-- **Decided by:**
+- **Decided by:** Jay Arehart, accepted 2026-11-24 (P1–P4 and N1–N3 on #96; review points added in PR #110)
 
 ## Context
 
