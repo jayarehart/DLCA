@@ -34,6 +34,7 @@ REQUIRED_FILES = (
     # eGRID2023 grid factors
     "dlca/data/egrid2023_rev2_state.csv",
     "dlca/data/egrid2023_rev2_subregion.csv",
+    "dlca/data/EGRID_NOTICE.md",
     # Cambium 2024 grid factors and their notice
     "dlca/data/cambium2024_gea_aer_gen_c.csv",
     "dlca/data/cambium2024_gea_historical.csv",
