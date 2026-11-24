@@ -10,10 +10,9 @@ v1.0.0 (milestone M5) is a semantic-versioning promise, but no record says what
 it covers. At v0.5.0, `dlca.__all__` has eight names and `dlca.inventory.__all__`
 has 35. `dlca.climate`, `dlca.parameters` and `dlca.result` each have an
 `__all__`; the inventory submodules (`aggregate`, `biogenic`, `carbonation`,
-`operational`, `schema`, `timing`, `units`) and `dlca.data` have none. Three
+`operational`, `schema`, `timing`, `units`) and `dlca.data` have none. Four
 JSON formats are written with version numbers: the input schemas
-(`schema_version` 6), `Result` (4) and `BuildingResult` (6), plus `Timeline`
-(3). Issue #107 proposes a non-building entry point, `assess_inventory()`, for
+(`schema_version` 6), `Result` (4), `BuildingResult` (6) and `Timeline` (3). Issue #107 proposes a non-building entry point, `assess_inventory()`, for
 a v1.x minor release, and names three things this record should not freeze
 carelessly: `Timeline`, what `dlca.inventory` means, and `Metrics`. The API
 reference of the docs site (#97) will show only the names listed here.
