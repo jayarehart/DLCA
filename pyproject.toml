@@ -43,8 +43,8 @@ dependencies = [
 ]
 
 [project.urls]
-# Documentation points at the README until the docs site (#97) exists.
-Documentation = "https://github.com/jayarehart/DLCA#readme"
+# The docs site (#97), deployed by .github/workflows/pages.yml.
+Documentation = "https://jayarehart.github.io/DLCA/"
 Repository = "https://github.com/jayarehart/DLCA"
 Changelog = "https://github.com/jayarehart/DLCA/blob/main/CHANGELOG.md"
 Issues = "https://github.com/jayarehart/DLCA/issues"
@@ -72,6 +72,10 @@ dev = [
     "ruff",
     "pre-commit",
     "hypothesis>=6.168.5",
+]
+docs = [
+    "mkdocs-material>=9.7.7",
+    "mkdocstrings[python]>=1.0.6",
 ]
 
 [tool.ruff]

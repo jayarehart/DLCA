@@ -83,10 +83,12 @@ Series = Mapping[str, NDArray[np.float64]]
 """Gas key to kg per year, index 0 = year 0."""
 
 TIMELINE_SCHEMA = "dlca.timeline"
+"""The ``schema`` tag of `Timeline.to_dict()` output."""
 # Bump whenever the form of Timeline.to_dict() changes. Version 2 (#73) adds
 # the module "biogenic-uptake"; version 3 (#74) adds "carbonation-uptake" and
 # "carbonation-eol". Older data still loads.
 TIMELINE_SCHEMA_VERSION = 3
+"""The ``schema_version`` that `Timeline.to_dict()` writes; older versions still load."""
 _READABLE_TIMELINE_VERSIONS = (1, 2, 3)
 
 _YEAR_ZERO = ("A1-A3", "A4", "A5")
