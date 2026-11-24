@@ -66,13 +66,19 @@ users to its functions for a single series.
 | Change the default parameter set, or what a packaged set name means beyond the row below | **major** |
 | Add a name, an optional argument or field, an entry point, a schema, a result type, a packaged data option (for example a new grid dataset or scenario) | minor |
 | Add a module key, breakdown row type or field to a result, with a new JSON version that still reads the old ones | minor |
+| Add a field to `ClimateParameters` (for example for a new gas), with a new `Result` JSON version whose `from_dict()` still reads stored results that lack it, and whose stored-fingerprint check still passes for them (how is left to that change's record) | minor |
+| Add a warning for a case that did not warn before (users who run with `-W error` see it as an error) | minor |
 | Change any output number for an input that was valid before (a science change or a bug fix that moves numbers), always with a decision record or issue and a "Numbers changed" changelog entry stating which outputs, by how much and why | minor |
 | Correct a packaged value that differs from its cited source (parameter set, eGRID, Cambium, Hub factors) | minor, as above |
 | Drop a Python version past its end of life, or raise a dependency floor | minor |
-| A fix, doc or speed change that leaves every output within rounding (relative 1e-12) and changes no public name | patch |
+| A fix, doc or speed change that changes no public name, adds no warning, and leaves the numbers unchanged (below) | patch |
 
-So a patch release never moves a number: `dlca ~= 1.N.0` gives fixes with
-the same results. Results already carry `dlca_version` and the parameter
+"Numbers unchanged" means: every reference and property test result is bit
+for bit the same, and no known valid input moves any output by more than
+max(1e-12 × |value|, 1e-15) in its own unit. The absolute floor covers values
+at or near zero (a GTP that crosses zero, a net-zero biogenic balance). Jay
+judges any case the test suites do not settle. So a patch release never moves
+a number: `dlca ~= 1.N.0` gives fixes with the same results. Results already carry `dlca_version` and the parameter
 fingerprint, so a stored result says which release made it.
 
 ### 3. JSON formats (P3)
@@ -86,6 +92,9 @@ fingerprint, so a stored result says which release made it.
   same rule. A new version is minor only if `from_dict()` still reads every
   earlier 1.x version. `Result.from_dict()` today reads only 4; that is
   correct at v1.0, and a later `Result` version must add 4 to what it reads.
+  Because `ClimateParameters.from_dict()` refuses missing keys and
+  `fingerprint()` covers every field, a new parameter field needs such a new
+  `Result` version (P2).
 - The packaged JSON Schema files are part of the input format; where they sit
   inside the package is internal.
 
@@ -156,7 +165,9 @@ within 1.x.
 - At v1.0 no name needs to move: every existing `__all__` already matches P1
   (checked against `dir()` at v0.5.0). `tests/unit/test_public_api.py` (#96,
   PR #110) holds the list of P1 and fails if a public name is added or removed
-  without the test changing.
+  without the test changing. It also pins the arguments and defaults of the
+  public functions, the public constants, and the fields of the public
+  classes (dataclass fields and input JSON keys).
 - Every PR that changes a public name, a JSON version or an output number has
   to say which release kind it needs; the PR template's "Numbers changed"
   heading already asks for the last.
@@ -170,6 +181,7 @@ within 1.x.
 ## References
 
 - Issue #96 (this record; Jay chose every option as recommended on
-  2026-11-24, recorded in the issue), PR #110, #107 (section 5), #97–#99, #102.
+  2026-11-24, recorded in the issue, and accepted the fresh review's
+  additions to P2 and P3 the same day), PR #110, #107 (section 5), #97–#99, #102.
 - Records 0005, 0007, 0008 (as amended by #95), 0009, 0010, 0013–0021.
 - Semantic Versioning 2.0.0, https://semver.org/spec/v2.0.0.html.
