@@ -61,4 +61,4 @@ link is fine.
 | [0020](0020-trajectories-for-biogenic-items.md) | Trajectories for biogenic items: their CO₂ is not scaled | Accepted |
 | [0021](0021-cambium-b6-factors.md) | Packaged Cambium 2024 grid factors for B6 electricity | Accepted |
 | [0022](0022-public-api-and-stability-promise.md) | The v1.0 public API and its stability promise | Accepted |
-| [0023](0023-internal-review-before-v1.md) | Internal review gate before v1.0 | Proposed |
+| [0023](0023-internal-review-before-v1.md) | Internal review gate before v1.0 | Accepted |
