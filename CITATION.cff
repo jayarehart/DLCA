@@ -8,6 +8,7 @@ authors:
     orcid: "https://orcid.org/0000-0002-9434-1783"
   - family-names: Khajah
     given-names: Fatemah
+    affiliation: "University of Colorado Boulder"
 license: MIT
 repository-code: "https://github.com/jayarehart/DLCA"
 abstract: >-
