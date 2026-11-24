@@ -1,8 +1,8 @@
 # 0009. Climate results record their parameter set; mixing sets raises
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-19
-- **Decided by:**
+- **Decided by:** Jay Arehart, 2026-11-23 (accepted as written, #95)
 
 ## Context
 

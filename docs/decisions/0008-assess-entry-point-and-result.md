@@ -1,8 +1,8 @@
 # 0008. Public entry point `assess()` and the `Result` object
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-19
-- **Decided by:**
+- **Decided by:** Jay Arehart, 2026-11-23 (accepted with the amendments of #95)
 
 ## Context
 
@@ -16,7 +16,7 @@ proposal (decisions A1–A9). Jay approved it as recommended on 2026-11-19.
 
 ## Decision
 
-We will expose one entry point:
+We will expose one climate-level entry point:
 
 ```python
 dlca.assess(emissions, *, parameters="AR6", horizon=100) -> dlca.Result
@@ -27,7 +27,8 @@ dlca.assess(emissions, *, parameters="AR6", horizon=100) -> dlca.Result
   own key (decision S4 on #30), so there is no `fossil_ch4` flag.
 - `parameters` is a set name for `get_parameters()` or a `ClimateParameters`
   (for example a variant made with `dataclasses.replace()`).
-- `horizon` is H in years, > 0, used for every normalised and sliding metric.
+- `horizon` is H in years, `>= MIN_HORIZON` (1e-6 yr, record 0012), used for
+  every normalised and sliding metric.
 
 `assess()` calls `burden`, `forcing`, `temperature`, `gwi`, `gtp` and
 `static_gwp` once each with the same set and H. It copies its inputs and never
@@ -40,7 +41,8 @@ the **full** `ClimateParameters` used, `parameter_set` (its name),
 array is read-only.
 
 `Result.to_dict()` gives plain lists, floats, strings and bools under
-`schema: "dlca.result"`, `schema_version: 1`. The parameter set sits under
+`schema: "dlca.result"`, `schema_version` = `RESULT_SCHEMA_VERSION` (4 at
+v0.5.0; the changes are recorded in 0009 and 0010). The parameter set sits under
 `parameters: {name, fingerprint, carbon_cycle_feedback, values}`.
 `Result.from_dict()` is its exact inverse: every array comes back bit for bit.
 It raises for another schema or version. It also raises if the stored name,
@@ -48,6 +50,12 @@ fingerprint or CCF flag does not match the stored values.
 
 The old `DLCAEngine`, `DLCAInputData`, `DLCAResults` and the pasted
 `AGWP_supp_data.csv` / `AGTP_supp_data.csv` tables and their loaders are removed.
+
+Amended by #95 (Jay, 2026-11-23), while this record was still Proposed, to
+match the code at v0.5.0. "One entry point" now reads "one climate-level entry
+point": `assess_building()` (record 0015) is the building-level entry point
+built on `assess()`. The horizon bound is record 0012's, and the schema version
+is no longer fixed at 1.
 
 ## Alternatives considered
 
@@ -59,7 +67,8 @@ The old `DLCAEngine`, `DLCAInputData`, `DLCAResults` and the pasted
   dependency to the core.
 - **Store only the set's name and fingerprint (not its values).** Lost: a
   variant keeps its set's name, so a saved result could not say which values
-  made it. The full set is 26 fields, which is small. (Judgement call.)
+  made it. The full set is 26 fields, which is small. (Judgement call.) It is
+  30 fields since the CCF fields of record 0010; the choice still holds.
 - **A `fossil_ch4` flag on `assess()`.** Lost: it would undo decision S4 on #30,
   which made fossil CH4 an emissions key.
 
