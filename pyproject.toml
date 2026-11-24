@@ -72,8 +72,12 @@ dev = [
     "ruff",
     "pre-commit",
     "hypothesis>=6.168.5",
+    "nbstripout>=0.9.2",
 ]
 docs = [
+    "ipykernel>=7.3.0",
+    "matplotlib>=3.10.9",
+    "mkdocs-jupyter>=0.26.3",
     "mkdocs-material>=9.7.7",
     "mkdocstrings[python]>=1.0.6",
 ]

@@ -13,3 +13,8 @@ repos:
       - id: ruff
         args: [--fix]
       - id: ruff-format
+  # Notebooks are committed without outputs; the docs build runs them (#99).
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.9.2
+    hooks:
+      - id: nbstripout

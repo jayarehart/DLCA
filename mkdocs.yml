@@ -70,6 +70,20 @@ plugins:
             merge_init_into_class: true
             members_order: source
             heading_level: 3
+  # The tutorials (#99) are committed without outputs and run during every
+  # build, so `mkdocs build --strict` fails if a cell raises. No cache, so a
+  # build always runs them against the current package.
+  - mkdocs-jupyter:
+      include: ["tutorials/*.ipynb"]
+      # Skip the jupytext check of every Markdown page (none are notebooks).
+      ignore: ["*.md"]
+      execute: true
+      allow_errors: false
+      cache: false
+      include_source: true
+      # Markdown cells go through MkDocs, so links are checked and rewritten
+      # and admonitions render as on the other pages.
+      markdown_cell_processor: mkdocs
 
 validation:
   omitted_files: info
@@ -81,7 +95,11 @@ nav:
   - Home: index.md
   - Install: install.md
   - Quick start: quickstart.md
-  # Tutorials (#99) go here, as a section: `- Tutorials: tutorials/...`
+  - Tutorials:
+      - One material: tutorials/01_material.ipynb
+      - An assembly over its life: tutorials/02_assembly.ipynb
+      - A building, broken down: tutorials/03_building.ipynb
+      - Scenarios: tutorials/04_scenarios.ipynb
   - Inputs: inputs.md
   # Methodology (#98) goes here: `- Methodology: methodology.md`
   - API reference:
