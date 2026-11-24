@@ -46,9 +46,9 @@ link is fine.
 | [0005](0005-backend-agnostic-api.md) | Backend-agnostic API | Accepted |
 | [0006](0006-adopt-cairn-practices-subset.md) | Adopt a subset of cairn practices | Accepted |
 | [0007](0007-climate-parameter-files.md) | Climate parameter files, `ClimateParameters` and the selector | Accepted |
-| [0008](0008-assess-entry-point-and-result.md) | Public entry point `assess()` and the `Result` object | Proposed |
-| [0009](0009-parameter-fingerprint-guard.md) | Climate results record their parameter set; mixing sets raises | Proposed |
-| [0010](0010-carbon-cycle-feedback.md) | Carbon-cycle feedback for CH₄ and N₂O (AR6 on, exact) | Proposed |
+| [0008](0008-assess-entry-point-and-result.md) | Public entry point `assess()` and the `Result` object | Accepted |
+| [0009](0009-parameter-fingerprint-guard.md) | Climate results record their parameter set; mixing sets raises | Accepted |
+| [0010](0010-carbon-cycle-feedback.md) | Carbon-cycle feedback for CH₄ and N₂O (AR6 on, exact) | Accepted |
 | [0011](0011-fossil-ch4-oxidation-residual.md) | Fossil CH₄ oxidation keeps the perturbation lifetime; the AR6 gap is documented | Accepted |
 | [0012](0012-minimum-horizon.md) | Minimum time horizon of 1e-6 yr | Accepted |
 | [0013](0013-inventory-schema.md) | Inventory input schemas: `BuildingTotals` and `BuildingInventory` | Accepted |

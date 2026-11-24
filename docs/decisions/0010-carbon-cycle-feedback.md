@@ -1,8 +1,8 @@
 # 0010. Carbon-cycle feedback for CH₄ and N₂O
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-19
-- **Decided by:**
+- **Decided by:** Jay Arehart, 2026-11-23 (accepted with a note in C7, #95)
 
 ## Context
 
@@ -49,7 +49,8 @@ We will add the AR6 CCF of Gasser et al. (2017), computed exactly:
   The switch and values are in `fingerprint()`, so the #37 guard rejects a
   burden made with CCF on and used with CCF off.
 - **Reporting (C7).** No new `Result` field; `Burden.to_dict()` gains
-  `ccf_co2`; the `Result` schema version goes to 3.
+  `ccf_co2`; the `Result` schema version goes to 3 (now 4, see
+  0009).
 - **Biogenic carbon (C8).** `ch4` stays CH₄ with no carbon credit. AR6
   Table 7.15's non-fossil value subtracts 44.01/16.043 kg CO₂ per kg CH₄ (the
   CO₂ the biogenic carbon came from); in DLCA that belongs in the inventory.
