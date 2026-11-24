@@ -17,14 +17,18 @@ claim found after that is much harder to fix.
 We will hold an internal review, milestone M5r, between the methodology page
 and tutorials (#98, #99) and the v1.0.0 tag and JOSS submission (#104, #102):
 
-1. Jay tags a release candidate (`v1.0.0rc1`), and everyone reviews that tag.
-2. Jay and colleagues each take one or two areas from the review packet
-   (`docs/reviews/v1.0-internal/README.md`) and file one issue per finding
-   with the **Review finding** form. Each finding gives evidence from outside
+1. Jay tags a release candidate (`v1.0.0rc1`), and the review covers that
+   tag.
+2. Jay reviews every area in the review packet
+   (`docs/reviews/v1.0-internal/README.md`). Fatemah Khajah is a second
+   reviewer if she can take part, and she takes the science areas first. An
+   agent session that did not write the code may do a first pass on an area
+   only Jay reviews. Each finding is one issue from the **Review finding**
+   form. Each finding gives evidence from outside
    the code, as for the independent check in record 0006.
-3. At a wrap-up meeting, reviewers present their findings and proposed fixes.
-   Jay sorts each one as blocker, should-fix or later.
-4. Every blocker is fixed through its normal lane, and the reviewer who raised
+3. In a triage session (or issue by issue, if Jay is the only reviewer), Jay
+   sorts each finding as blocker, should-fix or later.
+4. Every blocker is fixed through its normal lane, and the person who raised
    it confirms the fix. If output numbers move, a new rc is tagged and the
    changed areas are re-checked.
 5. v1.0.0 and the JOSS submission wait until every blocker is closed and the
@@ -32,6 +36,9 @@ and tutorials (#98, #99) and the v1.0.0 tag and JOSS submission (#104, #102):
 
 ## Alternatives considered
 
+- **Recruit several colleagues, one or two areas each.** Lost: Jay chose a
+  small review with himself and possibly Fatemah Khajah. More reviewers would
+  give more independence but take longer to arrange.
 - **No separate review; rely on the per-PR reviews.** Lost: per-PR reviews
   check one change at a time and miss problems that only show across the
   package, such as double counting between modules or docs that contradict
@@ -51,6 +58,11 @@ and tutorials (#98, #99) and the v1.0.0 tag and JOSS submission (#104, #102):
 - Each rc tag creates a GitHub pre-release. If the Zenodo integration archives
   pre-releases, each rc also gets a DOI version unless Jay turns that off.
   Not yet checked.
+- The review is not fully independent. Jay made every science decision in
+  the records, so where he is the only reviewer the review checks the work
+  against his own choices. The evidence-from-outside-the-code field, the
+  agent first pass and Fatemah's science areas reduce this but don't remove
+  it. The summary says which areas only Jay reviewed.
 - The summary's "not reviewed" list becomes known limits of v1.0, and can go
   into the paper.
 

@@ -35,7 +35,7 @@ pure functions with JSON-serialisable inputs and outputs (record 0005).
 | M3 · Biogenic and carbonation | v0.4.0 | Biogenic carbon (uptake, storage, release) and concrete CO₂ uptake | [milestone 4](https://github.com/jayarehart/DLCA/milestone/4) |
 | M4 · Operational and scenarios | v0.5.0 | Time-varying emission factors for replacement and end-of-life emissions, operational energy (B6). Remove the fake DOE data | [milestone 5](https://github.com/jayarehart/DLCA/milestone/5) |
 | M5 · Docs and release | v1.0.0 | Settle the proposed API records and the public API, docs site, tutorials, GitHub release, Zenodo DOI, JOSS paper, repository goes public, then branch protection | [milestone 6](https://github.com/jayarehart/DLCA/milestone/6) |
-| M5r · Internal review | v1.0.0rc1 | Jay and colleagues review a frozen release candidate; blockers are fixed and confirmed before the v1.0.0 tag and the JOSS submission (record 0023) | milestone not yet created |
+| M5r · Internal review | v1.0.0rc1 | Jay, and Fatemah Khajah if available, review a frozen release candidate; blockers are fixed and confirmed before the v1.0.0 tag and the JOSS submission (record 0023) | milestone not yet created |
 | M6 · After v1.0 | v1.x | Additive work deferred past the v1.0 API freeze: new entry points or schemas that break nothing in v1.0, released as minor versions | [milestone 7](https://github.com/jayarehart/DLCA/milestone/7) |
 
 ## Decisions from M0 and M1 that shape later work
@@ -118,7 +118,7 @@ flowchart TB
   end
   subgraph M5R["M5r · Internal review"]
     RC["Tag v1.0.0rc1"] --> RW["Review window"]
-    RW --> WM["Wrap-up meeting and triage"]
+    RW --> WM["Triage"]
     WM --> FX["Fix and confirm blockers"]
     FX --> RS["Review summary"]
   end
@@ -251,7 +251,8 @@ table and the release pipeline depend only on M0 and can start at any time.
 
 ### M5r · Internal review (v1.0.0rc1)
 
-Jay and colleagues review the package before v1.0.0 and the JOSS submission.
+Jay reviews the package before v1.0.0 and the JOSS submission, with Fatemah
+Khajah as a second reviewer if she can take part.
 Findings that would make a result wrong or a claim misleading are fixed first.
 The process is in record 0023 and the review packet is
 `docs/reviews/v1.0-internal/README.md`. Jay creates the GitHub milestone.
@@ -263,16 +264,17 @@ The process is in record 0023 and the review packet is
    release pipeline marks it as a pre-release. Before tagging, check whether
    the Zenodo integration archives pre-releases; if it does, turn it off for
    the rc or accept a DOI version for it. Blocked by M5 items 4 and 5.
-3. **Review window** (**needs Jay**). Two to three weeks. Each reviewer
-   takes one or two areas from the packet and files each finding as a
-   `review` issue against the rc tag.
-4. **Wrap-up meeting and triage** (**needs Jay**). Reviewers present their
-   blockers and proposed fixes. Jay sorts each finding: blockers stay in M5r
+3. **Review window** (**needs Jay**). Two to three weeks. Jay covers every
+   area in the packet; if Fatemah takes part, she takes the science areas.
+   Each finding is filed as a `review` issue against the rc tag.
+4. **Triage** (**needs Jay**). Jay, with Fatemah if she reviewed, goes
+   through each finding and its proposed fix. Jay sorts each finding: blockers stay in M5r
    and go through their normal lane (most are `science`); should-fix items go
    to M5r if cheap, else M6; later items go to "Not scheduled" or are closed
    with a reason.
-5. **Fix and confirm.** One PR per finding, `Closes #<finding>`. The reviewer
-   who raised it confirms the fix before the issue closes. If any output
+5. **Fix and confirm.** One PR per finding, `Closes #<finding>`. The person
+   who raised it confirms the fix before the issue closes (Jay, for his own
+   and agent findings). If any output
    number moves, tag `v1.0.0rc2` and re-check the changed areas only.
 6. **Review summary.** Fill in the summary section of the packet: who
    reviewed which area, counts by severity, what changed, and what was not

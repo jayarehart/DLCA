@@ -1,7 +1,7 @@
 # Internal review before v1.0
 
-Jay Arehart and colleagues review DLCA before the v1.0.0 release and the JOSS
-submission. This page is the review packet, and at the end it holds the review
+Jay Arehart reviews DLCA before the v1.0.0 release and the JOSS submission,
+with Fatemah Khajah as a second reviewer if she can take part. This page is the review packet, and at the end it holds the review
 summary. The process is in [record 0023](../../decisions/0023-internal-review-before-v1.md)
 and the steps are milestone M5r in the [roadmap](../../roadmap.md).
 
@@ -11,7 +11,8 @@ and the steps are milestone M5r in the [roadmap](../../roadmap.md).
 |---|---|
 | Version under review | `v1.0.0rc1` (not yet tagged) |
 | Review window | _start date_ to _end date_ |
-| Wrap-up meeting | _date_ |
+| Reviewers | Jay Arehart; Fatemah Khajah (to be confirmed) |
+| Triage session | _date_ |
 | Where findings go | A GitHub issue from the **Review finding** form, one finding per issue |
 
 Review the tagged release candidate, not `main`, so everyone looks at the same
@@ -37,16 +38,23 @@ changed areas are re-checked.
 
 ## Areas
 
-Each reviewer takes one or two areas. One area can have more than one
-reviewer.
+Jay reviews every area. If Fatemah takes part, she takes the science areas
+(the first three) first. Jay made every science decision in the records, so a
+second reader is most useful there. Agree on her areas before the window opens,
+and change the table to match.
+
+For an area that only Jay reviews, an agent session that did not write the
+code may do a first pass (see "Fresh-session review" in `AGENTS.md`). File its
+findings with the same form and say in the issue that it is an agent finding.
+Jay still decides each one.
 
 | Area | Check against | Starting points | Reviewer(s) |
 |---|---|---|---|
-| Climate engine and parameters | IPCC AR5 and AR6 tables, closed-form results | `dlca.climate`, `dlca.parameters`; records 0002, 0007, 0009–0012 | _name_ |
-| Inventory, timing and EN 15978 modules | EN 15978; records 0013–0015 | `dlca.inventory`; inputs page | _name_ |
-| Biogenic carbon, carbonation, B6 and trajectories | The sources cited in records 0016–0021 | Records 0016–0021 | _name_ |
-| Usability and public API | Running the tutorials, then a shareable building of your own | Quick start, tutorials, record 0022 | _name_ |
-| Docs, methodology and paper | Whether each claim matches the code | Methodology page, `paper.md` | _name_ |
+| Climate engine and parameters | IPCC AR5 and AR6 tables, closed-form results | `dlca.climate`, `dlca.parameters`; records 0002, 0007, 0009–0012 | Jay; Fatemah if available |
+| Inventory, timing and EN 15978 modules | EN 15978; records 0013–0015 | `dlca.inventory`; inputs page | Jay; Fatemah if available |
+| Biogenic carbon, carbonation, B6 and trajectories | The sources cited in records 0016–0021 | Records 0016–0021 | Jay; Fatemah if available |
+| Usability and public API | Running the tutorials, then a shareable building of your own | Quick start, tutorials, record 0022 | Jay |
+| Docs, methodology and paper | Whether each claim matches the code | Methodology page, `paper.md` | Jay |
 
 ### Questions worth asking
 
@@ -83,20 +91,24 @@ Jay sets the final severity at triage, with a `review:*` label.
 
 ## After the review window
 
-1. At the wrap-up meeting, each reviewer presents their blockers and proposed
-   fixes. Jay decides each finding's severity and milestone, and records the
-   decision in the issue.
+1. In a triage session, Jay (with Fatemah, if she reviewed) goes through
+   every finding and its proposed fix. Jay decides each finding's severity and
+   milestone, and records the decision in the issue. If Jay is the only
+   reviewer, this can happen issue by issue instead of in one session.
 2. Each fix is one PR that closes its finding. Science fixes follow the
    deliberate lane in `AGENTS.md`: a proposal first, and Jay decides before
    code is written.
-3. The reviewer who raised a finding confirms the fix in the issue before it
-   is closed.
+3. The person who raised a finding confirms the fix in the issue before it is
+   closed. For Fatemah's findings, that is Fatemah. For Jay's and agent
+   findings, Jay confirms it after checking the fix against the finding's
+   evidence, not only against the tests.
 
 ## Review summary
 
 _Filled in when the review closes._
 
-- **Reviewers and areas:** _who reviewed what_
+- **Reviewers and areas:** _who reviewed what; mark each area that only Jay
+  reviewed, and any agent first pass_
 - **Version reviewed:** _tags, including any rc2_
 - **Findings:** _n_ blocker, _n_ should-fix, _n_ later; _n_ closed as not a
   problem
