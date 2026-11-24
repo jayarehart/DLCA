@@ -155,8 +155,9 @@ within 1.x.
 ## Consequences
 
 - At v1.0 no name needs to move: every existing `__all__` already matches P1
-  (checked against `dir()` at v0.5.0). Step 2 of #96 adds
-  `tests/unit/test_public_api.py`.
+  (checked against `dir()` at v0.5.0). `tests/unit/test_public_api.py` (#96,
+  PR #110) holds the list of P1 and fails if a public name is added or removed
+  without the test changing.
 - Every PR that changes a public name, a JSON version or an output number has
   to say which release kind it needs; the PR template's "Numbers changed"
   heading already asks for the last.
@@ -169,6 +170,7 @@ within 1.x.
 
 ## References
 
-- Issue #96 (this record), #107 (section 5), #97–#99, #102.
+- Issue #96 (this record; Jay chose every option as recommended on
+  2026-11-24, recorded in the issue), PR #110, #107 (section 5), #97–#99, #102.
 - Records 0005, 0007, 0008 (as amended by #95), 0009, 0010, 0013–0021.
 - Semantic Versioning 2.0.0, https://semver.org/spec/v2.0.0.html.
